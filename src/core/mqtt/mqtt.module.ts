@@ -9,7 +9,7 @@ import { LogLevel } from 'src/common/logger/logger.service'
     LoggerModule.forRoot({
       level: LogLevel.DEBUG, // 根据环境变量设置
       enableFile: true,
-      enableConsole: true,
+      enableConsole: false,
     }),
   ],
   providers: [AedesBrokerService, MqttScannerService],

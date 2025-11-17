@@ -20,7 +20,7 @@ export class AedesBrokerService implements OnModuleInit {
         try {
           const usernameStr = username?.toString() || ''
           const passwordStr = password?.toString() || ''
-          const whiteUsers = JSON.parse(process.env.MQTT_WHITELIST || '[]')
+          const whiteUsers = JSON.parse(process.env.MQTT_WHITELIST)
           if (!whiteUsers.length) {
             this.loggerService.warn('⚠️ MQTT_WHITELIST is empty or not set. No users are allowed to connect.')
             return callback(null, false)
@@ -104,7 +104,7 @@ export class AedesBrokerService implements OnModuleInit {
     try {
       await handler.instance[handler.methodName](...args)
     } catch (err) {
-      console.error(`执行处理器错误:`, err)
+      this.loggerService.error(err)
     }
   }
 
@@ -132,7 +132,10 @@ export class AedesBrokerService implements OnModuleInit {
   publishToClient(clientId: string, topic: string, payload: string | Buffer): void {
     const client = this.online.get(clientId)
     if (!client) return
-    client.publish({ topic, payload, qos: 0, retain: false }, err => err && console.error('[publishToClient]', err))
+    client.publish(
+      { topic, payload, qos: 0, retain: false },
+      err => err && this.loggerService.mqttError(clientId, `[publish]${err}`),
+    )
   }
 
   get clients(): Map<string, any> {
