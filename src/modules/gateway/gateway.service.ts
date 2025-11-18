@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common'
 import Gateway from './schema/HanqiGateway.schema'
-import type { HanqiGatewayDocument } from './schema/HanqiGateway.schema'
 import User from '@/shared/schemas/User'
 import type { UserDocument } from '@/shared/schemas/User'
 import { IGatewayServiceInterface } from './interfaces/gateway-service.interface'

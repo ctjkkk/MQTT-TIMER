@@ -1,11 +1,9 @@
-import { SetMetadata } from '@nestjs/common'
 // 元数据键
-export const MQTT_TOPIC_METADATA = 'MQTT_TOPIC_METADATA'
-export const MQTT_PARAM_METADATA = 'MQTT_PARAM_METADATA'
+import { MQTT_TOPIC_METADATA, MQTT_PARAM_METADATA } from '../constants/mqtt.constants'
 
 // 主题订阅装饰器
-export const Topic = (topic: string | string[]) => {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+export const Topic = (topic: string | string[]): MethodDecorator => {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
     const topics = Array.isArray(topic) ? topic : [topic]
     const existing = Reflect.getMetadata(MQTT_TOPIC_METADATA, target, propertyKey) || []
     existing.push(...topics)

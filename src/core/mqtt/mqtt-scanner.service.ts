@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
 import { ModuleRef, ModulesContainer } from '@nestjs/core'
 import { AedesBrokerService } from './mqtt-broker.service'
-import { MQTT_TOPIC_METADATA } from '../../shared/decorators/mqtt.decorator'
+import { MQTT_TOPIC_METADATA } from '@/shared/constants/mqtt.constants'
 
 @Injectable()
 export class MqttScannerService implements OnModuleInit {
