@@ -67,7 +67,7 @@ export class LoggerService {
 
   // MQTT 连接相关日志
   mqttConnect(username?: string, ClientId?: string) {
-    this.info(`✅ Hanqi Authentication successful for user: ${username}`)
+    this.info(`✅ ${ClientId} Authentication successful for user: ${username}`)
   }
 
   mqttDisconnect(clientId: string, reason?: string) {
@@ -105,7 +105,7 @@ export class LoggerService {
 
     // 控制台输出
     const color = this.getColorForLevel(level)
-    console.log(`\x1b[90m${timestamp}\x1b[0m ${color}${level.toUpperCase().padEnd(7)}\x1b[0m ${logContext} ${message}`)
+    console.log(`\x1b[90m${timestamp}\x1b[0m ${color}${level.toUpperCase().padEnd(7)}\x1b[0m ${message}\n${logContext}`)
     if (data && this.options.enableConsole) {
       console.log('\x1b[90mData:\x1b[0m', data)
     }

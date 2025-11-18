@@ -1,31 +1,27 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common'
 import mongoose from 'mongoose'
 import { ConfigService } from '@nestjs/config'
-import { LoggerService } from '../../common/logger/logger.service'
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private connection: typeof mongoose
   private readonly config: { host: string; options: any }
-  constructor(
-    private configService: ConfigService,
-    private loggerService: LoggerService,
-  ) {
+  constructor(private configService: ConfigService) {
     this.config = this.configService.get('database')!
   }
   async onModuleInit() {
     const { host, options } = this.config
     try {
       this.connection = await mongoose.connect(host, options)
-      this.loggerService.mongodbConnect(host, options.dbName)
+      Logger.log(`✅ MongoDB 连接成功 - 数据库: ${options.dbName}`)
       mongoose.connection.on('error', error => {
-        this.loggerService.mongodbConnectionError(host, options.dbName, error)
+        Logger.error(`❌ MongoDB 连接错误: ${error.message}`)
       })
       mongoose.connection.on('disconnected', () => {
-        this.loggerService.mongodbDisconnect(host, options.dbName)
+        Logger.warn('⚠️ MongoDB 已断开连接')
       })
     } catch (error) {
-      this.loggerService.mongodbConnectionError(host, options.dbName, error)
+      Logger.error(`❌ MongoDB 连接失败: ${error.message}`)
       throw error
     }
   }
@@ -34,7 +30,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     if (this.connection) {
       await mongoose.disconnect()
       const { host, options } = this.config
-      this.loggerService.mongodbDisconnect(host, options.dbName)
+      Logger.log(`🛑 MongoDB 连接已关闭 - 数据库: ${options.dbName} 主机: ${host}`)
     }
   }
 

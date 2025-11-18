@@ -1,20 +1,20 @@
 // src/core/mqtt/aedes-broker.service.ts
-import { Injectable, OnModuleInit } from '@nestjs/common'
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
 import Aedes from 'aedes'
 import { createServer } from 'net'
-import { LoggerService } from '../../common/logger/logger.service'
-
+import { LoggerService } from '@/common/logger/logger.service'
+import { MqttConnectionParameters } from '@/shared/constants/mqtt.constants'
+import { LogMessages } from '@/shared/constants/log-messages.constants'
 @Injectable()
 export class AedesBrokerService implements OnModuleInit {
   constructor(private loggerService: LoggerService) {}
-  /** 自己维护在线客户端（事件填充） */
   private online = new Map<string, any>()
   private topicHandlers = new Map<string, any[]>()
-  readonly PORT = process.env.MQTT_PORT ?? 1883
+  readonly PORT = process.env.MQTT_PORT ?? MqttConnectionParameters.PORT
   private aedes = new Aedes({
-    id: 'HANQI_MQTT_Broker',
-    connectTimeout: 30000,
-    heartbeatInterval: 60000,
+    id: MqttConnectionParameters.ID, // 使用枚举值，不是枚举本身
+    connectTimeout: MqttConnectionParameters.CONNECT_TIME,
+    heartbeatInterval: MqttConnectionParameters.HEART_BEAT_INTERVAL,
     authenticate: (client: any, username, password, callback) => {
       process.nextTick(() => {
         try {
@@ -22,17 +22,17 @@ export class AedesBrokerService implements OnModuleInit {
           const passwordStr = password?.toString() || ''
           const whiteUsers = JSON.parse(process.env.MQTT_WHITELIST)
           if (!whiteUsers.length) {
-            this.loggerService.warn('⚠️ MQTT_WHITELIST is empty or not set. No users are allowed to connect.')
+            this.loggerService.warn(LogMessages.MQTT.WHITELIST_EMPTY)
             return callback(null, false)
           }
           const ok = usernameStr && passwordStr && whiteUsers.some(u => u.username == usernameStr && u.password == passwordStr)
           if (!ok) {
-            this.loggerService.warn(`❌ ${username} Authentication failed for user: ${usernameStr}`)
+            this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(usernameStr))
             const error: any = new Error('Authentication failed')
             error.returnCode = 4 // NOT_AUTHORIZED
             return callback(error, false)
           }
-          this.loggerService.mqttConnect(usernameStr)
+          this.loggerService.mqttConnect(usernameStr, client.id)
           client.will = {
             topic: 'last/will',
             payload: 'Client disconnected unexpectedly',
@@ -42,6 +42,7 @@ export class AedesBrokerService implements OnModuleInit {
           return callback(null, true)
         } catch (error) {
           this.loggerService.mqttError(username, error)
+          this.loggerService.error(LogMessages.MQTT.INTERNAL_ERROR)
           const authError: any = new Error('Internal authentication error')
           authError.returnCode = 4
           return callback(authError, false)
@@ -54,17 +55,16 @@ export class AedesBrokerService implements OnModuleInit {
   async onModuleInit() {
     this.aedes.on('client', c => this.online.set(c.id, c))
     this.aedes.on('clientDisconnect', c => this.online.delete(c.id))
-    // 让 Aedes 收到包后 → 走你的统一分发
     this.aedes.on('publish', (packet, client) => {
       if (client) {
-        this.loggerService.info(`📨 Message published from ${client.id} to topic ${packet.topic}`)
+        this.loggerService.info(LogMessages.MQTT.MESSAGE_PUBLISHED(client.id, packet.topic), packet.payload.toString())
         this.dispatchToHandlers(packet.topic, packet.payload, client?.id || '')
       }
     })
 
     return new Promise<void>(resolve =>
       this.server.listen(this.PORT, () => {
-        console.log(`✅ Aedes MQTT Broker 启动成功，端口: ${this.PORT}`)
+        Logger.log(LogMessages.MQTT.BROKER_START(this.PORT))
         resolve()
       }),
     )
