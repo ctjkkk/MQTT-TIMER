@@ -5,12 +5,15 @@ import { createServer } from 'net'
 import { LoggerService } from '@/common/logger/logger.service'
 import { MqttConnectionParameters } from '@/shared/constants/mqtt.constants'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
+import * as tls from 'tls'
 @Injectable()
 export class AedesBrokerService implements OnModuleInit {
   constructor(private loggerService: LoggerService) {}
   private online = new Map<string, any>()
   private topicHandlers = new Map<string, any[]>()
   readonly PORT = process.env.MQTT_PORT ?? MqttConnectionParameters.PORT
+  readonly PSK_PORT = process.env.MQTT_PSK_PORT ?? MqttConnectionParameters.PSK_PORT
+
   private aedes = new Aedes({
     id: MqttConnectionParameters.ID, // 使用枚举值，不是枚举本身
     connectTimeout: MqttConnectionParameters.CONNECT_TIME,
@@ -51,6 +54,15 @@ export class AedesBrokerService implements OnModuleInit {
     },
   })
   private server = createServer(this.aedes.handle)
+  private tlsServer = tls.createServer(
+    {
+      pskCallback: (socket, identity) => {
+        return this.getPskKey(identity)
+      },
+      ciphers: 'PSK-AES128-CBC-SHA256:PSK-AES256-CBC-SHA384:PSK-AES128-GCM-SHA256:PSK-AES256-GCM-SHA384',
+    },
+    this.aedes.handle,
+  )
 
   async onModuleInit() {
     this.aedes.on('client', c => this.online.set(c.id, c))
@@ -62,15 +74,23 @@ export class AedesBrokerService implements OnModuleInit {
       }
     })
 
-    return new Promise<void>(resolve =>
+    // 启动TCP服务器（端口1883，使用用户名密码认证）
+    await new Promise<void>(resolve =>
       this.server.listen(this.PORT, () => {
-        Logger.log(LogMessages.MQTT.BROKER_START(this.PORT))
+        Logger.log(LogMessages.MQTT.BROKER_START('TCP', this.PORT))
+        resolve()
+      }),
+    )
+
+    // 启动TLS-PSK服务器（端口8445，使用PSK认证）
+    await new Promise<void>(resolve =>
+      this.tlsServer.listen(this.PSK_PORT, () => {
+        Logger.log(LogMessages.MQTT.BROKER_START('PSK', this.PSK_PORT))
         resolve()
       }),
     )
   }
 
-  /* ---------- 统一分发（走 invokeHandler，保证 broker 注入） ---------- */
   private dispatchToHandlers(topic: string, payload: string | Buffer, clientId: string): void {
     for (const [registeredTopic, handlers] of this.topicHandlers) {
       if (this.topicMatches(topic, registeredTopic)) {
@@ -96,7 +116,7 @@ export class AedesBrokerService implements OnModuleInit {
           args[p.index] = topic
           break
         case 'broker':
-          args[p.index] = this // ✅ 当前 AedesBrokerService 实例
+          args[p.index] = this // 当前 AedesBrokerService 实例
           break
       }
     })
@@ -108,7 +128,6 @@ export class AedesBrokerService implements OnModuleInit {
     }
   }
 
-  /* ---------- 以下方法签名与原 MqttBrokerService 完全一致 ---------- */
   subscribe(topic: string, handler: any) {
     const list = this.topicHandlers.get(topic) ?? []
     list.push(handler)
@@ -146,7 +165,6 @@ export class AedesBrokerService implements OnModuleInit {
     return map
   }
 
-  /* ---------- 通配符匹配（保持原逻辑） ---------- */
   private topicMatches(pubTopic: string, subTopic: string): boolean {
     const pubParts = pubTopic.split('/')
     const subParts = subTopic.split('/')
@@ -157,5 +175,21 @@ export class AedesBrokerService implements OnModuleInit {
       if (pubParts[i] !== sub) return false
     }
     return true
+  }
+
+  private getPskKey(identity: string): Buffer | null {
+    try {
+      const pskWhitelist = JSON.parse(process.env.MQTT_PSK_WHITELIST || '[]')
+      const entry = pskWhitelist.find((e: any) => e.identity === identity)
+      if (!entry) {
+        this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(identity))
+        return null
+      }
+      this.loggerService.mqttConnect(identity, identity)
+      return Buffer.from(entry.key, 'hex')
+    } catch (error) {
+      this.loggerService.error(`PSK key lookup error: ${error}`)
+      return null
+    }
   }
 }

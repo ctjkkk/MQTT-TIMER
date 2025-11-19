@@ -1,7 +1,7 @@
 // src/shared/constants/log-messages.constants.ts
 export const LogMessages = {
   MQTT: {
-    BROKER_START: (port: string | number) => `✅ Aedes MQTT Broker 启动成功，端口: ${port}`,
+    BROKER_START: (way: string, port: string | number) => `✅ ${way} 模式成功连接到 MQTT 代理，端口：${port}`,
     BROKER_STOP: '🛑 MQTT Broker 已停止',
     CLIENT_CONNECTED: (clientId: string) => `🔗 客户端连接: ${clientId}`,
     CLIENT_DISCONNECTED: (clientId: string) => `🔌 客户端断开: ${clientId}`,
