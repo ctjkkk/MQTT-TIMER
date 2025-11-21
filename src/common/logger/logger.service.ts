@@ -2,7 +2,6 @@ import { Injectable, Inject } from '@nestjs/common'
 import { createLogger, format } from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
 import type { LoggerOptions } from './interfaces/logger-options.interface'
-import { ClientId } from './../../shared/decorators/mqtt.decorator'
 
 export enum LogLevel {
   ERROR = 'error',

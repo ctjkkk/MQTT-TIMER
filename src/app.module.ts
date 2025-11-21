@@ -13,6 +13,7 @@ import { ScheduleModule } from './modules/schedule/schedule.module'
 import { DatabaseService } from './core/database/database.service'
 import { DatabaseModule } from './core/database/database.module'
 import { MqttModule } from './core/mqtt/mqtt.module'
+import { PskModule } from './modules/psk/psk.module';
 import databaseConfig from './config/database.config'
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import databaseConfig from './config/database.config'
     OutletModule,
     ScheduleModule,
     DatabaseModule,
+    PskModule,
   ],
   controllers: [AppController, TimerController, OutletController, ScheduleController],
   providers: [AppService, TimerService, DatabaseService],

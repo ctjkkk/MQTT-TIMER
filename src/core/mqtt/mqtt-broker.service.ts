@@ -21,14 +21,22 @@ export class AedesBrokerService implements OnModuleInit {
     authenticate: (client: any, username, password, callback) => {
       process.nextTick(() => {
         try {
+          // 如果底层是 TLS-PSK，直接放行；测试工具: mosquitto
+          if (client.isPSK) {
+            return callback(null, true)
+          }
+          //否则底层是 TCP; 测试工具: MQTTX
           const usernameStr = username?.toString() || ''
           const passwordStr = password?.toString() || ''
-          const whiteUsers = JSON.parse(process.env.MQTT_WHITELIST)
+          const whiteUsers = JSON.parse(process.env.MQTT_TCP_WHITELIST)
           if (!whiteUsers.length) {
             this.loggerService.warn(LogMessages.MQTT.WHITELIST_EMPTY)
             return callback(null, false)
           }
-          const ok = usernameStr && passwordStr && whiteUsers.some(u => u.username == usernameStr && u.password == passwordStr)
+          const ok =
+            usernameStr &&
+            passwordStr &&
+            whiteUsers.some((u: { username: string; password: string }) => u.username == usernameStr && u.password == passwordStr)
           if (!ok) {
             this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(usernameStr))
             const error: any = new Error('Authentication failed')
@@ -53,12 +61,24 @@ export class AedesBrokerService implements OnModuleInit {
       })
     },
   })
-  private server = createServer(this.aedes.handle)
+  private tcpServer = createServer(this.aedes.handle)
   private tlsServer = tls.createServer(
     {
-      pskCallback: (socket, identity) => {
-        return this.getPskKey(identity)
+      pskCallback: (socket: any, identity) => {
+        const key = this.getPskKey(identity)
+        if (!key) return
+        //等 Aedes 把 socket 包装成 client 后再挂标记
+        socket.once('secure', () => {
+          // secure 事件触发时，aedes.handle 已经内部实例化了 client
+          const client = socket.client ?? socket.aedesClient
+          if (client) {
+            client['isPSK'] = true
+            client['pskIdentity'] = identity
+          }
+        })
+        return key
       },
+      // broker 支持的加密算法白名单
       ciphers: 'PSK-AES128-CBC-SHA256:PSK-AES256-CBC-SHA384:PSK-AES128-GCM-SHA256:PSK-AES256-GCM-SHA384',
     },
     this.aedes.handle,
@@ -76,7 +96,7 @@ export class AedesBrokerService implements OnModuleInit {
 
     // 启动TCP服务器（端口1883，使用用户名密码认证）
     await new Promise<void>(resolve =>
-      this.server.listen(this.PORT, () => {
+      this.tcpServer.listen(this.PORT, () => {
         Logger.log(LogMessages.MQTT.BROKER_START('TCP', this.PORT))
         resolve()
       }),
@@ -153,7 +173,7 @@ export class AedesBrokerService implements OnModuleInit {
     if (!client) return
     client.publish(
       { topic, payload, qos: 0, retain: false },
-      err => err && this.loggerService.mqttError(clientId, `[publish]${err}`),
+      (err: any) => err && this.loggerService.mqttError(clientId, `[publish]${err}`),
     )
   }
 
