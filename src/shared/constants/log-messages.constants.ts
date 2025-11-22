@@ -13,6 +13,16 @@ export const LogMessages = {
     INTERNAL_ERROR: '🚨 内部认证错误',
     PUBLISH_ERROR: (error: string) => `📤 发布错误: ${error}`,
   },
+  SERVER: {
+    LOCAL_SERVER: (port: number) => `The local server has been started and is listening on port ${port}`,
+    NO_SIGN_ENV_VAR: () => '警告:未配置SIGNATURE_SECRET环境变量,签名验证将无法正常工作',
+    X_SIGN_IS_MISSING: () => '请求缺少签名头 X-Signature',
+    X_TIME_IS_MISSING: () => '请求缺少时间戳头 X-Timestamp',
+    X_TIME_IS_EXPIRED_OR_INVALID: (timestamp: string) => `时间戳已过期或无效: ${timestamp}`,
+    X_SIGN_VERIFY_FAILED: (method: string, path: string, timestamp: string) =>
+      `签名验证失败 - Method: ${method}, Path: ${path}, Timestamp: ${timestamp}`,
+    X_SIGN_TIME_VERIFY_SCCUSS: (path: string) => `签名验证成功 - Path: ${path}`,
+  },
   GATEWAY: {
     NOT_FOUND: (mac: string) => `📡 网关未找到: ${mac}`,
     USER_NOT_FOUND: (mac: string, userId: string) => `👤 用户未找到: 网关 ${mac}, 用户ID ${userId}`,

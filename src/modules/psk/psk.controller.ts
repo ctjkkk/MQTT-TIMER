@@ -1,25 +1,21 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common'
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common'
 import { PskService } from './psk.service'
+import { SignatureGuard } from '@/modules/psk/guards/signature'
 
 /**
  * PSK认证Controller
  * 提供PSK生成和确认的HTTP接口
+ * 使用签名验证保护接口安全
  */
 @Controller('psk')
+@UseGuards(SignatureGuard)
 export class PskController {
   constructor(private readonly pskService: PskService) {}
 
-  /**
-   * 生成PSK
-   * POST /psk/generate
-   * Body: { mac: string }
-   * Response: { identity: string, key: string }
-   */
   @Post('generate')
   @HttpCode(HttpStatus.OK)
   async generatePsk(@Body() body: { mac: string }) {
     const { mac } = body
-
     if (!mac) {
       return {
         success: false,
@@ -41,12 +37,6 @@ export class PskController {
     }
   }
 
-  /**
-   * 确认PSK烧录成功
-   * POST /psk/confirm
-   * Body: { mac: string }
-   * Response: { success: boolean, message: string }
-   */
   @Post('confirm')
   @HttpCode(HttpStatus.OK)
   async confirmPsk(@Body() body: { mac: string }) {
