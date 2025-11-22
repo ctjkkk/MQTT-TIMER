@@ -13,13 +13,14 @@ import { ScheduleModule } from './modules/schedule/schedule.module'
 import { DatabaseService } from './core/database/database.service'
 import { DatabaseModule } from './core/database/database.module'
 import { MqttModule } from './core/mqtt/mqtt.module'
-import { PskModule } from './modules/psk/psk.module';
+import { PskModule } from './modules/psk/psk.module'
 import databaseConfig from './config/database.config'
+import mqttConfig from './config/mqtt.config'
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig],
+      load: [databaseConfig, mqttConfig],
       envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`],
     }),
     MqttModule,
