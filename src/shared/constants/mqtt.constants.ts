@@ -1,11 +1,3 @@
-export const MqttConnectionParameters = {
-  ID: 'HANQI_MQTT_Broker',
-  CONNECT_TIME: 30000,
-  HEART_BEAT_INTERVAL: 60000,
-  PORT: 1883,
-  PSK_PORT: 8445,
-} as const
-
 export enum DeviceConnectionStatus {
   DISCONNECTED = 0,
   CONNECTED = 1,
