@@ -1,4 +1,3 @@
-// src/shared/constants/log-messages.constants.ts
 export const LogMessages = {
   MQTT: {
     BROKER_START: (way: string, port: string | number) => `✅ ${way} 模式成功连接到 MQTT 代理，端口：${port}`,
@@ -28,6 +27,10 @@ export const LogMessages = {
     USER_NOT_FOUND: (mac: string, userId: string) => `👤 用户未找到: 网关 ${mac}, 用户ID ${userId}`,
     CONNECTION_UPDATED: (mac: string, status: string) => `🔄 连接状态更新: ${mac} -> ${status}`,
     DEVICE_DISCONNECTED: (mac: string) => `🔌 设备断开: ${mac}`,
+  },
+  PSK: {
+    LOAD: (size: number) => `[PskService] 缓存预热完成，已加载 ${size} 条已确认 PSK`,
+    GENERATED: (identity: string, key: string) => `PSK identity: ${identity}, key: ${key} 已生成并写入数据库，状态: 待确认`,
   },
   COMMON: {
     ERROR: (context: string, error: string) => `❌ ${context} 错误: ${error}`,

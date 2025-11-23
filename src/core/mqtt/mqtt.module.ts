@@ -3,6 +3,7 @@ import { AedesBrokerService } from './mqtt-broker.service'
 import { MqttScannerService } from './mqtt-scanner.service'
 import { LoggerModule } from '../../common/logger/logger.module'
 import { LogLevel } from 'src/common/logger/logger.service'
+import { PskModule } from '@/modules/psk/psk.module'
 @Global()
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { LogLevel } from 'src/common/logger/logger.service'
       enableFile: true,
       enableConsole: false,
     }),
+    PskModule,
   ],
   providers: [AedesBrokerService, MqttScannerService],
   exports: [AedesBrokerService, MqttScannerService],

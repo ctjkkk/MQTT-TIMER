@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common'
 import { createLogger, format } from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
 import type { LoggerOptions } from './interfaces/logger-options.interface'
+import moment from 'moment'
 
 export enum LogLevel {
   ERROR = 'error',
@@ -100,22 +101,23 @@ export class LoggerService {
 
   private log(level: LogLevel, message: string, context?: string, data?: any) {
     const logContext = context || this.context
-    const timestamp = new Date().toISOString()
-
-    // 控制台输出
+    const now = new Date()
+    const pid = process.pid
+    const timestampStr = moment().format('YYYY/MM/DD HH:mm:ss')
     const color = this.getColorForLevel(level)
-    console.log(`\x1b[90m${timestamp}\x1b[0m ${color}${level.toUpperCase().padEnd(7)}\x1b[0m ${message}\n${logContext}`)
+    const levelText = level.toUpperCase().padEnd(1) // 保持 7 字符宽
+    const levelBlock = logContext ? `${levelText} [${logContext}]` : levelText
+    console.log(`\x1b[90m[Self] ${pid}  - ${timestampStr}\x1b[0m ` + `${color}${levelBlock}\x1b[0m ${color}${message}`)
     if (data && this.options.enableConsole) {
-      console.log('\x1b[90mData:\x1b[0m', data)
+      console.log(`\x1b[90mData:\x1b[0m`, data)
     }
 
-    // 文件输出
     if (!this.options.enableFile) return
-    const logger = this.createFileLogger(level, context)
-    logger.log({
-      level: level,
-      message: message,
-      timestamp: timestamp,
+    const fileLogger = this.createFileLogger(level, context)
+    fileLogger.log({
+      level,
+      message,
+      timestamp: now.toISOString(),
       context: logContext,
       ...data,
     })

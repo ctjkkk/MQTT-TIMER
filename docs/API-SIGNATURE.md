@@ -53,12 +53,7 @@ const BASE_URL = 'http://127.0.0.1:8018/api'
 /**
  * 生成请求签名
  */
-function generateSignature(
-  method: string,
-  path: string,
-  timestamp: string,
-  body?: any
-): string {
+function generateSignature(method: string, path: string, timestamp: string, body?: any): string {
   const parts = [method.toUpperCase(), path, timestamp]
 
   if (body && Object.keys(body).length > 0) {
@@ -66,19 +61,13 @@ function generateSignature(
   }
 
   const signString = parts.join('\n')
-  return crypto.createHmac('sha256', SIGNATURE_SECRET)
-    .update(signString)
-    .digest('hex')
+  return crypto.createHmac('sha256', SIGNATURE_SECRET).update(signString).digest('hex')
 }
 
 /**
  * 发送带签名的请求
  */
-async function requestWithSignature(
-  method: string,
-  path: string,
-  body?: any
-) {
+async function requestWithSignature(method: string, path: string, body?: any) {
   const timestamp = Date.now().toString()
   const signature = generateSignature(method, path, timestamp, body)
 
@@ -209,14 +198,17 @@ curl -X POST "${BASE_URL}${PATH}" \
 ## 常见错误
 
 ### 1. "缺少签名" / "缺少时间戳"
+
 确保请求头中包含 `X-Signature` 和 `X-Timestamp`
 
 ### 2. "时间戳无效或已过期"
+
 - 确保客户端时间与服务器时间同步
 - 时间戳必须是毫秒级别的数字字符串
 - 请求必须在生成签名后的5分钟内发送
 
 ### 3. "签名验证失败"
+
 - 检查 SIGNATURE_SECRET 是否正确
 - 确保待签名字符串的构建方式与服务端一致
 - HTTP方法必须大写（GET, POST等）

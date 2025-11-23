@@ -2,6 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logge
 import { Request } from 'express'
 import { SignatureUtil } from '@/modules/psk/utils/signature'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LoggerService } from '@/common/logger/logger.service'
 /**
  * 签名验证守卫
  * 验证HTTP请求的签名和时间戳，防止请求被篡改和重放攻击
@@ -17,13 +18,12 @@ import { LogMessages } from '@/shared/constants/log-messages.constants'
  */
 @Injectable()
 export class SignatureGuard implements CanActivate {
-  private readonly logger = new Logger(SignatureGuard.name)
   private readonly signatureSecret: string
-  constructor() {
+  constructor(private readonly logger: LoggerService) {
     // 从环境变量获取签名密钥
     this.signatureSecret = process.env.SIGNATURE_SECRET ?? ''
     if (!this.signatureSecret) {
-      this.logger.warn(LogMessages.SERVER.NO_SIGN_ENV_VAR())
+      this.logger.warn(LogMessages.SERVER.NO_SIGN_ENV_VAR(), 'PSK')
     }
   }
 
@@ -34,26 +34,27 @@ export class SignatureGuard implements CanActivate {
     const timestamp = request.headers['x-timestamp'] as string
     // 检查必需的请求头
     if (!signature) {
-      this.logger.warn(LogMessages.SERVER.X_SIGN_IS_MISSING())
+      this.logger.warn(LogMessages.SERVER.X_SIGN_IS_MISSING(), 'PSK')
       throw new UnauthorizedException('缺少签名')
     }
     if (!timestamp) {
-      this.logger.warn(LogMessages.SERVER.X_TIME_IS_MISSING())
+      this.logger.warn(LogMessages.SERVER.X_TIME_IS_MISSING(), 'PSK')
       throw new UnauthorizedException('缺少时间戳')
     }
     // 验证时间戳是否在有效期内（5分钟）
     if (!SignatureUtil.verifyTimestamp(timestamp)) {
-      this.logger.warn(LogMessages.SERVER.X_TIME_IS_EXPIRED_OR_INVALID(timestamp))
+      this.logger.warn(LogMessages.SERVER.X_TIME_IS_EXPIRED_OR_INVALID(timestamp), 'PSK')
       throw new UnauthorizedException('时间戳无效或已过期')
     }
     // 验证签名
-    const { method, path, body } = request
+    const { method, body } = request
+    const path = request.path.replace(/^\/api/, '')
     const isValid = SignatureUtil.verifySignature(signature, method, path, timestamp, this.signatureSecret, body)
     if (!isValid) {
-      this.logger.warn(LogMessages.SERVER.X_SIGN_VERIFY_FAILED(method, path, timestamp))
+      this.logger.warn(LogMessages.SERVER.X_SIGN_VERIFY_FAILED(method, path, timestamp), 'PSK')
       throw new UnauthorizedException('签名验证失败')
     }
-    this.logger.debug(LogMessages.SERVER.X_SIGN_TIME_VERIFY_SCCUSS(path))
+    this.logger.debug(LogMessages.SERVER.X_SIGN_TIME_VERIFY_SCCUSS(path), 'PSK')
     return true
   }
 }

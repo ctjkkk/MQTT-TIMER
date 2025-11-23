@@ -5,12 +5,14 @@ import { createServer, Server as NetServer } from 'net'
 import { LoggerService } from '@/common/logger/logger.service'
 import { ConfigService } from '@nestjs/config'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { PskService } from '@/modules/psk/psk.service'
 import * as tls from 'tls'
 @Injectable()
 export class AedesBrokerService implements OnModuleInit {
   constructor(
-    private loggerService: LoggerService,
-    private configService: ConfigService,
+    private readonly loggerService: LoggerService,
+    private readonly configService: ConfigService,
+    private readonly pskService: PskService,
   ) {}
   private online = new Map<string, any>()
   private topicHandlers = new Map<string, any[]>()
@@ -214,14 +216,13 @@ export class AedesBrokerService implements OnModuleInit {
 
   private getPskKey(identity: string): Buffer | null {
     try {
-      const pskWhitelist = JSON.parse(process.env.MQTT_PSK_WHITELIST || '[]')
-      const entry = pskWhitelist.find((e: any) => e.identity === identity)
-      if (!entry) {
+      const key = this.pskService.getKeySync(identity)
+      if (!key) {
         this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(identity))
         return null
       }
       this.loggerService.mqttConnect(identity, identity)
-      return Buffer.from(entry.key, 'hex')
+      return key
     } catch (error) {
       this.loggerService.error(`PSK key lookup error: ${error}`)
       return null
