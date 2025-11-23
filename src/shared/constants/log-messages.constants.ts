@@ -11,6 +11,17 @@ export const LogMessages = {
     WHITELIST_EMPTY: '⚠️ MQTT_WHITELIST 为空或未设置，禁止所有用户连接',
     INTERNAL_ERROR: '🚨 内部认证错误',
     PUBLISH_ERROR: (error: string) => `📤 发布错误: ${error}`,
+    SCANNING_PROCESSOR: () => '🔍 开始扫描 MQTT 处理器...',
+    REGISTER_PROCESSOR: (topic: string, controllerName: string, methodName: string) =>
+      `注册处理器: ${topic} -> ${controllerName}.${methodName}`,
+    SCANNING_PROCESSOR_SCCUSS: (handlerCount: number) => `✅ MQTT 处理器扫描完成，共找到 ${handlerCount} 个处理器`,
+  },
+  DATABASE: {
+    CONNECT_SCCUSS: (dbName: string) => `✅ MongoDB 连接成功 - 数据库: ${dbName}`,
+    CONNECT_ERROR: (errMsg: string) => `❌ MongoDB 连接错误: ${errMsg}`,
+    CONNECT_FAIL: (errMsg: string) => `❌ MongoDB 连接失败: ${errMsg}`,
+    DISCONNECTED: () => `⚠️ MongoDB 已断开连接`,
+    CONNECTION_CLOSE: (dbName: string, host: string) => `🛑 MongoDB 连接已关闭 - 数据库: ${dbName} 主机: ${host}`,
   },
   SERVER: {
     LOCAL_SERVER: (port: number) => `The local server has been started and is listening on port ${port}`,

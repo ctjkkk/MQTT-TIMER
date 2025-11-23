@@ -3,14 +3,9 @@ import { ConfigModule } from '@nestjs/config'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { GatewayModule } from './modules/gateway/gateway.module'
-import { TimerService } from './modules/timer/timer.service'
-import { TimerController } from './modules/timer/timer.controller'
 import { TimerModule } from './modules/timer/timer.module'
-import { OutletController } from './modules/outlet/outlet.controller'
 import { OutletModule } from './modules/outlet/outlet.module'
-import { ScheduleController } from './modules/schedule/schedule.controller'
 import { ScheduleModule } from './modules/schedule/schedule.module'
-import { DatabaseService } from './core/database/database.service'
 import { DatabaseModule } from './core/database/database.module'
 import { MqttModule } from './core/mqtt/mqtt.module'
 import { PskModule } from './modules/psk/psk.module'
@@ -31,7 +26,7 @@ import mqttConfig from './config/mqtt.config'
     DatabaseModule,
     PskModule,
   ],
-  controllers: [AppController, TimerController, OutletController, ScheduleController],
-  providers: [AppService, TimerService, DatabaseService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

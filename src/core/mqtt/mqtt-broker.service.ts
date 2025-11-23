@@ -6,9 +6,11 @@ import { LoggerService } from '@/common/logger/logger.service'
 import { ConfigService } from '@nestjs/config'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import { PskService } from '@/modules/psk/psk.service'
+
 import * as tls from 'tls'
 @Injectable()
 export class AedesBrokerService implements OnModuleInit {
+  private readonly logger = new Logger(AedesBrokerService.name)
   constructor(
     private readonly loggerService: LoggerService,
     private readonly configService: ConfigService,
@@ -36,7 +38,7 @@ export class AedesBrokerService implements OnModuleInit {
     // 启动TCP服务器（端口1883，使用用户名密码认证）
     await new Promise<void>(resolve =>
       this.tcpServer.listen(this.PORT, () => {
-        Logger.log(LogMessages.MQTT.BROKER_START('TCP', this.PORT))
+        this.logger.log(LogMessages.MQTT.BROKER_START('TCP', this.PORT))
         resolve()
       }),
     )
@@ -44,7 +46,7 @@ export class AedesBrokerService implements OnModuleInit {
     // 启动TLS-PSK服务器（端口8445，使用PSK认证）
     await new Promise<void>(resolve =>
       this.tlsServer.listen(this.PSK_PORT, () => {
-        Logger.log(LogMessages.MQTT.BROKER_START('PSK', this.PSK_PORT))
+        this.logger.log(LogMessages.MQTT.BROKER_START('PSK', this.PSK_PORT))
         resolve()
       }),
     )
@@ -216,13 +218,13 @@ export class AedesBrokerService implements OnModuleInit {
 
   private getPskKey(identity: string): Buffer | null {
     try {
-      const key = this.pskService.getKeySync(identity)
+      const key = this.pskService.pskCacheMap.get(identity)
       if (!key) {
         this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(identity))
         return null
       }
       this.loggerService.mqttConnect(identity, identity)
-      return key
+      return Buffer.from(key, 'hex')
     } catch (error) {
       this.loggerService.error(`PSK key lookup error: ${error}`)
       return null

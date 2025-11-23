@@ -1,22 +1,25 @@
-import { Injectable, BadRequestException, NotFoundException, OnModuleInit } from '@nestjs/common'
+import { Injectable, BadRequestException, NotFoundException, Inject, OnModuleInit } from '@nestjs/common'
 import { randomBytes } from 'crypto'
 import HanqiPsk from './schema/psk.schema'
 import { LoggerService } from '@/common/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { DATABASE_CONNECTION } from '@/core/database/database.module' // 导出符号
+import { Connection } from 'mongoose'
 /**
  * PSK认证服务
  * 处理网关PSK的生成和确认
  */
 @Injectable()
 export class PskService implements OnModuleInit {
-  /** identity -> key （只存 status=1） */
-  private readonly cache = new Map<string, string>()
-  constructor(private readonly loggerService: LoggerService) {}
-
+  public pskCacheMap = new Map<string, string>()
+  constructor(
+    @Inject(DATABASE_CONNECTION) private readonly connection: Connection, // 已 ready
+    private readonly loggerService: LoggerService,
+  ) {}
   async onModuleInit() {
-    const confirmed = await HanqiPsk.find({ status: 1 })
-    confirmed.forEach(p => this.cache.set(p.identity, p.key))
-    this.loggerService.info(LogMessages.PSK.LOAD(this.cache.size), 'PSK')
+    // 此时 connection 已 resolve，可以安全查询
+    const activeList = await HanqiPsk.find({ status: 1 }).lean()
+    activeList.forEach(d => this.pskCacheMap.set(d.identity, d.key))
   }
   async generatePsk(macAddress: string) {
     const existingPsk = await HanqiPsk.findOne({ mac_address: macAddress })
@@ -51,13 +54,6 @@ export class PskService implements OnModuleInit {
     // 更新status为1，表示烧录成功
     psk.status = 1
     await psk.save()
-    this.cache.set(psk.identity, psk.key)
     return { success: true, message: 'PSK烧录确认成功' }
-  }
-
-  // 供 TLS 回调同步获取
-  getKeySync(identity: string): Buffer | null {
-    const key = this.cache.get(identity)
-    return key ? Buffer.from(key, 'hex') : null
   }
 }

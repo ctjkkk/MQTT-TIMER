@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
 import { ModuleRef, ModulesContainer } from '@nestjs/core'
 import { AedesBrokerService } from './mqtt-broker.service'
 import { MQTT_TOPIC_METADATA } from '@/shared/constants/mqtt.constants'
-
+import { LogMessages } from '@/shared/constants/log-messages.constants'
 @Injectable()
 export class MqttScannerService implements OnModuleInit {
   private readonly logger = new Logger(MqttScannerService.name)
@@ -20,7 +20,7 @@ export class MqttScannerService implements OnModuleInit {
     }, 100)
   }
   private async scanMqttHandlers(): Promise<void> {
-    this.logger.log('🔍 开始扫描 MQTT 处理器...')
+    this.logger.log(LogMessages.MQTT.SCANNING_PROCESSOR())
 
     let handlerCount = 0
 
@@ -47,14 +47,14 @@ export class MqttScannerService implements OnModuleInit {
             for (const topic of topicList) {
               this.mqttBroker.subscribe(topic, { instance, methodName })
               handlerCount++
-              this.logger.debug(`注册处理器: ${topic} -> ${instance.constructor.name}.${methodName}`)
+              this.logger.debug(LogMessages.MQTT.REGISTER_PROCESSOR(topic, instance.constructor.name, methodName))
             }
           }
         } catch (e) {}
       }
     }
 
-    this.logger.log(`✅ MQTT 处理器扫描完成，共找到 ${handlerCount} 个处理器`)
+    this.logger.log(LogMessages.MQTT.SCANNING_PROCESSOR_SCCUSS(handlerCount))
   }
 
   // 手动重新扫描（用于开发时热重载）

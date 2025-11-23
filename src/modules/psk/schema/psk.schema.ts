@@ -7,7 +7,7 @@ export interface HanqiPskDocument extends mongoose.Document {
   status: number
 }
 
-const HanqiPskSchema = new mongoose.Schema(
+export const HanqiPskSchema = new mongoose.Schema(
   {
     mac_address: {
       type: String,

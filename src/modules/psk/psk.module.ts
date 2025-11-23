@@ -3,6 +3,7 @@ import { PskService } from './psk.service'
 import { PskController } from './psk.controller'
 import { LoggerModule } from '../../common/logger/logger.module'
 import { LogLevel } from '@/common/logger/logger.service'
+import { DatabaseModule } from '@/core/database/database.module'
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { LogLevel } from '@/common/logger/logger.service'
       enableFile: true,
       enableConsole: false,
     }),
+    DatabaseModule,
   ],
   controllers: [PskController],
   providers: [PskService],
