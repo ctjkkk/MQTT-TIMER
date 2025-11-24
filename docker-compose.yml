@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  timer-mqtt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: timer-mqtt
+    restart: unless-stopped
+    ports:
+      - '8018:8018' # HTTP API 端口
+      - '1884:1884' # MQTT 端口
+      - '8445:8445' # MQTT PSK 端口
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./logs:/app/logs # 挂载日志目录到主机
+    networks:
+      - app-network
+    # 如果需要等待 MongoDB 启动，可以添加 depends_on
+    # depends_on:
+    #   - mongodb
+
+networks:
+  app-network:
+    driver: bridge
