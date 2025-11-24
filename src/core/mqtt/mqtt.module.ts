@@ -11,9 +11,8 @@ import { PskModule } from '@/modules/psk/psk.module'
     LoggerModule.forRoot({
       level: LogLevel.DEBUG, // 根据环境变量设置
       enableFile: true,
-      enableConsole: false,
+      enableConsole: true,
     }),
-
     PskModule,
   ],
   providers: [AedesBrokerService, MqttScannerService],

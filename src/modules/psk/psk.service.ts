@@ -5,13 +5,14 @@ import { LoggerService } from '@/common/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import { DATABASE_CONNECTION } from '@/core/database/database.module' // 导出符号
 import { Connection } from 'mongoose'
+import type { PskMeta } from './types/psk'
 /**
  * PSK认证服务
  * 处理网关PSK的生成和确认
  */
 @Injectable()
 export class PskService implements OnModuleInit {
-  public pskCacheMap = new Map<string, string>()
+  public pskCacheMap = new Map<string, PskMeta>()
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly connection: Connection, // 已 ready
     private readonly loggerService: LoggerService,
@@ -19,13 +20,13 @@ export class PskService implements OnModuleInit {
   async onModuleInit() {
     // 此时 connection 已 resolve，可以安全查询
     const activeList = await HanqiPsk.find({ status: 1 }).lean()
-    activeList.forEach(d => this.pskCacheMap.set(d.identity, d.key))
+    activeList.forEach(d => this.pskCacheMap.set(d.identity, { key: d.key, status: d.status }))
   }
   async generatePsk(macAddress: string) {
     const existingPsk = await HanqiPsk.findOne({ mac_address: macAddress })
     if (existingPsk) {
       // 如果已经确认过，不允许重新生成
-      if (existingPsk.status === 1) {
+      if (existingPsk.status) {
         throw new BadRequestException('该网关已经完成PSK烧录，不能重新生成')
       }
       // 如果是待确认状态，返回之前生成的PSK
@@ -55,5 +56,14 @@ export class PskService implements OnModuleInit {
     psk.status = 1
     await psk.save()
     return { success: true, message: 'PSK烧录确认成功' }
+  }
+
+  public exists(identity: string): boolean {
+    const result = this.pskCacheMap.get(identity)
+    return result ? true : false
+  }
+  public isActive(identity: string): boolean {
+    const mate = this.pskCacheMap.get(identity)
+    return mate.status ? true : false
   }
 }

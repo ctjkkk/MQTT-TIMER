@@ -1,5 +1,7 @@
 export const LogMessages = {
   MQTT: {
+    USER_CONNECTION_SUCCESSFUL: (ClientId: string, username: string) =>
+      `✅ ${ClientId} Authentication successful for user: ${username}`,
     BROKER_START: (way: string, port: string | number) => `✅ ${way} 模式成功连接到 MQTT 代理，端口：${port}`,
     BROKER_STOP: '🛑 MQTT Broker 已停止',
     CLIENT_CONNECTED: (clientId: string) => `🔗 客户端连接: ${clientId}`,

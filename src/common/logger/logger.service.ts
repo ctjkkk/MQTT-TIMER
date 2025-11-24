@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common'
 import { createLogger, format } from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
 import type { LoggerOptions } from './interfaces/logger-options.interface'
+import { LogMessages } from '@/shared/constants/log-messages.constants'
 import moment from 'moment'
 
 export enum LogLevel {
@@ -67,7 +68,7 @@ export class LoggerService {
 
   // MQTT 连接相关日志
   mqttConnect(username?: string, ClientId?: string) {
-    this.info(`✅ ${ClientId} Authentication successful for user: ${username}`)
+    this.info(LogMessages.MQTT.USER_CONNECTION_SUCCESSFUL(ClientId, username), 'MQTTConnection')
   }
 
   mqttDisconnect(clientId: string, reason?: string) {
@@ -111,7 +112,6 @@ export class LoggerService {
     if (data && this.options.enableConsole) {
       console.log(`\x1b[90mData:\x1b[0m`, data)
     }
-
     if (!this.options.enableFile) return
     const fileLogger = this.createFileLogger(level, context)
     fileLogger.log({
@@ -119,7 +119,7 @@ export class LoggerService {
       message,
       timestamp: now.toISOString(),
       context: logContext,
-      ...data,
+      data,
     })
   }
 

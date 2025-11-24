@@ -1,11 +1,13 @@
 // src/core/mqtt/aedes-broker.service.ts
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
 import Aedes from 'aedes'
+import { authError } from '@/shared/utils/error'
 import { createServer, Server as NetServer } from 'net'
 import { LoggerService } from '@/common/logger/logger.service'
 import { ConfigService } from '@nestjs/config'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import { PskService } from '@/modules/psk/psk.service'
+import { AuthErrorCode } from '@/shared/constants/mqtt.constants'
 
 import * as tls from 'tls'
 @Injectable()
@@ -30,7 +32,11 @@ export class AedesBrokerService implements OnModuleInit {
     this.aedes.on('clientDisconnect', c => this.online.delete(c.id))
     this.aedes.on('publish', (packet, client) => {
       if (client) {
-        this.loggerService.info(LogMessages.MQTT.MESSAGE_PUBLISHED(client.id, packet.topic), packet.payload.toString())
+        this.loggerService.info(
+          LogMessages.MQTT.MESSAGE_PUBLISHED(client.id, packet.topic),
+          'MQTTPublish',
+          packet.payload.toString(),
+        )
         this.dispatchToHandlers(packet.topic, packet.payload, client?.id || '')
       }
     })
@@ -63,6 +69,14 @@ export class AedesBrokerService implements OnModuleInit {
           try {
             // 如果底层是 TLS-PSK，直接放行；测试工具: mosquitto
             if (client.isPSK) {
+              const identity = client.pskIdentity
+              if (!this.pskService.exists(identity)) {
+                return callback(authError('Unknown PSK identity', AuthErrorCode.NOT_AUTHORIZED), false)
+              }
+              if (!this.pskService.isActive(identity)) {
+                return callback(authError('PSK identity inactive', AuthErrorCode.NOT_AUTHORIZED), false)
+              }
+              this.loggerService.mqttConnect(identity, client.id)
               return callback(null, true)
             }
             //否则底层是 TCP; 测试工具: MQTTX
@@ -70,7 +84,7 @@ export class AedesBrokerService implements OnModuleInit {
             const passwordStr = password?.toString() || ''
             const whiteUsers = JSON.parse(process.env.MQTT_TCP_WHITELIST)
             if (!whiteUsers.length) {
-              this.loggerService.warn(LogMessages.MQTT.WHITELIST_EMPTY)
+              this.loggerService.warn(LogMessages.MQTT.WHITELIST_EMPTY, 'TcpAuthentication')
               return callback(null, false)
             }
             const ok =
@@ -80,10 +94,8 @@ export class AedesBrokerService implements OnModuleInit {
                 (u: { username: string; password: string }) => u.username == usernameStr && u.password == passwordStr,
               )
             if (!ok) {
-              this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(usernameStr))
-              const error: any = new Error('Authentication failed')
-              error.returnCode = 4 // NOT_AUTHORIZED
-              return callback(error, false)
+              this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(usernameStr), 'TcpAuthentication')
+              return callback(authError('Authentication failed', AuthErrorCode.NOT_AUTHORIZED), false)
             }
             this.loggerService.mqttConnect(usernameStr, client.id)
             client.will = {
@@ -95,10 +107,8 @@ export class AedesBrokerService implements OnModuleInit {
             return callback(null, true)
           } catch (error) {
             this.loggerService.mqttError(username, error)
-            this.loggerService.error(LogMessages.MQTT.INTERNAL_ERROR)
-            const authError: any = new Error('Internal authentication error')
-            authError.returnCode = 4
-            return callback(authError, false)
+            this.loggerService.error(LogMessages.MQTT.INTERNAL_ERROR, 'authentication')
+            return callback(authError('Internal authentication error', AuthErrorCode.NOT_AUTHORIZED), false)
           }
         })
       },
@@ -218,15 +228,14 @@ export class AedesBrokerService implements OnModuleInit {
 
   private getPskKey(identity: string): Buffer | null {
     try {
-      const key = this.pskService.pskCacheMap.get(identity)
+      const { key } = this.pskService.pskCacheMap.get(identity)
       if (!key) {
-        this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(identity))
+        this.loggerService.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(identity), 'PskAuthentication')
         return null
       }
-      this.loggerService.mqttConnect(identity, identity)
       return Buffer.from(key, 'hex')
     } catch (error) {
-      this.loggerService.error(`PSK key lookup error: ${error}`)
+      this.loggerService.error(`PSK key lookup error: ${error}`, 'PskAuthentication')
       return null
     }
   }

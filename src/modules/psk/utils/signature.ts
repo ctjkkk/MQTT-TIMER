@@ -23,12 +23,7 @@ export class SignatureUtil {
    * @param body 请求体（可选）
    * @returns 待签名的字符串
    */
-  static buildSignString(
-    method: string,
-    path: string,
-    timestamp: string,
-    body?: any,
-  ): string {
+  static buildSignString(method: string, path: string, timestamp: string, body?: any): string {
     const parts = [method.toUpperCase(), path, timestamp]
 
     // 如果有请求体，将其序列化后加入签名
