@@ -59,20 +59,17 @@ export class SignatureUtil {
 
   /**
    * 验证时间戳是否在有效期内
-   * @param timestamp 客户端提供的时间戳（毫秒）
-   * @param maxAge 最大有效期（毫秒），默认5分钟
+   * @param timestamp 客户端提供的时间戳（秒）
+   * @param maxAge 最大有效期（秒），默认5分钟
    * @returns 时间戳是否有效
    */
-  static verifyTimestamp(timestamp: string, maxAge: number = 5 * 60 * 1000): boolean {
-    const now = Date.now()
+  static verifyTimestamp(timestamp: string, maxAge: number = 5 * 60): boolean {
+    const now = Math.floor(Date.now() / 1000) // 秒
     const requestTime = parseInt(timestamp, 10)
 
-    if (isNaN(requestTime)) {
-      return false
-    }
+    if (isNaN(requestTime)) return false
 
     // 检查时间戳是否在合理范围内（防止重放攻击）
-    const timeDiff = Math.abs(now - requestTime)
-    return timeDiff <= maxAge
+    return Math.abs(now - requestTime) <= maxAge
   }
 }
