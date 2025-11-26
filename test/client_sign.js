@@ -20,7 +20,7 @@ function generateSignature(method, path, timestamp, body) {
  * 发送带签名的请求
  */
 async function requestWithSignature(method, path, body) {
-  const timestamp = Date.now().toString()
+  const timestamp = Math.floor(Date.now() / 1000).toString() //秒
   const signature = generateSignature(method, path, timestamp, body)
 
   const config = {
@@ -43,13 +43,13 @@ async function main() {
   try {
     // 生成PSK
     const result = await requestWithSignature('POST', '/psk/generate', {
-      mac: 'test_ABCDEF123456',
+      mac: 'test1_ABCDEF123456',
     })
     console.log('生成PSK成功:', result.data)
 
     // 确认PSK
     const confirmResult = await requestWithSignature('POST', '/psk/confirm', {
-      mac: 'test_ABCDEF123456',
+      mac: 'test1_ABCDEF123456',
     })
     console.log('确认PSK成功:', confirmResult.data)
   } catch (error) {
