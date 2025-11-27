@@ -6,13 +6,6 @@
 /**
  * DP点类型枚举
  */
-export enum DpType {
-  BOOL = 'bool', // 布尔型
-  VALUE = 'value', // 数值型
-  ENUM = 'enum', // 枚举型
-  STRING = 'string', // 字符串型
-  RAW = 'raw', // 透传型
-}
 
 /**
  * DP点访问模式
@@ -194,20 +187,6 @@ export enum HanqiTimerDpId {
 
   /** DP103: 定时任务冲突告警 (string, ro) - 任务ID列表 */
   SCHEDULE_CONFLICT = 103,
-
-  // ========== 统计和记录 (121-140) ==========
-
-  /** DP121: 今日总用水量 (value, ro, 单位:升) */
-  TODAY_TOTAL_WATER = 121,
-
-  /** DP122: 本周总用水量 (value, ro, 单位:升) */
-  WEEK_TOTAL_WATER = 122,
-
-  /** DP123: 本月总用水量 (value, ro, 单位:升) */
-  MONTH_TOTAL_WATER = 123,
-
-  /** DP124: 灌溉记录上报 (raw, ro) - JSON格式的灌溉记录 */
-  IRRIGATION_RECORD = 124,
 }
 
 /**
@@ -250,6 +229,20 @@ export interface DpData {
   timestamp?: number
 }
 
+export enum DpType {
+  BOOL = 'bool', // 布尔型
+  VALUE = 'value', // 数值型
+  ENUM = 'enum', // 枚举型
+  STRING = 'string', // 字符串型
+  RAW = 'raw', // 透传型
+}
+
+export interface DpCommand {
+  dpId: string // DP点ID
+  value: boolean | number | string | object
+  type: DpType // 使用DpType枚举
+}
+
 /**
  * MQTT DP点消息格式
  */
@@ -261,7 +254,7 @@ export interface DpMessage {
   /** 时间戳（秒） */
   t?: number
   /** DP点数据 */
-  dps: Record<string, any>
+  dps: DpCommand[] | Record<string, any>
 }
 
 /**
@@ -354,8 +347,16 @@ export const HANQI_TIMER_DP_CONFIG: Record<number, DpConfig> = {
     desc: '出水口1区域名称',
     maxLen: 50,
   },
-  // ... 其他出水口类似配置
 
+  [HanqiTimerDpId.OUTLET_2_SWITCH]: {
+    id: 41,
+    name: 'outlet_2_zone_name',
+    type: DpType.STRING,
+    mode: DpMode.RW,
+    desc: '出水口2区域名称',
+    maxLen: 50,
+  },
+  // ... 其他出水口类似配置(目前省略了出水口3、4)
   // 定时任务
   [HanqiTimerDpId.SCHEDULE_DATA]: {
     id: 101,
@@ -364,13 +365,28 @@ export const HANQI_TIMER_DP_CONFIG: Record<number, DpConfig> = {
     mode: DpMode.RW,
     desc: '定时任务数据（JSON格式）',
   },
-  [HanqiTimerDpId.IRRIGATION_RECORD]: {
-    id: 124,
-    name: 'irrigation_record',
-    type: DpType.RAW,
-    mode: DpMode.RO,
-    desc: '灌溉记录（JSON格式）',
-  },
+}
+
+/**
+ * DP类型到数字的映射（用于命令下发）
+ */
+export const DP_TYPE_TO_NUMBER: Record<DpType, number> = {
+  [DpType.BOOL]: 1,
+  [DpType.VALUE]: 2,
+  [DpType.ENUM]: 3,
+  [DpType.STRING]: 4,
+  [DpType.RAW]: 5,
+}
+
+/**
+ * 数字到DP类型的映射（用于解析）
+ */
+export const NUMBER_TO_DP_TYPE: Record<number, DpType> = {
+  1: DpType.BOOL,
+  2: DpType.VALUE,
+  3: DpType.ENUM,
+  4: DpType.STRING,
+  5: DpType.RAW,
 }
 
 /**

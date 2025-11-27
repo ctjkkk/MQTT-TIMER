@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import {
+  DpCommand,
   DpData,
   DpMessage,
   DpType,
@@ -27,9 +28,24 @@ export class DpService {
       const data = typeof payload === 'string' ? payload : payload.toString()
       const message = JSON.parse(data) as DpMessage
 
-      if (!message.dps || typeof message.dps !== 'object') {
+      if (!message.dps) {
         this.logger.warn('Invalid DP message format: missing dps field')
         return null
+      }
+      // 兼容处理：如果是对象格式，转换为数组格式
+      if (!Array.isArray(message.dps)) {
+        this.logger.debug('Converting old DP format to new format')
+        const dpsArray: DpCommand[] = []
+        Object.entries(message.dps).forEach(([dpId, value]) => {
+          const config = this.getDpConfig(Number(dpId))
+          dpsArray.push({
+            dpId,
+            value,
+            type: config?.type || DpType.RAW,
+          })
+        })
+
+        message.dps = dpsArray
       }
 
       return message
@@ -46,9 +62,19 @@ export class DpService {
    * @returns DP消息对象
    */
   buildDpMessage(deviceId: string, dpData: DpData[]): DpMessage {
-    const dps: Record<string, any> = {}
-    dpData.forEach((dp) => {
-      dps[dp.dpId.toString()] = dp.value
+    const dps: DpCommand[] = []
+    dpData.forEach(dp => {
+      const config = this.getDpConfig(dp.dpId)
+      if (!config) {
+        this.logger.warn(`Unknown DP ID: ${dp.dpId}`)
+        return
+      }
+
+      dps.push({
+        dpId: dp.dpId.toString(),
+        value: dp.value,
+        type: config.type, // 从配置中获取type
+      })
     })
 
     return {
@@ -105,6 +131,13 @@ export class DpService {
    * @returns DP点值，如果不存在则返回undefined
    */
   getDpValue<T = any>(message: DpMessage, dpId: number): T | undefined {
+    // 处理数组格式
+    if (Array.isArray(message.dps)) {
+      const dp = message.dps.find(d => d.dpId === dpId.toString())
+      return dp?.value as T
+    }
+
+    // 处理对象格式
     return message.dps[dpId.toString()] as T
   }
 
@@ -168,23 +201,6 @@ export class DpService {
       dpId: HanqiTimerDpId.SCHEDULE_DATA,
       value: scheduleConfig,
       timestamp: Date.now(),
-    }
-  }
-
-  /**
-   * 解析灌溉记录数据
-   * @param message DP消息
-   * @returns 灌溉记录对象
-   */
-  parseIrrigationRecord(message: DpMessage) {
-    const recordData = this.getDpValue<any>(message, HanqiTimerDpId.IRRIGATION_RECORD)
-    if (!recordData) return null
-
-    try {
-      return typeof recordData === 'string' ? JSON.parse(recordData) : recordData
-    } catch (error) {
-      this.logger.error('Failed to parse irrigation record', error)
-      return null
     }
   }
 

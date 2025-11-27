@@ -3,21 +3,35 @@ import { UserDocument } from '../../../shared/schemas/User'
 import { HanqiGatewayDocument } from '../../gateway/schema/HanqiGateway.schema'
 
 export interface HanqiTimerDocument extends mongoose.Document {
+  // 设备标识
   timerId: string
+  mac_address: string
+  valve_id: string
   name: string
   userId: UserDocument['_id']
   gatewayId: HanqiGatewayDocument['_id']
-  hanqi_device_id: string
-  outlet_count: number
-  status: number
+
+  // 品类和能力
+  product_id: string
+  category: string
+  product_category_bits?: number
+  capability_bits: number
+
+  // 基础状态
   is_connected: number
   last_seen: Date
-  firmware_version: string
-  mac_address: string
-  battery_level: number
-  signal_strength: number
+  firmware_version?: string
+
+  // DP数据
   dp_data: Record<string, any>
   last_dp_update: Date
+
+  // 可选冗余字段
+  battery_level?: number
+  signal_strength?: number
+  outlet_count?: number
+
+  // 时间戳
   createdAt: Date
   updatedAt: Date
 }
@@ -29,6 +43,18 @@ const HanqiTimerSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
+    },
+    valve_id: {
+      type: String,
+    },
+    product_id: {
+      type: String,
+    },
+    category: {
+      type: String,
+    },
+    capability_bits: {
+      type: Number,
     },
     name: {
       type: String,
