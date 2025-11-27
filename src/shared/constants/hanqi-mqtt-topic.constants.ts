@@ -21,9 +21,6 @@ export enum MqttMessageType {
   /** 设备状态上报 */
   DEVICE_STATUS = 'device_status',
 
-  /** 灌溉记录上报 */
-  IRRIGATION_RECORD = 'irrigation_record',
-
   /** 定时任务同步 */
   SCHEDULE_SYNC = 'schedule_sync',
 

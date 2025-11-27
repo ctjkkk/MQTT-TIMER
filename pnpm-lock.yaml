@@ -56,6 +56,9 @@ importers:
       mqtt-packet:
         specifier: ^9.0.2
         version: 9.0.2
+      nest-knife4j:
+        specifier: ^1.0.1
+        version: 1.0.1(@types/express@5.0.5)(express@5.1.0)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -2681,6 +2684,12 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
+  nest-knife4j@1.0.1:
+    resolution: {integrity: sha512-TD1LmxzclBddOygIDIRjr3jIwj+C3dp69G4Sy+QwAiiuQQQAxwaGXioCB3ibr/SLQ9nuR8klYehzS3HjS32Nfw==}
+    peerDependencies:
+      '@types/express': ^4.17.11
+      express: ^4.17.1
+
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
 
@@ -3381,6 +3390,9 @@ packages:
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
+
+  user@0.0.0:
+    resolution: {integrity: sha512-eRNM5isOvr6aEFAGi1CqAkmLkYxW2NJ5ThhbD+6IJXYKM1mo7Gtxx4mQIveHz/5K3p/SVnlW9k17ETn+QAu8IQ==}
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -6544,6 +6556,12 @@ snapshots:
 
   neo-async@2.6.2: {}
 
+  nest-knife4j@1.0.1(@types/express@5.0.5)(express@5.1.0):
+    dependencies:
+      '@types/express': 5.0.5
+      express: 5.1.0
+      user: 0.0.0
+
   node-abort-controller@3.1.1: {}
 
   node-addon-api@8.5.0: {}
@@ -7234,6 +7252,8 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  user@0.0.0: {}
 
   util-deprecate@1.0.2: {}
 

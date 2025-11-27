@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { MqttUnifiedMessage } from '@/shared/constants/hanqi-mqtt-topic.constants'
 import HanqiOutlet from './schema/outlet.schema'
-import HanqiIrrigationRecord from '../irrigation-record/schema/irrigation-record.schema'
 import HanqiTimer from '../timer/schema/timer.schema'
 
 /**
@@ -16,16 +15,7 @@ export class OutletService {
   async handleIrrigationRecord(message: MqttUnifiedMessage) {
     console.log(`[OutletService] 处理灌溉记录: ${message.deviceId}`)
 
-    const {
-      outletNumber,
-      startTime,
-      endTime,
-      duration,
-      waterUsed,
-      triggerType,
-      temperature,
-      weatherCondition,
-    } = message.data
+    const { outletNumber, startTime, endTime, duration, waterUsed, triggerType, temperature, weatherCondition } = message.data
 
     // 先找到Timer设备
     const timer = await HanqiTimer.findOne({ timerId: message.deviceId })
@@ -44,21 +34,6 @@ export class OutletService {
       console.warn(`出水口不存在: ${message.deviceId} outlet ${outletNumber}`)
       return
     }
-
-    // 创建灌溉记录
-    await HanqiIrrigationRecord.create({
-      recordId: `record_${Date.now()}_${outletNumber}`,
-      outletId: outlet._id,
-      userId: outlet.userId,
-      start_time: new Date(startTime),
-      duration: duration,
-      planned_duration: duration,
-      water_used: waterUsed || 0,
-      status: 1, // 1-正常完成
-      trigger_type: triggerType || 'scheduled',
-      temperature: temperature,
-      weather_condition: weatherCondition,
-    })
 
     // 更新出水口的累计用水量
     await HanqiOutlet.updateOne(
