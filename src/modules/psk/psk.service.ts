@@ -24,20 +24,28 @@ export class PskService implements OnModuleInit {
   }
   async generatePsk(macAddress: string) {
     const existingPsk = await HanqiPsk.findOne({ mac_address: macAddress })
-    if (existingPsk) {
-      // 如果已经确认过，不允许重新生成
-      if (existingPsk.status) {
-        throw new BadRequestException('该网关已经完成PSK烧录，不能重新生成')
-      }
-      // 如果是待确认状态，返回之前生成的PSK
-      return { identity: existingPsk.identity, key: existingPsk.key }
+    if (existingPsk && existingPsk.status) {
+      throw new BadRequestException('该网关已经完成PSK烧录，不能重新生成')
     }
-
     const identity = macAddress
     // 生成64字节的随机key（128位十六进制字符串）
     const key = randomBytes(64).toString('hex')
-    // 写入数据库，status=0表示待确认
-    await HanqiPsk.create({ mac_address: macAddress, identity, key, status: 0 })
+    // 有则覆盖，无则新增
+    await HanqiPsk.findOneAndUpdate(
+      { mac_address: macAddress },
+      {
+        $set: {
+          identity,
+          key,
+          status: 0,
+        },
+      },
+      {
+        upsert: true, // 没有就插入
+        new: true, // 返回更新后的文档
+        runValidators: true, // 触发 schema 校验
+      },
+    )
     this.loggerService.info(LogMessages.PSK.GENERATED(identity, key), 'PSK')
     return { identity, key }
   }

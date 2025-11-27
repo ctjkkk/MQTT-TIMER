@@ -37,7 +37,7 @@ export const HanqiPskSchema = new mongoose.Schema(
   },
 )
 
-HanqiPskSchema.index({ mac_address: 1 })
+HanqiPskSchema.index({ mac_address: 1 }, { unique: true })
 HanqiPskSchema.index({ identity: 1, key: 1 })
 
 export default mongoose.model<HanqiPskDocument>('HanqiPsk', HanqiPskSchema)
