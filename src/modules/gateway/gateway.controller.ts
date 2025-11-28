@@ -35,55 +35,23 @@ export class GatewayController {
     @MqttBroker() broker: AedesBrokerService,
     @MqttClientId() clientId: string,
   ) {
-    console.log('[GatewayController] 收到设备加入请求，客户端:', clientId)
-
-    try {
-      const params = JSON.parse(payload.toString())
-      const user = await this.gatewayService.findUserByMacAddress(params.mac)
-
-      if (user) {
-        broker.publish(HanqiMqttTopic.deviceJoinResponse(params.mac), {
-          status: 'success',
-          deviceId: params.mac,
-          user: {
-            userId: user._id,
-            name: user.name,
-            email: user.email,
-          },
-        })
-        console.log('[GatewayController] 设备加入成功')
-      } else {
-        broker.publish(HanqiMqttTopic.deviceJoinResponse(params.mac), {
-          status: 'error',
-          message: '未找到关联的用户',
-        })
-        console.warn('[GatewayController] 设备加入失败：未找到用户')
-      }
-    } catch (error) {
-      console.error('[GatewayController] 处理设备加入请求失败:', error)
-    }
-  }
-
-  /**
-   * 处理设备断开请求
-   */
-  @MqttSubscribe('hanqi/device/disconnect')
-  async handleDeviceDisconnect(
-    @MqttPayload() payload: Buffer,
-    @MqttBroker() broker: AedesBrokerService,
-    @MqttClientId() clientId: string,
-  ) {
-    console.log('[GatewayController] 收到设备断开请求，客户端:', clientId)
-
-    try {
-      const params = JSON.parse(payload.toString())
-      const result = await this.gatewayService.disconnectDevice(params.mac)
-
-      if (result) {
-        console.log('[GatewayController] 设备断开成功')
-      }
-    } catch (error) {
-      console.error('[GatewayController] 处理设备断开请求失败:', error)
+    const params = JSON.parse(payload.toString())
+    const user = await this.gatewayService.findUserByMacAddress(params.mac)
+    if (user) {
+      broker.publish(HanqiMqttTopic.deviceJoinResponse(params.mac), {
+        status: 'success',
+        deviceId: params.mac,
+        user: {
+          userId: user._id,
+          name: user.name,
+          email: user.email,
+        },
+      })
+    } else {
+      broker.publish(HanqiMqttTopic.deviceJoinResponse(params.mac), {
+        status: 'error',
+        message: '未找到关联的用户',
+      })
     }
   }
 

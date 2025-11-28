@@ -1,11 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { GatewayService } from '../gateway/gateway.service'
 import { OutletService } from '../outlet/outlet.service'
-import {
-  MqttUnifiedMessage,
-  DpReportData,
-  MqttMessageType,
-} from '@/shared/constants/hanqi-mqtt-topic.constants'
+import { MqttUnifiedMessage, DpReportData, MqttMessageType } from '@/shared/constants/hanqi-mqtt-topic.constants'
 import HanqiTimer from './schema/timer.schema'
 
 /**
@@ -21,7 +17,7 @@ import HanqiTimer from './schema/timer.schema'
 export class TimerService {
   constructor(
     private readonly gatewayService: GatewayService,
-    private readonly outletService: OutletService
+    private readonly outletService: OutletService,
   ) {}
 
   // ========== MQTT消息处理 ==========
@@ -85,7 +81,7 @@ export class TimerService {
           outlet_count: outletCount,
           last_seen: new Date(),
         },
-      }
+      },
     )
 
     console.log(`[TimerService] 设备信息已更新: ${subDeviceId}`)
@@ -145,14 +141,14 @@ export class TimerService {
     }
 
     // 通过网关发送命令
-    await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId, timerId, MqttMessageType.DP_COMMAND, { dps })
+    await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId as string, timerId, MqttMessageType.DP_COMMAND, { dps })
 
     console.log(
       `[TimerService] 已发送出水口控制命令: ` +
         `timerId: ${timerId}, ` +
         `outlet: ${outletNumber}, ` +
         `switch: ${switchOn}, ` +
-        `duration: ${duration || 'N/A'}`
+        `duration: ${duration || 'N/A'}`,
     )
   }
 
@@ -166,7 +162,7 @@ export class TimerService {
       throw new Error(`未找到Timer所属的网关: ${timerId}`)
     }
 
-    await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId, timerId, 'query_status', {})
+    await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId as string, timerId, 'query_status', {})
   }
 
   /**
@@ -179,7 +175,7 @@ export class TimerService {
     }
 
     const dps = { '3': true } // DP3: 设备复位
-    await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId, timerId, MqttMessageType.DP_COMMAND, { dps })
+    await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId as string, timerId, MqttMessageType.DP_COMMAND, { dps })
   }
 
   // ========== 数据查询方法 ==========
