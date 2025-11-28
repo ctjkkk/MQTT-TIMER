@@ -1,0 +1,64 @@
+import { MqttMessageType, MqttUnifiedMessage } from '@/shared/constants/hanqi-mqtt-topic.constants'
+
+/**
+ * 构建网关自身的MQTT消息
+ */
+export function buildGatewayMessage<T = any>(
+  msgType: MqttMessageType | string,
+  gatewayId: string,
+  data: T,
+): MqttUnifiedMessage<T> {
+  return {
+    msgType,
+    msgId: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    deviceId: gatewayId,
+    timestamp: Math.floor(Date.now() / 1000),
+    data,
+  }
+}
+
+/**
+ * 构建子设备的MQTT消息（通过网关发送）
+ */
+export function buildSubDeviceMessage<T = any>(
+  msgType: MqttMessageType | string,
+  gatewayId: string,
+  subDeviceId: string,
+  data: T,
+): MqttUnifiedMessage<T> {
+  return {
+    msgType,
+    msgId: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    deviceId: gatewayId,
+    subDeviceId,
+    timestamp: Math.floor(Date.now() / 1000),
+    data,
+  }
+}
+
+/**
+ * 判断消息是否为网关自身的消息
+ */
+export function isGatewayMessage(message: MqttUnifiedMessage): boolean {
+  return !message.subDeviceId
+}
+
+/**
+ * 判断消息是否为子设备的消息
+ */
+export function isSubDeviceMessage(message: MqttUnifiedMessage): boolean {
+  return !!message.subDeviceId
+}
+
+/**
+ * 解析MQTT消息
+ */
+export function parseMqttMessage<T = any>(payload: Buffer | string): MqttUnifiedMessage<T> | null {
+  try {
+    const str = typeof payload === 'string' ? payload : payload.toString()
+    return JSON.parse(str) as MqttUnifiedMessage<T>
+  } catch (error) {
+    console.error('Failed to parse MQTT message:', error)
+    return null
+  }
+}

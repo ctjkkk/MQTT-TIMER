@@ -12,6 +12,7 @@ export interface HanqiGatewayDocument extends mongoose.Document {
   firmware_version: String
   mac_address: String
   is_connected: Number
+  wifi_rssi: Number
   createdAt: Date
   updatedAt: Date
   timestamps: Date
@@ -69,6 +70,10 @@ const HanqiGatewaySchema = new mongoose.Schema({
   mac_address: {
     type: String,
     trim: true,
+  },
+  wifi_rssi: {
+    type: Number,
+    comment: 'WiFi信号强度(dBm)',
   },
   timestamps: { type: Date, default: Date.now },
 })
