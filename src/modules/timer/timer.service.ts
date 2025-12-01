@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { GatewayService } from '../gateway/gateway.service'
 import { OutletService } from '../outlet/outlet.service'
-import { MqttUnifiedMessage, DpReportData, MqttMessageType } from '@/shared/constants/hanqi-mqtt-topic.constants'
+import { MqttUnifiedMessage, DpReportData, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import HanqiTimer from './schema/timer.schema'
+import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LoggerService } from '@/common/logger/logger.service'
 
 /**
  * Timer设备模块的Service
@@ -18,6 +20,7 @@ export class TimerService {
   constructor(
     private readonly gatewayService: GatewayService,
     private readonly outletService: OutletService,
+    private readonly loggerServer: LoggerService,
   ) {}
 
   // ========== MQTT消息处理 ==========
@@ -27,15 +30,15 @@ export class TimerService {
    * 由GatewayController调用
    */
   async handleDpReport(message: MqttUnifiedMessage<DpReportData>) {
-    const { subDeviceId } = message
+    const { deviceId } = message
     const { dps } = message.data
 
-    console.log(`[TimerService] 处理DP点上报: ${subDeviceId}`)
+    console.log(`[TimerService] 处理DP点上报: ${deviceId}`)
 
     // 查找Timer设备
-    const timer = await HanqiTimer.findOne({ timerId: subDeviceId })
+    const timer = await HanqiTimer.findOne({ timerId: deviceId })
     if (!timer) {
-      console.warn(`[TimerService] Timer不存在: ${subDeviceId}`)
+      console.warn(`[TimerService] Timer不存在: ${deviceId}`)
       return
     }
 
@@ -57,7 +60,7 @@ export class TimerService {
 
       await HanqiTimer.updateOne({ _id: timer._id }, { $set: updates })
 
-      console.log(`[TimerService] Timer基础信息已更新: ${subDeviceId}`)
+      console.log(`[TimerService] Timer基础信息已更新: ${deviceId}`)
     }
 
     // 调用OutletService更新出水口数据
@@ -68,11 +71,11 @@ export class TimerService {
    * 处理设备信息上报
    */
   async handleDeviceInfo(message: MqttUnifiedMessage) {
-    const { subDeviceId } = message
+    const { deviceId } = message
     const { firmware, battery, signal, outletCount } = message.data
 
     await HanqiTimer.updateOne(
-      { timerId: subDeviceId },
+      { timerId: deviceId },
       {
         $set: {
           firmware_version: firmware,
@@ -84,17 +87,17 @@ export class TimerService {
       },
     )
 
-    console.log(`[TimerService] 设备信息已更新: ${subDeviceId}`)
+    console.log(`[TimerService] 设备信息已更新: ${deviceId}`)
   }
 
   /**
    * 处理事件上报（告警、故障等）
    */
   async handleEventReport(message: MqttUnifiedMessage) {
-    const { subDeviceId } = message
+    const { deviceId } = message
     const { eventType, eventCode, eventMessage } = message.data
 
-    console.log(`[TimerService] 事件上报: ${subDeviceId}, 类型: ${eventType}, 代码: ${eventCode}`)
+    console.log(`[TimerService] 事件上报: ${deviceId}, 类型: ${eventType}, 代码: ${eventCode}`)
 
     // TODO: 保存事件到数据库或发送通知
   }
@@ -103,7 +106,7 @@ export class TimerService {
    * 处理子设备心跳
    */
   async handleHeartbeat(message: MqttUnifiedMessage) {
-    await HanqiTimer.updateOne({ timerId: message.subDeviceId }, { $set: { last_seen: new Date() } })
+    await HanqiTimer.updateOne({ timerId: message.deviceId }, { $set: { last_seen: new Date() } })
   }
 
   // ========== Timer设备控制方法 ==========
@@ -161,7 +164,6 @@ export class TimerService {
     if (!gateway) {
       throw new Error(`未找到Timer所属的网关: ${timerId}`)
     }
-
     await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId as string, timerId, 'query_status', {})
   }
 
@@ -178,26 +180,39 @@ export class TimerService {
     await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId as string, timerId, MqttMessageType.DP_COMMAND, { dps })
   }
 
-  // ========== 数据查询方法 ==========
-
-  /**
-   * 根据用户ID查询Timer列表
-   */
-  async findTimersByUserId(userId: string) {
-    return await HanqiTimer.find({ userId }).populate('gatewayId')
+  async handleLifecycle(message: MqttUnifiedMessage) {
+    const { subDeviceId, deviceId: gatewayId } = message
+    const { data } = message
+    const { action } = data
+    const actionHandlers = new Map<OperateAction, () => Promise<void>>([
+      // ========== 单个子设备操作 ==========
+      [OperateAction.SUBDEVICE_ADD, () => this.handleSubDeviceAdd(gatewayId, subDeviceId, data)],
+      [OperateAction.SUBDEVICE_DELETE, () => this.handleSubDeviceDelete(gatewayId, subDeviceId, data)],
+      [OperateAction.SUBDEVICE_UPDATE, () => this.handleSubDeviceUpdate(gatewayId, subDeviceId, data)],
+    ])
+    const handler = actionHandlers.get(action)
+    if (!handler) {
+      this.loggerServer.error(LogMessages.DEVICE.UNKNOWN_ACTION(action), 'GATEWAY')
+      throw new NotFoundException('无效的action!')
+    }
+    await handler()
   }
 
   /**
-   * 根据网关ID查询Timer列表
+   * 添加单个子设备
+   * @param gatewayId 网关ID
+   * @param subDeviceId 子设备ID
+   * @param data 包含 deviceType, outletCount 等
    */
-  async findTimersByGatewayId(gatewayId: string) {
-    return await HanqiTimer.find({ gatewayId })
-  }
+  private async handleSubDeviceAdd(gatewayId: string, subDeviceId: string, data: any): Promise<void> {}
 
   /**
-   * 根据Timer ID查询详情
+   * 删除单个子设备
    */
-  async findTimerById(timerId: string) {
-    return await HanqiTimer.findOne({ timerId }).populate('gatewayId')
-  }
+  private async handleSubDeviceDelete(gatewayId: string, subDeviceId: string, data: any): Promise<void> {}
+
+  /**
+   * 更新单个子设备信息
+   */
+  private async handleSubDeviceUpdate(gatewayId: string, subDeviceId: string, data: any): Promise<void> {}
 }

@@ -40,6 +40,10 @@ export const LogMessages = {
     USER_NOT_FOUND: (mac: string, userId: string) => `👤 用户未找到: 网关 ${mac}, 用户ID ${userId}`,
     CONNECTION_UPDATED: (mac: string, status: string) => `🔄 连接状态更新: ${mac} -> ${status}`,
     DEVICE_DISCONNECTED: (mac: string) => `🔌 设备断开: ${mac}`,
+    UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,
+  },
+  DEVICE: {
+    UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,
   },
   PSK: {
     LOAD: (size: number) => `[PskService] 缓存预热完成，已加载 ${size} 条已确认 PSK`,

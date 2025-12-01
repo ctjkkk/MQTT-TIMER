@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import {
-  MqttUnifiedMessage,
-  IrrigationRecordData,
-} from '@/shared/constants/hanqi-mqtt-topic.constants'
+import { MqttUnifiedMessage } from '@/shared/constants/mqtt-topic.constants'
 import HanqiOutlet from './schema/outlet.schema'
 import HanqiTimer from '../timer/schema/timer.schema'
 import { Types } from 'mongoose'
@@ -19,48 +16,6 @@ import { Types } from 'mongoose'
 @Injectable()
 export class OutletService {
   // ========== MQTT消息处理 ==========
-
-  /**
-   * 处理灌溉记录上报
-   * 由GatewayController调用
-   */
-  async handleIrrigationRecord(message: MqttUnifiedMessage<IrrigationRecordData>) {
-    const { subDeviceId } = message
-    const { outletNumber, startTime, endTime, duration, waterUsed, triggerType, temperature, weatherCondition } =
-      message.data
-
-    console.log(`[OutletService] 处理灌溉记录: ${subDeviceId}, 出水口: ${outletNumber}`)
-
-    // 查找Timer设备
-    const timer = await HanqiTimer.findOne({ timerId: subDeviceId })
-    if (!timer) {
-      console.warn(`[OutletService] Timer不存在: ${subDeviceId}`)
-      return
-    }
-
-    // 查找出水口
-    const outlet = await HanqiOutlet.findOne({
-      timerId: timer._id,
-      outlet_number: outletNumber,
-    })
-
-    if (!outlet) {
-      console.warn(`[OutletService] 出水口不存在: ${subDeviceId}, outlet: ${outletNumber}`)
-      return
-    }
-
-    // 更新出水口的累计用水量
-    await HanqiOutlet.updateOne(
-      { _id: outlet._id },
-      {
-        $inc: { total_water_used: waterUsed || 0 },
-        $set: { last_dp_update: new Date() },
-      }
-    )
-
-    // TODO: 保存灌溉记录到 HanqiIrrigationRecord 集合
-    console.log(`[OutletService] 灌溉记录已保存: ${outletNumber}, 用水: ${waterUsed}升`)
-  }
 
   /**
    * 根据DP点数据更新出水口状态

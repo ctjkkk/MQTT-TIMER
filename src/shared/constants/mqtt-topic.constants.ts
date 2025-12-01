@@ -1,30 +1,10 @@
-/**
- * 汉奇MQTT Topic定义（网关-子设备架构）
- *
- * 设计原则：
- * 1. 云端只和网关通信，不直接和子设备（Timer）通信
- * 2. 统一Topic，通过消息体的msgType区分数据类型
- * 3. 通过subDeviceId字段标识具体的子设备
- * 4. 便于网关扩展新类型子设备，无需云端迭代
- */
-
-/**
- * MQTT消息类型枚举
- * 用于区分不同类型的数据
- */
+// Payload 传输格式
 export enum MqttMessageType {
   // ========== 网关自身的消息 ==========
-  /** 网关状态上报 */
-  GATEWAY_STATUS = 'gateway_status',
+  DEVICE_STATUS = 'device_status',
 
-  /** 子设备列表上报（网关启动时/子设备变化时） */
-  SUB_DEVICES = 'sub_devices',
-
-  /** 查询子设备列表 */
-  QUERY_SUB_DEVICES = 'query_sub_devices',
-
-  /** 删除子设备 */
-  REMOVE_SUB_DEVICE = 'remove_sub_device',
+  // 设备列表同步/添加/删除 (双向)
+  OPERATE_DEVICE = 'operate_devices',
 
   // ========== 子设备的消息（通过网关转发） ==========
   /** DP点数据上报 */
@@ -33,29 +13,53 @@ export enum MqttMessageType {
   /** DP点命令下发 */
   DP_COMMAND = 'dp_command',
 
-  /** 设备信息上报 */
-  DEVICE_INFO = 'device_info',
-
-  /** 灌溉记录上报 */
-  IRRIGATION_RECORD = 'irrigation_record',
-
-  /** 定时任务同步 */
-  SCHEDULE_SYNC = 'schedule_sync',
-
   /** 事件上报（告警、故障等） */
   EVENT_REPORT = 'event_report',
 
   /** 心跳 */
   HEARTBEAT = 'heartbeat',
-
-  // ========== OTA相关 ==========
-  /** OTA升级 */
-  OTA_UPGRADE = 'ota_upgrade',
-
-  /** OTA进度 */
-  OTA_PROGRESS = 'ota_progress',
 }
 
+//区分设备的类型
+export enum EntityType {
+  /** 网关 */
+  GATEWAY = 'gateway',
+
+  /** 子设备 */
+  SUBDEVICE = 'subDevice',
+}
+
+// 设备生命周期action
+export enum OperateAction {
+  // ========== 网关操作 ==========
+  /** 注册网关（首次加入） */
+  GATEWAY_REGISTER = 'gateway_register',
+
+  /** 注销网关（从系统移除） */
+  GATEWAY_UNREGISTER = 'gateway_unregister',
+
+  /** 更新网关信息 */
+  GATEWAY_UPDATE = 'gateway_update',
+
+  /** 重启网关 */
+  GATEWAY_REBOOT = 'gateway_reboot',
+
+  /** 网关固件升级 */
+  GATEWAY_UPGRADE = 'gateway_upgrade',
+
+  /** 重置网关 */
+  GATEWAY_RESET = 'gateway_reset',
+
+  // ========== 子设备操作 ==========
+  /** 添加子设备 */
+  SUBDEVICE_ADD = 'subdevice_add',
+
+  /** 删除子设备 */
+  SUBDEVICE_DELETE = 'subdevice_delete',
+
+  /** 更新子设备信息 */
+  SUBDEVICE_UPDATE = 'subdevice_update',
+}
 /**
  * 统一的MQTT消息格式（网关-子设备架构）
  */
@@ -69,7 +73,7 @@ export interface MqttUnifiedMessage<T = any> {
   /** 设备ID（网关ID） */
   deviceId: string
 
-  /** 子设备ID（可选，如果是子设备的消息则必填） */
+  /** 可选，若是操作子设备则添加该字段 */
   subDeviceId?: string
 
   /** 时间戳（秒） */
@@ -87,30 +91,22 @@ export interface SubDeviceInfo {
   subDeviceId: string
 
   /** 设备类型（timer, sensor等） */
-  deviceType: string
+  deviceType: number
 
-  /** 出水口数量（Timer特有） */
-  outletCount?: number
+  /** 0为正常功耗，1为低功耗 */
+  capabilities: number
+
+  /** 电池电量 */
+  productId: number
+
+  /** 固件版本: ota流程需要 */
+  firmwareVersion: string
 
   /** 是否在线 */
   online: boolean
 
-  /** 电池电量 */
-  battery?: number
-
-  /** 信号强度（Zigbee/BLE信号） */
-  signal?: number
-
-  /** 固件版本 */
-  firmware?: string
-}
-
-/**
- * 子设备列表数据
- */
-export interface SubDevicesData {
-  /** 子设备列表 */
-  subDevices: SubDeviceInfo[]
+  /** 子设备私有数据，包括子设备key等信息，不允许丢失，需要在云端备份 */
+  private: string
 }
 
 /**
@@ -119,67 +115,6 @@ export interface SubDevicesData {
 export interface DpReportData {
   /** DP点数据对象 */
   dps: Record<string, any>
-}
-
-/**
- * 灌溉记录数据
- */
-export interface IrrigationRecordData {
-  /** 出水口编号 */
-  outletNumber: number
-
-  /** 开始时间 */
-  startTime: string | Date
-
-  /** 结束时间（可选） */
-  endTime?: string | Date
-
-  /** 运行时长（秒） */
-  duration: number
-
-  /** 用水量（升） */
-  waterUsed?: number
-
-  /** 触发类型 */
-  triggerType: 'scheduled' | 'manual' | 'api' | 'sensor'
-
-  /** 温度 */
-  temperature?: number
-
-  /** 天气状况 */
-  weatherCondition?: string
-}
-
-/**
- * 定时任务数据
- */
-export interface ScheduleData {
-  /** 定时任务ID */
-  scheduleId: string
-
-  /** 出水口编号 */
-  outletNumber: number
-
-  /** 开始时间 (HH:mm) */
-  startTime: string
-
-  /** 运行时长（秒） */
-  duration: number
-
-  /** 重复天数（0-6，0为周日） */
-  repeatDays?: number[]
-
-  /** 是否启用 */
-  isEnabled?: boolean
-
-  /** 喷雾模式配置 */
-  sprayMode?: {
-    isEnabled: boolean
-    ecoMode?: boolean
-    sprayPattern?: 'continuous' | 'interval' | 'pulse'
-    intervalOn?: number
-    intervalOff?: number
-  }
 }
 
 /**

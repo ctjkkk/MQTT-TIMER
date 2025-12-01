@@ -7,7 +7,7 @@ import {
   HANQI_TIMER_DP_CONFIG,
   HanqiTimerDpId,
   getOutletDpId,
-} from '@/shared/constants/hanqi-dp.constants'
+} from '@/shared/constants/dp.constants'
 import { LoggerService } from '@/common/logger/logger.service'
 
 /**

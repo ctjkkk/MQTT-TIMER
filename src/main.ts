@@ -11,15 +11,17 @@ async function bootstrap() {
   app.enableCors() // 启用跨域
   const config = new DocumentBuilder()
     .setTitle('MQTT 设备管理接口')
-    .setDescription('设备 PSK 生成、确认等 API')
+    .setDescription('设备 PSK 生成、确认、网关等 API')
     .setVersion('1.0')
+    .setContact('Jams Williams', '', '2283025597@qq.com')
+    .addServer('http://3.216.169.117:8018', '生产环境')
     .addTag('设备管理')
     .build()
   const document = SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('swagger', app, document) // swagger 监听127.0.0.1:8018/api/doc
   knife4jSetup(app, [
     {
-      name: '默认分组',
+      name: '汉奇设备',
       url: '/swagger-json',
       swaggerVersion: '3.0',
       location: '/swagger-json',

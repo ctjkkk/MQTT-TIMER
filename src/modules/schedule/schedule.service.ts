@@ -1,12 +1,5 @@
 import { Injectable } from '@nestjs/common'
 import { GatewayService } from '../gateway/gateway.service'
-import {
-  MqttUnifiedMessage,
-  MqttMessageType,
-  ScheduleData,
-} from '@/shared/constants/hanqi-mqtt-topic.constants'
-import HanqiSchedule from './schema/schedule.schema'
-import HanqiTimer from '../timer/schema/timer.schema'
 
 /**
  * Schedule模块的Service
@@ -19,14 +12,6 @@ import HanqiTimer from '../timer/schema/timer.schema'
 @Injectable()
 export class ScheduleService {
   constructor(private readonly gatewayService: GatewayService) {}
-
-  /**
-   * 处理定时任务同步响应
-   */
-  async handleScheduleSyncResponse(message: MqttUnifiedMessage) {
-    console.log(`[ScheduleService] 定时任务同步响应: ${message.subDeviceId}`)
-    // TODO: 实现定时任务同步逻辑
-  }
 
   /**
    * 创建定时任务并同步到设备
