@@ -9,7 +9,6 @@ import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { ParseMacPipe } from './pipes/parse-mac.pipe'
 /**
  * Gateway模块的Controller
- *
  * 职责：
  * 1. 唯一的MQTT消息入口
  * 2. 订阅所有网关的上报消息

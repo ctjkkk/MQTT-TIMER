@@ -10,7 +10,7 @@ async function bootstrap() {
   app.setGlobalPrefix('/api') // 访问控制器添加公共前缀 127.0.0.1:8018/api
   app.enableCors() // 启用跨域
   const config = new DocumentBuilder()
-    .setTitle('MQTT 设备管理接口')
+    .setTitle('设备接口管理')
     .setDescription('设备 PSK 生成、确认、网关等 API')
     .setVersion('1.0')
     .setContact('Jams Williams', '', '2283025597@qq.com')

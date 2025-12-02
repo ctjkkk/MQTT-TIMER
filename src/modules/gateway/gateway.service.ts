@@ -25,7 +25,9 @@ export class GatewayService {
     private readonly loggerServer: LoggerService,
   ) {}
 
-  async findAllOfSubDevice(macAddress: string): Promise<any> {}
+  async findAllOfSubDevice(macAddress: string): Promise<any> {
+    return '正在开发中...'
+  }
   // ========== 网关消息处理 ==========
 
   /**
