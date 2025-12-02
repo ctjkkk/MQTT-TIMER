@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { MiddlewareConsumer, Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
@@ -11,6 +11,7 @@ import { MqttModule } from './core/mqtt/mqtt.module'
 import { PskModule } from './modules/psk/psk.module'
 import databaseConfig from './config/database.config'
 import mqttConfig from './config/mqtt.config'
+import { LoggerMiddleware } from '@/common/logger/logger.middleware'
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -29,4 +30,8 @@ import mqttConfig from './config/mqtt.config'
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*') // 监控所有路由
+  }
+}

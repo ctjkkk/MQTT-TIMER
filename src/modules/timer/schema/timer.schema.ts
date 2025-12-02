@@ -9,7 +9,7 @@ export interface HanqiTimerDocument extends mongoose.Document {
   valve_id: string
   name: string
   userId: UserDocument['_id']
-  gatewayId: HanqiGatewayDocument['_id']
+  gatewayId: HanqiGatewayDocument['gatewayId']
 
   // 品类和能力
   product_id: string

@@ -4,6 +4,7 @@ import DailyRotateFile from 'winston-daily-rotate-file'
 import type { LoggerOptions } from './interfaces/logger-options.interface'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import moment from 'moment'
+import { AsyncLocalStorage } from 'async_hooks'
 
 export enum LogLevel {
   ERROR = 'error',
@@ -11,6 +12,18 @@ export enum LogLevel {
   INFO = 'info',
   DEBUG = 'debug',
 }
+
+// 请求上下文
+export interface RequestContext {
+  requestId?: string
+  userId?: string
+  ip?: string
+  method?: string
+  url?: string
+}
+
+// AsyncLocalStorage 用于存储请求上下文
+export const requestContextStorage = new AsyncLocalStorage<RequestContext>()
 
 @Injectable()
 export class LoggerService {

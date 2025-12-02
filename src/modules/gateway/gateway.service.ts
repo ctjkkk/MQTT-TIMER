@@ -3,6 +3,7 @@ import { AedesBrokerService } from '@/core/mqtt/mqtt-broker.service'
 import { MqttUnifiedMessage, HanqiMqttTopic, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import HanqiGateway from './schema/HanqiGateway.schema'
 import HanqiTimer from '../timer/schema/timer.schema'
+import { HanqiTimerDocument } from '@/modules/timer/schema/timer.schema'
 import { buildGatewayMessage, buildSubDeviceMessage } from './utils/gateway.utils'
 import { GatewayStatusData } from './interfaces/gateway-type.interface'
 import { LoggerService } from '@/common/logger/logger.service'
@@ -25,8 +26,14 @@ export class GatewayService {
     private readonly loggerServer: LoggerService,
   ) {}
 
-  async findAllOfSubDevice(macAddress: string): Promise<any> {
-    return '正在开发中...'
+  async findAllOfSubDevice(macAddress: string): Promise<HanqiTimerDocument[]> {
+    const gateway = await HanqiGateway.findOne({ mac_address: macAddress }).exec()
+    if (!gateway) throw new NotFoundException('该网关不存在!')
+
+    const timers = await HanqiTimer.find({ gatewayId: macAddress }).exec()
+    if (!timers.length) throw new NotFoundException('该网关下无子设备')
+
+    return timers
   }
   // ========== 网关消息处理 ==========
 
