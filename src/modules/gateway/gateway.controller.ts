@@ -5,7 +5,7 @@ import { TimerService } from '../timer/timer.service'
 import { HanqiMqttTopic, MqttMessageType } from '@/shared/constants/mqtt-topic.constants'
 import { isGatewayMessage, isSubDeviceMessage, parseMqttMessage } from './utils/gateway.utils'
 import { ApiKeyGuard } from '@/common/guards/api-key.guard'
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { ParseMacPipe } from './pipes/parse-mac.pipe'
 /**
  * Gateway模块的Controller
@@ -16,6 +16,11 @@ import { ParseMacPipe } from './pipes/parse-mac.pipe'
  * 3. 根据msgType和subDeviceId分发到对应的Service
  * 4. 不处理具体业务逻辑
  */
+@ApiHeader({
+  name: 'x-api-key',
+  description: 'Api 密钥',
+  required: true,
+})
 @ApiTags('Gateway')
 @Controller('gateway')
 export class GatewayController {

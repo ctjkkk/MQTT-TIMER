@@ -43,13 +43,13 @@ async function main() {
   try {
     // 生成PSK
     const result = await requestWithSignature('POST', '/psk/generate', {
-      mac: 'test1_ABCDEF123456',
+      mac: 'test2_ABCDEF123456',
     })
     console.log('生成PSK成功:', result.data)
 
     // 确认PSK
     const confirmResult = await requestWithSignature('POST', '/psk/confirm', {
-      mac: 'test1_ABCDEF123456',
+      mac: 'test2_ABCDEF123456',
     })
     console.log('确认PSK成功:', confirmResult.data)
   } catch (error) {

@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common'
 import { PskService } from './psk.service'
 import { SignatureGuard } from '@/modules/psk/guards/signature'
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { GeneratePskDto, ConfirmPskDto } from './dto/psk.dto'
 
 /**
@@ -9,6 +9,17 @@ import { GeneratePskDto, ConfirmPskDto } from './dto/psk.dto'
  * 提供PSK生成和确认的HTTP接口
  * 使用签名验证保护接口安全
  */
+
+@ApiHeader({
+  name: 'x-timestamp',
+  description: 'Unix 时间戳（秒），与 x-signature 一起使用，须为 5 分钟内',
+  required: true,
+})
+@ApiHeader({
+  name: 'x-signature',
+  description: 'Psk 模块签名，有效期 5 分钟',
+  required: true,
+})
 @ApiTags('Psk')
 @Controller('psk')
 @UseGuards(SignatureGuard)
