@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common'
-import { createLogger, format } from 'winston'
+import { createLogger, format, transports } from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
 import type { LoggerOptions } from './interfaces/logger-options.interface'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
@@ -183,7 +183,7 @@ export class LoggerService {
     const dirname = fileConfig.dirname || 'logs'
     const datePattern = fileConfig.datePattern || 'YYYY-MM-DD'
     const maxSize = fileConfig.maxSize || '20m'
-    let maxFiles = fileConfig.maxFiles || '14d'
+    let maxFiles = '7d' // 默认保留7天（更安全）
 
     // 根据上下文和日志级别确定文件名
     let filename = this.getFilenameByContextAndLevel(level, context)
@@ -197,6 +197,10 @@ export class LoggerService {
       maxFiles = '7d' // 数据库日志保留7天
     } else if (context === 'HTTP') {
       maxFiles = '14d' // HTTP日志保留14天
+    } else if (level === 'debug') {
+      maxFiles = '3d' // Debug日志保留3天
+    } else if (level === 'info' || level === 'warn') {
+      maxFiles = '7d' // Info/Warn日志保留7天
     }
 
     return createLogger({

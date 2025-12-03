@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req, UseFilters, UseGuards } from '@nestjs/common'
+import { Controller, Get, Param, UseFilters, UseGuards } from '@nestjs/common'
 import { MqttSubscribe, MqttPayload, MqttBroker, MqttClientId } from '@/shared/decorators/mqtt.decorator'
 import { GatewayService } from './gateway.service'
 import { TimerService } from '../timer/timer.service'
