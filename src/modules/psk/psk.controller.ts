@@ -1,8 +1,9 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common'
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, UseFilters } from '@nestjs/common'
 import { PskService } from './psk.service'
 import { SignatureGuard } from '@/modules/psk/guards/signature'
 import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { GeneratePskDto, ConfirmPskDto } from './dto/psk.dto'
+import { HttpExceptionsFilter } from '@/common/filters/exceptions.filter'
 
 /**
  * PSK认证Controller
@@ -23,6 +24,7 @@ import { GeneratePskDto, ConfirmPskDto } from './dto/psk.dto'
 @ApiTags('Psk')
 @Controller('psk')
 @UseGuards(SignatureGuard)
+@UseFilters(HttpExceptionsFilter)
 export class PskController {
   constructor(private readonly pskService: PskService) {}
   @Post('generate')

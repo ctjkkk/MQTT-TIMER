@@ -96,6 +96,48 @@ export class LoggerService {
     this.error(`MQTT错误: ${error}`, 'MQTT', { clientId, error })
   }
 
+  // HTTP 请求相关日志
+  httpRequest(
+    method: string,
+    url: string,
+    statusCode: number,
+    duration: number,
+    ip?: string,
+    userAgent?: string,
+    requestId?: string,
+  ) {
+    const isError = statusCode >= 400
+    const level = isError ? LogLevel.WARN : LogLevel.INFO
+    const message = `${method} ${url} ${statusCode} +${duration}ms`
+
+    const data = {
+      method,
+      url,
+      statusCode,
+      duration: `${duration}ms`,
+      ip,
+      userAgent,
+      requestId,
+      timestamp: new Date().toISOString(),
+    }
+
+    this.log(level, message, 'HTTP', data)
+  }
+
+  httpError(method: string, url: string, statusCode: number, duration: number, error: any, ip?: string, requestId?: string) {
+    this.error(`${method} ${url} ${statusCode} +${duration}ms - ${error.message}`, 'HTTP', {
+      method,
+      url,
+      statusCode,
+      duration: `${duration}ms`,
+      error: error.message,
+      stack: error.stack,
+      ip,
+      requestId,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   // 通用日志方法
   error(message: string, context?: string, data?: any) {
     this.log(LogLevel.ERROR, message, context, data)
@@ -153,6 +195,8 @@ export class LoggerService {
       maxFiles = '3d' // MQTT消息日志保留3天
     } else if (context === 'MongoDB') {
       maxFiles = '7d' // 数据库日志保留7天
+    } else if (context === 'HTTP') {
+      maxFiles = '14d' // HTTP日志保留14天
     }
 
     return createLogger({
@@ -183,6 +227,12 @@ export class LoggerService {
       if (level === 'error') return 'database-error-%DATE%.log'
       if (level === 'debug') return 'database-query-%DATE%.log'
       return 'database-%DATE%.log'
+    }
+
+    if (context === 'HTTP') {
+      if (level === 'error') return 'http-error-%DATE%.log'
+      if (level === 'warn') return 'http-warn-%DATE%.log'
+      return 'http-%DATE%.log'
     }
 
     // 通用日志根据级别分类

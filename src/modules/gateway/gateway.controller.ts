@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common'
+import { Controller, Get, Param, Req, UseFilters, UseGuards } from '@nestjs/common'
 import { MqttSubscribe, MqttPayload, MqttBroker, MqttClientId } from '@/shared/decorators/mqtt.decorator'
 import { GatewayService } from './gateway.service'
 import { TimerService } from '../timer/timer.service'
@@ -7,6 +7,7 @@ import { isGatewayMessage, isSubDeviceMessage, parseMqttMessage } from './utils/
 import { ApiKeyGuard } from '@/common/guards/api-key.guard'
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { ParseMacPipe } from './pipes/parse-mac.pipe'
+import { HttpExceptionsFilter } from '@/common/filters/exceptions.filter'
 /**
  * Gateway模块的Controller
  * 职责：
@@ -51,6 +52,7 @@ export class GatewayController {
   @ApiOperation({ summary: '获取子设备列表' })
   @ApiResponse({ status: 200, description: '返回该网关下子设备列表' })
   @UseGuards(ApiKeyGuard)
+  @UseFilters(HttpExceptionsFilter)
   async fetchGatewayAllOfSubDevice(@Param('mac', ParseMacPipe) macAddress: string) {
     return await this.gatewayService.findAllOfSubDevice(macAddress)
   }
@@ -92,6 +94,7 @@ export class GatewayController {
         break
       case MqttMessageType.OPERATE_DEVICE:
         await this.timerService.handleLifecycle(message)
+        break
       default:
         console.warn('[GatewayController] 未知的子设备消息类型:', message.msgType)
     }

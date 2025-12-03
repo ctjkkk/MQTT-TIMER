@@ -12,6 +12,7 @@ import { PskModule } from './modules/psk/psk.module'
 import databaseConfig from './config/database.config'
 import mqttConfig from './config/mqtt.config'
 import { LoggerMiddleware } from '@/common/logger/logger.middleware'
+
 @Module({
   imports: [
     ConfigModule.forRoot({
