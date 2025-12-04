@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import { Hash } from '../utils/hash'
+import { Hash } from '../../common/utils/hash'
 import { RoleDocument } from './Role'
 import moment from 'moment'
 

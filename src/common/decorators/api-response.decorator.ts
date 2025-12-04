@@ -1,8 +1,7 @@
-// src/common/decorators/common-api.decorator.ts
 import { applyDecorators, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
 import { ApiHeader, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { HttpExceptionsFilter } from '../filters/exceptions.filter'
-import { Transform } from '../interceptor/transform.interceptor'
+import { Transform } from '../interceptors/transform.interceptor'
 import { ApiKeyGuard } from '../guards/api-key.guard'
 import { SignatureGuard } from '@/modules/psk/guards/signature'
 

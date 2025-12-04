@@ -1,14 +1,11 @@
-import { Controller, Get, Param, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
-import { MqttSubscribe, MqttPayload, MqttBroker, MqttClientId } from '@/shared/decorators/mqtt.decorator'
+import { Controller, Get, Param } from '@nestjs/common'
+import { MqttSubscribe, MqttPayload, MqttBroker, MqttClientId } from '@/common/decorators/mqtt.decorator'
 import { GatewayService } from './gateway.service'
 import { TimerService } from '../timer/timer.service'
 import { HanqiMqttTopic, MqttMessageType } from '@/shared/constants/mqtt-topic.constants'
 import { isGatewayMessage, isSubDeviceMessage, parseMqttMessage } from './utils/gateway.utils'
-import { ApiKeyGuard } from '@/common/guards/api-key.guard'
-import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { ApiHeader, ApiTags } from '@nestjs/swagger'
 import { ParseMacPipe } from './pipes/parse-mac.pipe'
-import { HttpExceptionsFilter } from '@/common/filters/exceptions.filter'
-import { Transform } from '@/common/interceptor/transform.interceptor'
 import { ApiResponseStandard } from '@/common/decorators/api-response.decorator'
 /**
  * Gateway模块的Controller

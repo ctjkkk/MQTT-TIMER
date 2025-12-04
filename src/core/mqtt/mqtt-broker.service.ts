@@ -1,7 +1,7 @@
 // src/core/mqtt/aedes-broker.service.ts
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
 import Aedes from 'aedes'
-import { authError } from '@/shared/utils/error'
+import { authError } from '@/common/utils/error'
 import { createServer, Server as NetServer } from 'net'
 import { LoggerService } from '@/common/logger/logger.service'
 import { ConfigService } from '@nestjs/config'
