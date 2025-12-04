@@ -1,9 +1,8 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, UseFilters } from '@nestjs/common'
+import { Controller, Post, Body } from '@nestjs/common'
 import { PskService } from './psk.service'
-import { SignatureGuard } from '@/modules/psk/guards/signature'
-import { ApiBody, ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { ApiBody, ApiTags } from '@nestjs/swagger'
 import { GeneratePskDto, ConfirmPskDto } from './dto/psk.dto'
-import { HttpExceptionsFilter } from '@/common/filters/exceptions.filter'
+import { PskApiResponseStandard } from '@/common/decorators/api-response.decorator'
 
 /**
  * PSK认证Controller
@@ -11,47 +10,21 @@ import { HttpExceptionsFilter } from '@/common/filters/exceptions.filter'
  * 使用签名验证保护接口安全
  */
 
-@ApiHeader({
-  name: 'x-timestamp',
-  description: 'Unix 时间戳（秒），与 x-signature 一起使用，须为 5 分钟内',
-  required: true,
-})
-@ApiHeader({
-  name: 'x-signature',
-  description: 'Psk 模块签名，有效期 5 分钟',
-  required: true,
-})
 @ApiTags('Psk')
 @Controller('psk')
-@UseGuards(SignatureGuard)
-@UseFilters(HttpExceptionsFilter)
 export class PskController {
   constructor(private readonly pskService: PskService) {}
   @Post('generate')
-  @ApiOperation({ summary: '生成设备 PSK' })
   @ApiBody({ type: GeneratePskDto })
-  @ApiResponse({ status: 200, description: '返回 PSK 与密钥' })
-  @HttpCode(HttpStatus.OK)
+  @PskApiResponseStandard('生成设备 PSK', '返回 PSK 与密钥', 'key生成成功!云端已保存该条记录!', 200)
   async generatePsk(@Body() body: { mac: string }) {
-    const { mac } = body
-    if (!mac) {
-      return { success: false, message: 'MAC地址不能为空' }
-    }
-    const result = await this.pskService.generatePsk(mac)
-    return { success: true, data: result }
+    return this.pskService.generatePsk(body?.mac)
   }
 
   @Post('confirm')
-  @ApiOperation({ summary: '确认mac地址烧录成功!' })
   @ApiBody({ type: ConfirmPskDto })
-  @ApiResponse({ status: 200, description: '返回 PSK 与密钥' })
-  @HttpCode(HttpStatus.OK)
+  @PskApiResponseStandard('确认mac地址烧录成功!', '返回 PSK 与密钥', 'Psk烧录成功!云端已将该网关激活', 200)
   async confirmPsk(@Body() body: { mac: string }) {
-    const { mac } = body
-    if (!mac) {
-      return { success: false, message: 'MAC地址不能为空' }
-    }
-    const result = await this.pskService.confirmPsk(mac)
-    return result
+    return this.pskService.confirmPsk(body?.mac)
   }
 }

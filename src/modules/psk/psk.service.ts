@@ -58,12 +58,12 @@ export class PskService implements OnModuleInit {
       throw new NotFoundException('未找到该MAC地址的PSK记录，请先调用生成接口')
     }
     if (psk.status) {
-      return { success: true, message: 'PSK已经确认过' }
+      return { tip: 'PSK已经确认过' }
     }
     // 更新status为1，表示烧录成功
     psk.status = 1
     await psk.save()
-    return { success: true, message: 'PSK烧录确认成功' }
+    return { tip: 'PSK烧录确认成功' }
   }
 
   public exists(identity: string): boolean {

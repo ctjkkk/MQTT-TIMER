@@ -33,6 +33,6 @@ import { LoggerMiddleware } from '@/common/logger/logger.middleware'
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*') // 监控所有路由
+    consumer.apply(LoggerMiddleware).forRoutes('*path') // 监控所有路由
   }
 }

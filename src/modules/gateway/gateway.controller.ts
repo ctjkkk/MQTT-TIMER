@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseFilters, UseGuards } from '@nestjs/common'
+import { Controller, Get, Param, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common'
 import { MqttSubscribe, MqttPayload, MqttBroker, MqttClientId } from '@/shared/decorators/mqtt.decorator'
 import { GatewayService } from './gateway.service'
 import { TimerService } from '../timer/timer.service'
@@ -8,6 +8,8 @@ import { ApiKeyGuard } from '@/common/guards/api-key.guard'
 import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { ParseMacPipe } from './pipes/parse-mac.pipe'
 import { HttpExceptionsFilter } from '@/common/filters/exceptions.filter'
+import { Transform } from '@/common/interceptor/transform.interceptor'
+import { ApiResponseStandard } from '@/common/decorators/api-response.decorator'
 /**
  * Gateway模块的Controller
  * 职责：
@@ -49,10 +51,7 @@ export class GatewayController {
 
   // 网关发送http请求从云端获取该网关下所有子设备
   @Get('/sub_device_list/:mac')
-  @ApiOperation({ summary: '获取子设备列表' })
-  @ApiResponse({ status: 200, description: '返回该网关下子设备列表' })
-  @UseGuards(ApiKeyGuard)
-  @UseFilters(HttpExceptionsFilter)
+  @ApiResponseStandard('获取子设备列表', '查询成功!', 200)
   async fetchGatewayAllOfSubDevice(@Param('mac', ParseMacPipe) macAddress: string) {
     return await this.gatewayService.findAllOfSubDevice(macAddress)
   }
