@@ -42,6 +42,11 @@ export const LogMessages = {
     DEVICE_DISCONNECTED: (mac: string) => `🔌 设备断开: ${mac}`,
     UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,
   },
+  SYNC: {
+    SUBSCRIBED: (tableCount: number) => `✅ 已订阅 ${tableCount} 个表的同步消息`,
+    SYNC_FAILED: (collection: string, error: string) => `❌ 同步失败 [${collection}]: ${error}`,
+    UNSUPPORTED_OPERATION: (operation: string) => `⚠️ 不支持的操作: ${operation}`,
+  },
   DEVICE: {
     UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,
   },

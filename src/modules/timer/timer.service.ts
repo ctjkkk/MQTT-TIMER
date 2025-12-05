@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
+import { InjectModel } from '@nestjs/mongoose'
+import { Model } from 'mongoose'
 import { GatewayService } from '../gateway/gateway.service'
 import { OutletService } from '../outlet/outlet.service'
 import { MqttUnifiedMessage, DpReportData, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
-import HanqiTimer from './schema/timer.schema'
+import { HanqiTimer, HanqiTimerDocument } from './schema/timer.schema'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import { LoggerService } from '@/common/logger/logger.service'
 
@@ -18,6 +20,7 @@ import { LoggerService } from '@/common/logger/logger.service'
 @Injectable()
 export class TimerService {
   constructor(
+    @InjectModel(HanqiTimer.name) private readonly hanqiTimerModel: Model<HanqiTimerDocument>,
     private readonly gatewayService: GatewayService,
     private readonly outletService: OutletService,
     private readonly loggerServer: LoggerService,
@@ -36,7 +39,7 @@ export class TimerService {
     console.log(`[TimerService] 处理DP点上报: ${deviceId}`)
 
     // 查找Timer设备
-    const timer = await HanqiTimer.findOne({ timerId: deviceId })
+    const timer = await this.hanqiTimerModel.findOne({ timerId: deviceId })
     if (!timer) {
       console.warn(`[TimerService] Timer不存在: ${deviceId}`)
       return
@@ -58,7 +61,7 @@ export class TimerService {
       updates.last_dp_update = new Date()
       updates.last_seen = new Date()
 
-      await HanqiTimer.updateOne({ _id: timer._id }, { $set: updates })
+      await this.hanqiTimerModel.updateOne({ _id: timer._id }, { $set: updates })
 
       console.log(`[TimerService] Timer基础信息已更新: ${deviceId}`)
     }
@@ -74,7 +77,7 @@ export class TimerService {
     const { deviceId } = message
     const { firmware, battery, signal, outletCount } = message.data
 
-    await HanqiTimer.updateOne(
+    await this.hanqiTimerModel.updateOne(
       { timerId: deviceId },
       {
         $set: {
@@ -106,7 +109,7 @@ export class TimerService {
    * 处理子设备心跳
    */
   async handleHeartbeat(message: MqttUnifiedMessage) {
-    await HanqiTimer.updateOne({ timerId: message.deviceId }, { $set: { last_seen: new Date() } })
+    await this.hanqiTimerModel.updateOne({ timerId: message.deviceId }, { $set: { last_seen: new Date() } })
   }
 
   // ========== Timer设备控制方法 ==========

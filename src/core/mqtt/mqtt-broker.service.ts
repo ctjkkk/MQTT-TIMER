@@ -20,8 +20,8 @@ export class AedesBrokerService implements OnModuleInit {
   ) {}
   private online = new Map<string, any>()
   private topicHandlers = new Map<string, any[]>()
-  private PORT: number
-  private PSK_PORT: number
+  private TCP_MQTT_PORT: number
+  private PSK_MQTT_PORT: number
   private aedes: Aedes
   private tcpServer: NetServer
   private tlsServer: tls.Server
@@ -43,23 +43,23 @@ export class AedesBrokerService implements OnModuleInit {
 
     // 启动TCP服务器（端口1883，使用用户名密码认证）
     await new Promise<void>(resolve =>
-      this.tcpServer.listen(this.PORT, () => {
-        this.logger.log(LogMessages.MQTT.BROKER_START('TCP', this.PORT))
+      this.tcpServer.listen(this.TCP_MQTT_PORT, () => {
+        this.logger.log(LogMessages.MQTT.BROKER_START('TCP', this.TCP_MQTT_PORT))
         resolve()
       }),
     )
 
     // 启动TLS-PSK服务器（端口8445，使用PSK认证）
     await new Promise<void>(resolve =>
-      this.tlsServer.listen(this.PSK_PORT, () => {
-        this.logger.log(LogMessages.MQTT.BROKER_START('PSK', this.PSK_PORT))
+      this.tlsServer.listen(this.PSK_MQTT_PORT, () => {
+        this.logger.log(LogMessages.MQTT.BROKER_START('PSK', this.PSK_MQTT_PORT))
         resolve()
       }),
     )
   }
 
   mqttAuthentication() {
-    const { ID, CONNECT_TIME, HEART_BEAT_INTERVAL, PORT, PSK_PORT } = this.configService.get('mqtt')
+    const { ID, CONNECT_TIME, HEART_BEAT_INTERVAL, TCP_MQTT_PORT, PSK_MQTT_PORT } = this.configService.get('mqtt')
     this.aedes = new Aedes({
       id: ID, // 使用枚举值，不是枚举本身
       connectTimeout: CONNECT_TIME,
@@ -114,8 +114,8 @@ export class AedesBrokerService implements OnModuleInit {
       },
     })
 
-    this.PORT = PORT
-    this.PSK_PORT = PSK_PORT
+    this.TCP_MQTT_PORT = TCP_MQTT_PORT
+    this.PSK_MQTT_PORT = PSK_MQTT_PORT
     this.tcpServer = createServer(this.aedes.handle)
     this.tlsServer = tls.createServer(
       {
@@ -149,31 +149,39 @@ export class AedesBrokerService implements OnModuleInit {
   }
 
   private async invokeHandler(handler: any, topic: string, payload: string | Buffer, clientId: string): Promise<void> {
-    const params = Reflect.getMetadata('MQTT_PARAM_METADATA', handler.instance, handler.methodName) || []
-    const args = new Array(params.length)
-
-    params.forEach((p: any) => {
-      switch (p.type) {
-        case 'payload':
-          // ensure payload passed to handlers is a Buffer
-          args[p.index] = Buffer.isBuffer(payload) ? payload : Buffer.from(String(payload))
-          break
-        case 'clientId':
-          args[p.index] = clientId
-          break
-        case 'topic':
-          args[p.index] = topic
-          break
-        case 'broker':
-          args[p.index] = this // 当前 AedesBrokerService 实例
-          break
-      }
-    })
-
     try {
-      await handler.instance[handler.methodName](...args)
+      // 检查 handler 是否是装饰器模式（有 instance 和 methodName）
+      if (handler.instance && handler.methodName) {
+        // 装饰器模式：从元数据获取参数
+        const params = Reflect.getMetadata('MQTT_PARAM_METADATA', handler.instance, handler.methodName) || []
+        const args = new Array(params.length)
+
+        params.forEach((p: any) => {
+          switch (p.type) {
+            case 'payload':
+              args[p.index] = Buffer.isBuffer(payload) ? payload : Buffer.from(String(payload))
+              break
+            case 'clientId':
+              args[p.index] = clientId
+              break
+            case 'topic':
+              args[p.index] = topic
+              break
+            case 'broker':
+              args[p.index] = this
+              break
+          }
+        })
+
+        await handler.instance[handler.methodName](...args)
+      } else if (typeof handler === 'function') {
+        // 函数模式：直接调用（用于 SyncService）
+        await handler(payload, clientId, topic)
+      } else {
+        this.loggerService.warn(`Unknown handler type for topic: ${topic}`, 'InvokeHandler')
+      }
     } catch (err) {
-      this.loggerService.error(err)
+      this.loggerService.error(`Handler error for topic ${topic}: ${err}`, 'InvokeHandler')
     }
   }
 

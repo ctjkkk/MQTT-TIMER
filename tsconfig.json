@@ -1,30 +1,40 @@
 {
   "compilerOptions": {
-   "baseUrl": "./",
+    /* 路径映射：@ 指向 src 目录，支持 import { xxx } from '@/common/xxx' */
+    "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"]
     },
-     "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
+
+    /* 严格检查开关（全部关闭 → 开发阶段更宽松；建议后期逐步开启） */
+    "strict": false,                          // 总闸：关闭所有严格类型检查
+    "noImplicitAny": false,                   // 允许隐式 any（不写类型也不报错）
+    "strictNullChecks": false,                // 允许 null/undefined 赋值给任意类型
+    "strictBindCallApply": false,             // 不对 bind/call/apply 做严格参数校验
+    "noFallthroughCasesInSwitch": false,      // switch 允许 case 穿透
+
+    /* 模块系统：使用 Node 最新 ESM 规范（支持 import xxx.js / package.json exports） */
     "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
-    "sourceMap": true,
-    "outDir": "./dist",
-    "incremental": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
- 
+    "moduleResolution": "nodenext",           // 按 Node 最新规则找文件
+    "resolvePackageJsonExports": true,        // 识别 package.json exports 字段
+
+    /* 兼容性 & 互操作 */
+    "esModuleInterop": true,                  // 允许 import  CommonJS 模块
+    "allowSyntheticDefaultImports": true,     // 允许没有默认导出的模块写 import xx from
+
+    /* 装饰器：Nest 核心依赖 */
+    "experimentalDecorators": true,           // 开启装饰器语法 @Injectable()
+    "emitDecoratorMetadata": true,            // 为装饰器生成元数据（依赖注入关键）
+
+    /* 输出控制 */
+    "declaration": true,                      // 同时生成 .d.ts 声明文件（库模式需要）
+    "removeComments": true,                   // 编译后去掉注释，减小体积
+    "target": "ES2023",                       // 编译后的 JS 语法级别（Node 18+ 放心用）
+    "sourceMap": true,                        // 生成 .map 文件，方便调试时定位到 TS 源码
+    "outDir": "./dist",                       // 编译结果输出目录
+    "incremental": true,                      // 增量编译，二次编译速度更快
+    "skipLibCheck": true,                     // 跳过 node_modules 类型检查，加速编译
+    "forceConsistentCasingInFileNames": true, // 强制文件名大小写一致（跨平台安全）
+    "isolatedModules": true                   // 单文件编译模式，兼容 babel/swc，禁用命名空间等
   }
 }

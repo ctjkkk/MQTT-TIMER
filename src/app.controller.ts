@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common'
+import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
 import { AppService } from './app.service'
 import { ApiExcludeController } from '@nestjs/swagger'
 
@@ -10,5 +10,11 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello()
+  }
+
+  @Get('health')
+  @HttpCode(HttpStatus.OK)
+  health(): { status: string; timestamp: string } {
+    return { status: 'ok', timestamp: new Date().toISOString() }
   }
 }

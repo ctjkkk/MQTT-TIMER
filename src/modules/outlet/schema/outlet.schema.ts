@@ -1,113 +1,54 @@
-import mongoose from 'mongoose'
-import { HanqiTimerDocument } from '../../timer/schema/timer.schema'
-import { UserDocument } from '../../../shared/schemas/User'
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
+import { HydratedDocument, Schema as MongooseSchema } from 'mongoose'
 
-export interface HanqiOutletDocument extends mongoose.Document {
+export type HanqiOutletDocument = HydratedDocument<HanqiOutlet>
+
+@Schema({ timestamps: true, collection: 'hanqioutlets' })
+export class HanqiOutlet {
+  @Prop({ type: String, required: true, unique: true, trim: true, comment: '出水口唯一标识' })
   outletId: string
+
+  @Prop({ type: String, required: true, trim: true, default: '出水口', comment: '出水口名称' })
   name: string
-  timerId: HanqiTimerDocument['_id']
-  userId: UserDocument['_id']
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'HanqiTimer', required: true, comment: '所属Timer设备ID' })
+  timerId: MongooseSchema.Types.ObjectId
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true, comment: '所属用户ID' })
+  userId: MongooseSchema.Types.ObjectId
+
+  @Prop({ type: Number, required: true, min: 1, max: 4, comment: '出水口编号（1-4）' })
   outlet_number: number
+
+  @Prop({ type: String, trim: true, default: '', comment: '区域名称（对应现实中的灌溉区域）' })
   zone_name: string
+
+  @Prop({ type: Boolean, default: true, comment: '是否启用该出水口' })
   is_enabled: boolean
+
+  @Prop({ type: Number, default: 0, comment: '当前状态：0-关闭，1-运行中，2-暂停，3-故障' })
   current_status: number
+
+  @Prop({ type: Number, default: 0, comment: '当前流速（升/分钟）' })
   flow_rate: number
+
+  @Prop({ type: Number, default: 0, comment: '当前水压（bar）' })
   pressure: number
+
+  @Prop({ type: Number, default: 0, comment: '累计用水量（升）' })
   total_water_used: number
+
+  @Prop({ type: Number, default: 0, comment: '剩余运行时间（秒）' })
   remaining_time: number
-  dp_data: Record<string, any>
+
+  @Prop({ type: Map, of: MongooseSchema.Types.Mixed, default: {}, comment: 'DP点数据存储（键为dpId，值为dp值）' })
+  dp_data: Map<string, any>
+
+  @Prop({ type: Date, default: null, comment: '最后一次DP点更新时间' })
   last_dp_update: Date
-  createdAt: Date
-  updatedAt: Date
 }
 
-const HanqiOutletSchema = new mongoose.Schema(
-  {
-    outletId: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      comment: '出水口唯一标识',
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      default: '出水口',
-      comment: '出水口名称',
-    },
-    timerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'HanqiTimer',
-      required: true,
-      comment: '所属Timer设备ID',
-    },
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      comment: '所属用户ID',
-    },
-    outlet_number: {
-      type: Number,
-      required: true,
-      min: 1,
-      max: 4,
-      comment: '出水口编号（1-4）',
-    },
-    zone_name: {
-      type: String,
-      trim: true,
-      default: '',
-      comment: '区域名称（对应现实中的灌溉区域）',
-    },
-    is_enabled: {
-      type: Boolean,
-      default: true,
-      comment: '是否启用该出水口',
-    },
-    current_status: {
-      type: Number,
-      default: 0,
-      comment: '当前状态：0-关闭，1-运行中，2-暂停，3-故障',
-    },
-    flow_rate: {
-      type: Number,
-      default: 0,
-      comment: '当前流速（升/分钟）',
-    },
-    pressure: {
-      type: Number,
-      default: 0,
-      comment: '当前水压（bar）',
-    },
-    total_water_used: {
-      type: Number,
-      default: 0,
-      comment: '累计用水量（升）',
-    },
-    remaining_time: {
-      type: Number,
-      default: 0,
-      comment: '剩余运行时间（秒）',
-    },
-    dp_data: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed,
-      default: {},
-      comment: 'DP点数据存储（键为dpId，值为dp值）',
-    },
-    last_dp_update: {
-      type: Date,
-      default: null,
-      comment: '最后一次DP点更新时间',
-    },
-  },
-  {
-    timestamps: true,
-  },
-)
+export const HanqiOutletSchema = SchemaFactory.createForClass(HanqiOutlet)
 
 // 添加索引
 HanqiOutletSchema.index({ timerId: 1 })
@@ -116,6 +57,3 @@ HanqiOutletSchema.index({ outletId: 1 }, { unique: true })
 HanqiOutletSchema.index({ timerId: 1, outlet_number: 1 }, { unique: true })
 HanqiOutletSchema.index({ current_status: 1 })
 HanqiOutletSchema.index({ is_enabled: 1 })
-
-const HanqiOutlet = mongoose.model<HanqiOutletDocument>('HanqiOutlet', HanqiOutletSchema)
-export default HanqiOutlet

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common'
+import { InjectModel } from '@nestjs/mongoose'
+import { Model, Types } from 'mongoose'
 import { MqttUnifiedMessage } from '@/shared/constants/mqtt-topic.constants'
-import HanqiOutlet from './schema/outlet.schema'
-import HanqiTimer from '../timer/schema/timer.schema'
-import { Types } from 'mongoose'
+import { HanqiOutlet, HanqiOutletDocument } from './schema/outlet.schema'
 
 /**
  * Outlet模块的Service
@@ -15,6 +15,8 @@ import { Types } from 'mongoose'
  */
 @Injectable()
 export class OutletService {
+  constructor(@InjectModel(HanqiOutlet.name) private readonly hanqiOutletModel: Model<HanqiOutletDocument>) {}
+
   // ========== MQTT消息处理 ==========
 
   /**
@@ -23,7 +25,7 @@ export class OutletService {
    */
   async updateOutletsByDp(timerId: Types.ObjectId, dps: Record<string, any>): Promise<void> {
     // 查找该Timer的所有出水口
-    const outlets = await HanqiOutlet.find({ timerId })
+    const outlets = await this.hanqiOutletModel.find({ timerId })
 
     for (const outlet of outlets) {
       const outletNumber = outlet.outlet_number
@@ -76,7 +78,7 @@ export class OutletService {
         updates.dp_data = dps
         updates.last_dp_update = new Date()
 
-        await HanqiOutlet.updateOne({ _id: outlet._id }, { $set: updates })
+        await this.hanqiOutletModel.updateOne({ _id: outlet._id }, { $set: updates })
 
         console.log(`[OutletService] 出水口${outletNumber}数据已更新`)
       }
@@ -89,14 +91,14 @@ export class OutletService {
    * 根据Timer ID查询出水口列表
    */
   async findOutletsByTimerId(timerId: Types.ObjectId) {
-    return await HanqiOutlet.find({ timerId }).sort({ outlet_number: 1 })
+    return await this.hanqiOutletModel.find({ timerId }).sort({ outlet_number: 1 })
   }
 
   /**
    * 查询出水口详情
    */
   async findOutletById(outletId: string) {
-    return await HanqiOutlet.findById(outletId)
+    return await this.hanqiOutletModel.findById(outletId)
   }
 
   // TODO: 添加用水统计方法

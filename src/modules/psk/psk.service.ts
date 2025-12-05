@@ -1,11 +1,12 @@
-import { Injectable, BadRequestException, NotFoundException, Inject, OnModuleInit } from '@nestjs/common'
+import { Injectable, BadRequestException, NotFoundException, OnModuleInit } from '@nestjs/common'
+import { InjectModel } from '@nestjs/mongoose'
+import { Model } from 'mongoose'
 import { randomBytes } from 'crypto'
-import HanqiPsk from './schema/psk.schema'
+import { HanqiPsk, HanqiPskDocument } from './schema/psk.schema'
 import { LoggerService } from '@/common/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
-import { DATABASE_CONNECTION } from '@/core/database/database.module' // 导出符号
-import { Connection } from 'mongoose'
 import type { PskMeta } from './types/psk'
+
 /**
  * PSK认证服务
  * 处理网关PSK的生成和确认
@@ -13,17 +14,20 @@ import type { PskMeta } from './types/psk'
 @Injectable()
 export class PskService implements OnModuleInit {
   public pskCacheMap = new Map<string, PskMeta>()
+
   constructor(
-    @Inject(DATABASE_CONNECTION) private readonly connection: Connection, // 已 ready
+    @InjectModel(HanqiPsk.name) private readonly hanqiPskModel: Model<HanqiPskDocument>,
     private readonly loggerService: LoggerService,
   ) {}
+
   async onModuleInit() {
-    // 此时 connection 已 resolve，可以安全查询
-    const activeList = await HanqiPsk.find({ status: 1 }).lean()
+    // 此时连接已 ready，可以安全查询
+    const activeList = await this.hanqiPskModel.find({ status: 1 }).lean()
     activeList.forEach(d => this.pskCacheMap.set(d.identity, { key: d.key, status: d.status }))
   }
+
   async generatePsk(macAddress: string) {
-    const existingPsk = await HanqiPsk.findOne({ mac_address: macAddress })
+    const existingPsk = await this.hanqiPskModel.findOne({ mac_address: macAddress })
     if (existingPsk && existingPsk.status) {
       throw new BadRequestException('该网关已经完成PSK烧录，不能重新生成')
     }
@@ -31,7 +35,7 @@ export class PskService implements OnModuleInit {
     // 生成64字节的随机key（128位十六进制字符串）
     const key = randomBytes(64).toString('hex')
     // 有则覆盖，无则新增
-    await HanqiPsk.findOneAndUpdate(
+    await this.hanqiPskModel.findOneAndUpdate(
       { mac_address: macAddress },
       {
         $set: {
@@ -53,7 +57,7 @@ export class PskService implements OnModuleInit {
   // 确认PSK烧录成功
   async confirmPsk(macAddress: string) {
     // 查找待确认的PSK记录
-    const psk = await HanqiPsk.findOne({ mac_address: macAddress })
+    const psk = await this.hanqiPskModel.findOne({ mac_address: macAddress })
     if (!psk) {
       throw new NotFoundException('未找到该MAC地址的PSK记录，请先调用生成接口')
     }
@@ -70,6 +74,7 @@ export class PskService implements OnModuleInit {
     const result = this.pskCacheMap.get(identity)
     return result ? true : false
   }
+
   public isActive(identity: string): boolean {
     const mate = this.pskCacheMap.get(identity)
     return mate.status ? true : false

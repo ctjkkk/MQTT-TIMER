@@ -1,43 +1,25 @@
-import mongoose from 'mongoose'
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
+import { HydratedDocument } from 'mongoose'
 
-export interface HanqiPskDocument extends mongoose.Document {
+export type HanqiPskDocument = HydratedDocument<HanqiPsk>
+
+@Schema({ timestamps: true, collection: 'hanqipsks' })
+export class HanqiPsk {
+  @Prop({ type: String, required: true, unique: true, trim: true })
   mac_address: string
+
+  @Prop({ type: String, required: true, unique: true, trim: true })
   identity: string
+
+  @Prop({ type: String, required: true, trim: true })
   key: string
+
+  @Prop({ type: Number, required: true, default: 0 })
   status: number
 }
 
-export const HanqiPskSchema = new mongoose.Schema(
-  {
-    mac_address: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    identity: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    key: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    status: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-  },
-  {
-    timestamps: true,
-  },
-)
+export const HanqiPskSchema = SchemaFactory.createForClass(HanqiPsk)
 
+// 添加索引
 HanqiPskSchema.index({ mac_address: 1 }, { unique: true })
 HanqiPskSchema.index({ identity: 1, key: 1 })
-
-export default mongoose.model<HanqiPskDocument>('HanqiPsk', HanqiPskSchema)

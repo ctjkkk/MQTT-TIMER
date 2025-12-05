@@ -1,140 +1,71 @@
-import mongoose from 'mongoose'
-import { UserDocument } from '../../../shared/schemas/User'
-import { HanqiGatewayDocument } from '../../gateway/schema/HanqiGateway.schema'
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
+import { HydratedDocument, Schema as MongooseSchema } from 'mongoose'
 
-export interface HanqiTimerDocument extends mongoose.Document {
-  // 设备标识
+export type HanqiTimerDocument = HydratedDocument<HanqiTimer>
+
+@Schema({ timestamps: true, collection: 'hanqitimers' })
+export class HanqiTimer {
+  @Prop({ type: String, required: true, unique: true, trim: true })
   timerId: string
-  mac_address: string
-  valve_id: string
-  name: string
-  userId: UserDocument['_id']
-  gatewayId: HanqiGatewayDocument['gatewayId']
 
-  // 品类和能力
+  @Prop({ type: String })
+  valve_id: string
+
+  @Prop({ type: String })
   product_id: string
+
+  @Prop({ type: String })
   category: string
-  product_category_bits?: number
+
+  @Prop({ type: Number })
   capability_bits: number
 
-  // 基础状态
+  @Prop({ type: String, required: true, trim: true })
+  name: string
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  userId: MongooseSchema.Types.ObjectId
+
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'HanqiGateway', required: true })
+  gatewayId: MongooseSchema.Types.ObjectId
+
+  @Prop({ type: String, trim: true })
+  hanqi_device_id: string
+
+  @Prop({ type: Number, required: true, min: 2, max: 4, default: 2 })
+  outlet_count: number
+
+  @Prop({ type: Number, default: 0 })
+  status: number
+
+  @Prop({ type: Number, default: 0 })
   is_connected: number
+
+  @Prop({ type: Date, default: null })
   last_seen: Date
-  firmware_version?: string
 
-  // DP数据
-  dp_data: Record<string, any>
+  @Prop({ type: String, default: '1.0.0', trim: true, comment: '固件版本' })
+  firmware_version: string
+
+  @Prop({ type: String, trim: true, comment: 'MAC地址' })
+  mac_address: string
+
+  @Prop({ type: Number, min: 0, max: 100, default: 100 })
+  battery_level: number
+
+  @Prop({ type: Number, min: 0, max: 100, default: 100, comment: '信号强度' })
+  signal_strength: number
+
+  @Prop({ type: Map, of: MongooseSchema.Types.Mixed, default: {}, comment: 'DP点数据存储（键为dpId，值为dp值）' })
+  dp_data: Map<string, any>
+
+  @Prop({ type: Date, default: null, comment: '最后一次DP点更新时间' })
   last_dp_update: Date
-
-  // 可选冗余字段
-  battery_level?: number
-  signal_strength?: number
-  outlet_count?: number
-
-  // 时间戳
-  createdAt: Date
-  updatedAt: Date
 }
 
-const HanqiTimerSchema = new mongoose.Schema(
-  {
-    timerId: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    valve_id: {
-      type: String,
-    },
-    product_id: {
-      type: String,
-    },
-    category: {
-      type: String,
-    },
-    capability_bits: {
-      type: Number,
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    gatewayId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'HanqiGateway',
-      required: true,
-    },
-    hanqi_device_id: {
-      type: String,
-      trim: true,
-    },
-    outlet_count: {
-      type: Number,
-      required: true,
-      min: 2,
-      max: 4,
-      default: 2,
-    },
-    status: {
-      type: Number,
-      default: 0,
-    },
-    is_connected: {
-      type: Number,
-      default: 0,
-    },
-    last_seen: {
-      type: Date,
-      default: null,
-    },
-    firmware_version: {
-      type: String,
-      default: '1.0.0',
-      trim: true,
-      comment: '��H,',
-    },
-    mac_address: {
-      type: String,
-      trim: true,
-      comment: 'MAC0@',
-    },
-    battery_level: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 100,
-    },
-    signal_strength: {
-      type: Number,
-      min: 0,
-      max: 100,
-      default: 100,
-      comment: '信号强度',
-    },
-    dp_data: {
-      type: Map,
-      of: mongoose.Schema.Types.Mixed,
-      default: {},
-      comment: 'DP点数据存储（键为dpId，值为dp值）',
-    },
-    last_dp_update: {
-      type: Date,
-      default: null,
-      comment: '最后一次DP点更新时间',
-    },
-  },
-  {
-    timestamps: true,
-  },
-)
+export const HanqiTimerSchema = SchemaFactory.createForClass(HanqiTimer)
 
+// 添加索引
 HanqiTimerSchema.index({ userId: 1 })
 HanqiTimerSchema.index({ gatewayId: 1 })
 HanqiTimerSchema.index({ timerId: 1 }, { unique: true })
@@ -142,6 +73,3 @@ HanqiTimerSchema.index({ status: 1 })
 HanqiTimerSchema.index({ is_connected: 1 })
 HanqiTimerSchema.index({ last_seen: 1 })
 HanqiTimerSchema.index({ 'location.coordinates': '2dsphere' })
-
-const HanqiTimer = mongoose.model<HanqiTimerDocument>('HanqiTimer', HanqiTimerSchema)
-export default HanqiTimer
