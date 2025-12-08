@@ -6,13 +6,14 @@ import { HanqiPsk, HanqiPskDocument } from './schema/psk.schema'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import type { PskMeta } from './types/psk'
+import { IPskServiceInterface } from './interface/pskService.interface'
 
 /**
  * PSK认证服务
  * 处理网关PSK的生成和确认
  */
 @Injectable()
-export class PskService implements OnModuleInit {
+export class PskService implements OnModuleInit, IPskServiceInterface {
   public pskCacheMap = new Map<string, PskMeta>()
 
   constructor(

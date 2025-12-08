@@ -6,9 +6,10 @@ import { MqttUnifiedMessage, HanqiMqttTopic, MqttMessageType, OperateAction } fr
 import { HanqiGateway, HanqiGatewayDocument } from './schema/HanqiGateway.schema'
 import { HanqiTimer, HanqiTimerDocument } from '@/modules/timer/schema/timer.schema'
 import { buildGatewayMessage, buildSubDeviceMessage } from './utils/gateway.utils'
-import { GatewayStatusData } from './interface/gateway-type.interface'
+import { GatewayStatusData } from './types/gateway.type'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { IGatewayServiceInterface } from './interface/gateway-service.interface'
 
 /**
  * Gateway模块的Service
@@ -19,7 +20,7 @@ import { LogMessages } from '@/shared/constants/log-messages.constants'
  * 3. 管理网关和子设备的关联关系
  */
 @Injectable()
-export class GatewayService {
+export class GatewayService implements IGatewayServiceInterface {
   constructor(
     @InjectModel(HanqiGateway.name) private readonly hanqiGatewayModel: Model<HanqiGatewayDocument>,
     @InjectModel(HanqiTimer.name) private readonly hanqiTimerModel: Model<HanqiTimerDocument>,
