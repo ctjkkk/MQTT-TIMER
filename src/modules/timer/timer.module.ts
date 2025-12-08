@@ -3,11 +3,11 @@ import { MongooseModule } from '@nestjs/mongoose'
 import { TimerService } from './timer.service'
 import { GatewayModule } from '../gateway/gateway.module'
 import { OutletModule } from '../outlet/outlet.module'
-import { HanqiTimer, HanqiTimerSchema } from './schema/timer.schema'
+import { Timer, TimerSchema } from './schema/timer.schema'
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: HanqiTimer.name, schema: HanqiTimerSchema }]),
+    MongooseModule.forFeature([{ name: Timer.name, schema: TimerSchema }]),
     forwardRef(() => GatewayModule),
     OutletModule,
   ],

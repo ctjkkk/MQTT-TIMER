@@ -6,14 +6,14 @@ import { MqttModule } from '@/core/mqtt/mqtt.module'
 import { TimerModule } from '@/modules/timer/timer.module'
 import { ScheduleModule } from '@/modules/schedule/schedule.module'
 import { OutletModule } from '@/modules/outlet/outlet.module'
-import { HanqiGateway, HanqiGatewaySchema } from './schema/HanqiGateway.schema'
-import { HanqiTimer, HanqiTimerSchema } from '@/modules/timer/schema/timer.schema'
+import { Gateway, GatewaySchema } from './schema/HanqiGateway.schema'
+import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: HanqiGateway.name, schema: HanqiGatewaySchema },
-      { name: HanqiTimer.name, schema: HanqiTimerSchema },
+      { name: Gateway.name, schema: GatewaySchema },
+      { name: Timer.name, schema: TimerSchema },
     ]),
     MqttModule,
     forwardRef(() => TimerModule),

@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common'
-import { AedesBrokerService } from './mqtt-broker.service'
-import { MqttScannerService } from './mqtt-scanner.service'
+import { AedesBrokerService } from './mqttBroker.service'
+import { MqttScannerService } from './mqttScanner.service'
 import { LoggerModule } from '@/core/logger/logger.module'
 import { LogLevel } from '@/core/logger/logger.service'
 import { PskModule } from '@/auth/psk/psk.module'

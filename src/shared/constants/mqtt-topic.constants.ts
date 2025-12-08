@@ -125,7 +125,7 @@ export interface DpReportData {
  * - 所有子设备消息都通过网关转发
  * - 通过msgType和subDeviceId字段区分不同的设备和数据类型
  */
-export class HanqiMqttTopic {
+export class MqttTopic {
   // ========== 网关Topic ==========
 
   /**

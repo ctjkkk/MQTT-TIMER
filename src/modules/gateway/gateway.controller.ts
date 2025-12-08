@@ -2,11 +2,11 @@ import { Controller, Get, Param } from '@nestjs/common'
 import { MqttSubscribe, MqttPayload, MqttBroker, MqttClientId } from '@/common/decorators/mqtt.decorator'
 import { GatewayService } from './gateway.service'
 import { TimerService } from '../timer/timer.service'
-import { HanqiMqttTopic, MqttMessageType } from '@/shared/constants/mqtt-topic.constants'
+import { MqttTopic, MqttMessageType } from '@/shared/constants/mqtt-topic.constants'
 import { isGatewayMessage, isSubDeviceMessage, parseMqttMessage } from './utils/gateway.utils'
 import { ApiHeader, ApiTags } from '@nestjs/swagger'
 import { ParseMacPipe } from './pipe/parse-mac.pipe'
-import { ApiResponseStandard } from '@/common/decorators/api-response.decorator'
+import { ApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
 /**
  * Gateway模块的Controller
  * 职责：
@@ -29,7 +29,7 @@ export class GatewayController {
   ) {}
 
   // 核心：唯一的MQTT消息入口
-  @MqttSubscribe(HanqiMqttTopic.allGatewayReport())
+  @MqttSubscribe(MqttTopic.allGatewayReport())
   async handleGatewayReport(@MqttPayload() payload: Buffer) {
     // 解析消息
     const message = parseMqttMessage(payload)

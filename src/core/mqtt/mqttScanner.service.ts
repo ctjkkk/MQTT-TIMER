@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
 import { ModuleRef, ModulesContainer } from '@nestjs/core'
-import { AedesBrokerService } from './mqtt-broker.service'
+import { AedesBrokerService } from './mqttBroker.service'
 import { MQTT_TOPIC_METADATA } from '@/shared/constants/mqtt.constants'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 @Injectable()

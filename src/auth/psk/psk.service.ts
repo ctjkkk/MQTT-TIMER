@@ -2,7 +2,7 @@ import { Injectable, BadRequestException, NotFoundException, OnModuleInit } from
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { randomBytes } from 'crypto'
-import { HanqiPsk, HanqiPskDocument } from './schema/psk.schema'
+import { Psk, PskDocument } from './schema/psk.schema'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import type { PskMeta } from './types/psk'
@@ -17,7 +17,7 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
   public pskCacheMap = new Map<string, PskMeta>()
 
   constructor(
-    @InjectModel(HanqiPsk.name) private readonly hanqiPskModel: Model<HanqiPskDocument>,
+    @InjectModel(Psk.name) private readonly hanqiPskModel: Model<PskDocument>,
     private readonly loggerService: LoggerService,
   ) {}
 

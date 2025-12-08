@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { HydratedDocument } from 'mongoose'
 
-export type HanqiPskDocument = HydratedDocument<HanqiPsk>
+export type PskDocument = HydratedDocument<Psk>
 
-@Schema({ timestamps: true, collection: 'hanqipsks' })
-export class HanqiPsk {
+@Schema({ timestamps: true, collection: 'psks' })
+export class Psk {
   @Prop({ type: String, required: true, unique: true, trim: true })
   mac_address: string
 
@@ -18,8 +18,8 @@ export class HanqiPsk {
   status: number
 }
 
-export const HanqiPskSchema = SchemaFactory.createForClass(HanqiPsk)
+export const PskSchema = SchemaFactory.createForClass(Psk)
 
 // 添加索引
-HanqiPskSchema.index({ mac_address: 1 }, { unique: true })
-HanqiPskSchema.index({ identity: 1, key: 1 })
+PskSchema.index({ mac_address: 1 }, { unique: true })
+PskSchema.index({ identity: 1, key: 1 })

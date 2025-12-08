@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { HydratedDocument, Schema as MongooseSchema } from 'mongoose'
 
-export type HanqiTimerDocument = HydratedDocument<HanqiTimer>
+export type TimerDocument = HydratedDocument<Timer>
 
-@Schema({ timestamps: true, collection: 'hanqitimers' })
-export class HanqiTimer {
+@Schema({ timestamps: true, collection: 'timers' })
+export class Timer {
   @Prop({ type: String, required: true, unique: true, trim: true })
   timerId: string
 
@@ -63,13 +63,13 @@ export class HanqiTimer {
   last_dp_update: Date
 }
 
-export const HanqiTimerSchema = SchemaFactory.createForClass(HanqiTimer)
+export const TimerSchema = SchemaFactory.createForClass(Timer)
 
 // 添加索引
-HanqiTimerSchema.index({ userId: 1 })
-HanqiTimerSchema.index({ gatewayId: 1 })
-HanqiTimerSchema.index({ timerId: 1 }, { unique: true })
-HanqiTimerSchema.index({ status: 1 })
-HanqiTimerSchema.index({ is_connected: 1 })
-HanqiTimerSchema.index({ last_seen: 1 })
-HanqiTimerSchema.index({ 'location.coordinates': '2dsphere' })
+TimerSchema.index({ userId: 1 })
+TimerSchema.index({ gatewayId: 1 })
+TimerSchema.index({ timerId: 1 }, { unique: true })
+TimerSchema.index({ status: 1 })
+TimerSchema.index({ is_connected: 1 })
+TimerSchema.index({ last_seen: 1 })
+TimerSchema.index({ 'location.coordinates': '2dsphere' })

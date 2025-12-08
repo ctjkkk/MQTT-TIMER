@@ -2,7 +2,7 @@ import { Controller, Post, Body } from '@nestjs/common'
 import { PskService } from './psk.service'
 import { ApiBody, ApiTags } from '@nestjs/swagger'
 import { GeneratePskDto, ConfirmPskDto } from './dto/psk.dto'
-import { PskApiResponseStandard } from '@/common/decorators/api-response.decorator'
+import { PskApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
 
 /**
  * PSK认证Controller

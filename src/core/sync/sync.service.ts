@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectConnection } from '@nestjs/mongoose'
 import { Connection } from 'mongoose'
-import { AedesBrokerService } from '@/core/mqtt/mqtt-broker.service'
+import { AedesBrokerService } from '@/core/mqtt/mqttBroker.service'
 import { SYNC_TABLES, SyncTableConfig } from '@/core/config/syncTables.config'
 import { deserialize } from '@/common/utils/transform'
 import { filterFields } from '@/common/utils/dataFilters'

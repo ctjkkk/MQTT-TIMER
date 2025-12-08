@@ -1,10 +1,10 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
-import { AedesBrokerService } from '@/core/mqtt/mqtt-broker.service'
-import { MqttUnifiedMessage, HanqiMqttTopic, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
-import { HanqiGateway, HanqiGatewayDocument } from './schema/HanqiGateway.schema'
-import { HanqiTimer, HanqiTimerDocument } from '@/modules/timer/schema/timer.schema'
+import { AedesBrokerService } from '@/core/mqtt/mqttBroker.service'
+import { MqttUnifiedMessage, MqttTopic, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
+import { Gateway, GatewayDocument } from './schema/HanqiGateway.schema'
+import { Timer, TimerDocument } from '@/modules/timer/schema/timer.schema'
 import { buildGatewayMessage, buildSubDeviceMessage } from './utils/gateway.utils'
 import { GatewayStatusData } from './types/gateway.type'
 import { LoggerService } from '@/core/logger/logger.service'
@@ -22,13 +22,13 @@ import { IGatewayServiceInterface } from './interface/gateway-service.interface'
 @Injectable()
 export class GatewayService implements IGatewayServiceInterface {
   constructor(
-    @InjectModel(HanqiGateway.name) private readonly hanqiGatewayModel: Model<HanqiGatewayDocument>,
-    @InjectModel(HanqiTimer.name) private readonly hanqiTimerModel: Model<HanqiTimerDocument>,
+    @InjectModel(Gateway.name) private readonly hanqiGatewayModel: Model<GatewayDocument>,
+    @InjectModel(Timer.name) private readonly hanqiTimerModel: Model<TimerDocument>,
     @Inject(AedesBrokerService) private readonly broker: AedesBrokerService,
     private readonly loggerServer: LoggerService,
   ) {}
 
-  async findAllOfSubDevice(macAddress: string): Promise<HanqiTimerDocument[]> {
+  async findAllOfSubDevice(macAddress: string): Promise<TimerDocument[]> {
     const gateway = await this.hanqiGatewayModel.findOne({ mac_address: macAddress }).exec()
     if (!gateway) throw new NotFoundException('该网关不存在!')
 
@@ -77,7 +77,7 @@ export class GatewayService implements IGatewayServiceInterface {
    */
   async sendGatewayCommand(gatewayId: string, msgType: MqttMessageType | string, data: any): Promise<void> {
     const message = buildGatewayMessage(msgType, gatewayId, data)
-    const topic = HanqiMqttTopic.gatewayCommand(gatewayId)
+    const topic = MqttTopic.gatewayCommand(gatewayId)
 
     this.broker.publish(topic, message)
 
@@ -100,7 +100,7 @@ export class GatewayService implements IGatewayServiceInterface {
     data: any,
   ): Promise<void> {
     const message = buildSubDeviceMessage(msgType, gatewayId, data)
-    const topic = HanqiMqttTopic.gatewayCommand(gatewayId)
+    const topic = MqttTopic.gatewayCommand(gatewayId)
 
     this.broker.publish(topic, message)
 

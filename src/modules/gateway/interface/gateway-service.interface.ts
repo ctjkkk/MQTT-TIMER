@@ -1,5 +1,5 @@
-import type { HanqiTimerDocument } from '@/modules/timer/schema/timer.schema'
-import type { HanqiGatewayDocument } from '../schema/HanqiGateway.schema'
+import type { TimerDocument } from '@/modules/timer/schema/timer.schema'
+import type { GatewayDocument } from '../schema/HanqiGateway.schema'
 import type { MqttUnifiedMessage, MqttMessageType } from '@/shared/constants/mqtt-topic.constants'
 import type { GatewayStatusData } from '../types/gateway.type'
 
@@ -13,7 +13,7 @@ export interface IGatewayServiceInterface {
    * @param macAddress 网关MAC地址
    * @returns 子设备列表
    */
-  findAllOfSubDevice(macAddress: string): Promise<HanqiTimerDocument[]>
+  findAllOfSubDevice(macAddress: string): Promise<TimerDocument[]>
 
   /**
    * 处理网关状态上报
@@ -49,7 +49,7 @@ export interface IGatewayServiceInterface {
    * @param subDeviceId 子设备ID
    * @returns 网关文档或null
    */
-  findGatewayBySubDeviceId(subDeviceId: string): Promise<HanqiGatewayDocument | null>
+  findGatewayBySubDeviceId(subDeviceId: string): Promise<GatewayDocument | null>
 
   /**
    * 处理网关生命周期事件

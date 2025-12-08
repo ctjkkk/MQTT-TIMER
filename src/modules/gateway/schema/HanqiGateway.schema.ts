@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { HydratedDocument, Schema as MongooseSchema } from 'mongoose'
 
-export type HanqiGatewayDocument = HydratedDocument<HanqiGateway>
+export type GatewayDocument = HydratedDocument<Gateway>
 
-@Schema({ timestamps: true, collection: 'hanqigateways' })
-export class HanqiGateway {
+@Schema({ timestamps: true, collection: 'gateways' })
+export class Gateway {
   @Prop({ type: String, required: true, unique: true, trim: true, comment: '汉奇网关设备ID' })
   gatewayId: string
 
@@ -39,10 +39,10 @@ export class HanqiGateway {
   wifi_rssi: number
 }
 
-export const HanqiGatewaySchema = SchemaFactory.createForClass(HanqiGateway)
+export const GatewaySchema = SchemaFactory.createForClass(Gateway)
 
 // 添加索引
-HanqiGatewaySchema.index({ userId: 1 })
-HanqiGatewaySchema.index({ status: 1 })
-HanqiGatewaySchema.index({ last_seen: 1 })
-HanqiGatewaySchema.index({ gatewayId: 1 }, { unique: true })
+GatewaySchema.index({ userId: 1 })
+GatewaySchema.index({ status: 1 })
+GatewaySchema.index({ last_seen: 1 })
+GatewaySchema.index({ gatewayId: 1 }, { unique: true })
