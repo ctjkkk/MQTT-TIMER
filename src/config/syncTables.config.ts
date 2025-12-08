@@ -42,6 +42,8 @@ export const SYNC_TABLES: SyncTableConfig[] = [
       'city',
       'state',
       'status',
+      'createdAt',
+      'updatedAt',
     ],
     keyField: '_id',
   },

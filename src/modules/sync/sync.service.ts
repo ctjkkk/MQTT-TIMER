@@ -2,8 +2,9 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectConnection } from '@nestjs/mongoose'
 import { Connection } from 'mongoose'
 import { AedesBrokerService } from '@/core/mqtt/mqtt-broker.service'
-import { SYNC_TABLES, SyncTableConfig } from '@/config/sync-tables.config'
+import { SYNC_TABLES, SyncTableConfig } from '@/config/syncTables.config'
 import { deserialize } from '@/common/utils/transform'
+import { filterFields } from '@/common/utils/dataFilters'
 import { LoggerService } from '@/common/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 /**
@@ -37,7 +38,7 @@ export class SyncService implements OnModuleInit {
         const message = deserialize(JSON.parse(payload.toString()))
         await this.handleSync(config, message)
       } catch (error) {
-        this.loggerService.error(LogMessages.SYNC.SYNC_FAILED(config.localCollection, (error as Error).message), 'SYNC')
+        this.loggerService.error(LogMessages.SYNC.SYNC_FAILED(config.localCollection, error.message), 'SYNC')
       }
     })
   }
@@ -49,28 +50,31 @@ export class SyncService implements OnModuleInit {
 
     switch (payload.operation) {
       case 'insert': {
-        const { _id, ...data } = payload.data
-        await collection.updateOne({ [keyField]: _id }, { $set: { ...data, syncedAt: new Date() } }, { upsert: true })
+        const { _id, ...data } = filterFields(payload.data, config)
+        await collection.updateOne({ [keyField]: payload.key }, { $set: { ...data, syncedAt: new Date() } }, { upsert: true })
         break
       }
 
       case 'replace': {
-        const { _id, ...data } = payload.data
-        await collection.replaceOne({ [keyField]: _id }, { ...data, syncedAt: new Date() }, { upsert: true })
+        const { _id, ...data } = filterFields(payload.data, config)
+        await collection.replaceOne({ [keyField]: payload.key }, { ...data, syncedAt: new Date() }, { upsert: true })
         break
       }
 
       case 'update': {
-        const { _id, ...fields } = payload.data
+        const { _id, ...fields } = filterFields(payload.data, config)
         const updateQuery: any = {
           $set: { ...fields, syncedAt: new Date() },
         }
-
+        // 只处理配置中允许的移除字段
         if (payload.removedFields?.length) {
-          updateQuery.$unset = Object.fromEntries(payload.removedFields.map((f: string) => [f, '']))
+          const allowedFields = new Set(config.fields)
+          const filteredRemovedFields = payload.removedFields.filter((f: string) => allowedFields.has(f))
+          if (filteredRemovedFields.length) {
+            updateQuery.$unset = Object.fromEntries(filteredRemovedFields.map((f: string) => [f, '']))
+          }
         }
-
-        await collection.updateOne({ [keyField]: payload.key }, updateQuery)
+        await collection.updateOne({ [keyField]: payload.key }, updateQuery, { upsert: true })
         break
       }
 
