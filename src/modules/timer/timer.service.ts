@@ -6,7 +6,7 @@ import { OutletService } from '../outlet/outlet.service'
 import { MqttUnifiedMessage, DpReportData, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import { HanqiTimer, HanqiTimerDocument } from './schema/timer.schema'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
-import { LoggerService } from '@/common/logger/logger.service'
+import { LoggerService } from '@/core/logger/logger.service'
 
 /**
  * Timer设备模块的Service

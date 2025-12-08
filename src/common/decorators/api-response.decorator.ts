@@ -3,7 +3,7 @@ import { ApiHeader, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { HttpExceptionsFilter } from '../filters/exceptions.filter'
 import { Transform } from '../interceptors/transform.interceptor'
 import { ApiKeyGuard } from '../guards/api-key.guard'
-import { SignatureGuard } from '@/modules/psk/guards/signature'
+import { SignatureGuard } from '@/auth/psk/guards/signature'
 
 // gateway等模块 需要请求头中apikey的公共装饰器工厂函数
 export const ApiResponseStandard = (summary: string, msg = '操作成功', code = 200) => {

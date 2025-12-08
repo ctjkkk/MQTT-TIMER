@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { randomBytes } from 'crypto'
 import { HanqiPsk, HanqiPskDocument } from './schema/psk.schema'
-import { LoggerService } from '@/common/logger/logger.service'
+import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import type { PskMeta } from './types/psk'
 

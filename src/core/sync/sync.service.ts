@@ -2,10 +2,10 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectConnection } from '@nestjs/mongoose'
 import { Connection } from 'mongoose'
 import { AedesBrokerService } from '@/core/mqtt/mqtt-broker.service'
-import { SYNC_TABLES, SyncTableConfig } from '@/config/syncTables.config'
+import { SYNC_TABLES, SyncTableConfig } from '@/core/config/syncTables.config'
 import { deserialize } from '@/common/utils/transform'
 import { filterFields } from '@/common/utils/dataFilters'
-import { LoggerService } from '@/common/logger/logger.service'
+import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 /**
  * 表同步服务（TIMER-MQTT 端）

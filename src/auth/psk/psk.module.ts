@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
 import { PskService } from './psk.service'
 import { PskController } from './psk.controller'
-import { LoggerModule } from '../../common/logger/logger.module'
-import { LogLevel } from '@/common/logger/logger.service'
+import { LoggerModule } from '@/core/logger/logger.module'
+import { LogLevel } from '@/core/logger/logger.service'
 import { HanqiPsk, HanqiPskSchema } from './schema/psk.schema'
 
 @Module({

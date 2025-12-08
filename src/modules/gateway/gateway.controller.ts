@@ -5,7 +5,7 @@ import { TimerService } from '../timer/timer.service'
 import { HanqiMqttTopic, MqttMessageType } from '@/shared/constants/mqtt-topic.constants'
 import { isGatewayMessage, isSubDeviceMessage, parseMqttMessage } from './utils/gateway.utils'
 import { ApiHeader, ApiTags } from '@nestjs/swagger'
-import { ParseMacPipe } from './pipes/parse-mac.pipe'
+import { ParseMacPipe } from './pipe/parse-mac.pipe'
 import { ApiResponseStandard } from '@/common/decorators/api-response.decorator'
 /**
  * Gateway模块的Controller

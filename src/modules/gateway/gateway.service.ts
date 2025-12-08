@@ -6,8 +6,8 @@ import { MqttUnifiedMessage, HanqiMqttTopic, MqttMessageType, OperateAction } fr
 import { HanqiGateway, HanqiGatewayDocument } from './schema/HanqiGateway.schema'
 import { HanqiTimer, HanqiTimerDocument } from '@/modules/timer/schema/timer.schema'
 import { buildGatewayMessage, buildSubDeviceMessage } from './utils/gateway.utils'
-import { GatewayStatusData } from './interfaces/gateway-type.interface'
-import { LoggerService } from '@/common/logger/logger.service'
+import { GatewayStatusData } from './interface/gateway-type.interface'
+import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 
 /**

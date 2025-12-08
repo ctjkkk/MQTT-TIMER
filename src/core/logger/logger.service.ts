@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common'
 import { createLogger, format, transports } from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
-import type { LoggerOptions } from './interfaces/logger-options.interface'
+import type { LoggerOptions } from './interface/logger-options.interface'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import moment from 'moment'
 import { AsyncLocalStorage } from 'async_hooks'

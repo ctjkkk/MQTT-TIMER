@@ -1,8 +1,8 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common'
 import { Request } from 'express'
-import { SignatureUtil } from '@/modules/psk/utils/signature'
+import { SignatureUtil } from '../utils/signature'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
-import { LoggerService } from '@/common/logger/logger.service'
+import { LoggerService } from '@/core/logger/logger.service'
 /**
  * 签名验证守卫
  * 验证HTTP请求的签名和时间戳，防止请求被篡改和重放攻击

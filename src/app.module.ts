@@ -8,11 +8,11 @@ import { TimerModule } from './modules/timer/timer.module'
 import { OutletModule } from './modules/outlet/outlet.module'
 import { ScheduleModule } from './modules/schedule/schedule.module'
 import { MqttModule } from './core/mqtt/mqtt.module'
-import { PskModule } from './modules/psk/psk.module'
-import databaseConfig from './config/database.config'
-import mqttConfig from './config/mqtt.config'
-import { LoggerMiddleware } from '@/common/logger/logger.middleware'
-import { SyncModule } from './modules/sync/sync.module'
+import { PskModule } from '@/auth/psk/psk.module'
+import databaseConfig from '@/core/config/database.config'
+import mqttConfig from '@/core/config/mqtt.config'
+import { LoggerMiddleware } from '@/core/logger/logger.middleware'
+import { SyncModule } from '@/core/sync/sync.module'
 
 @Module({
   imports: [

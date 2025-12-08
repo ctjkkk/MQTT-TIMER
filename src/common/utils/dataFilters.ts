@@ -1,4 +1,4 @@
-import { SyncTableConfig } from '@/config/syncTables.config'
+import { SyncTableConfig } from '@/core/config/syncTables.config'
 // 过滤掉数据同步时主后端传输过来的不需要的字段
 export function filterFields(data: Record<string, any>, config: SyncTableConfig): Record<string, any> {
   const filtered: Record<string, any> = {}

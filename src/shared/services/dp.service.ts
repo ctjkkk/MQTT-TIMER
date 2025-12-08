@@ -8,7 +8,7 @@ import {
   HanqiTimerDpId,
   getOutletDpId,
 } from '@/shared/constants/dp.constants'
-import { LoggerService } from '@/common/logger/logger.service'
+import { LoggerService } from '@/core/logger/logger.service'
 
 /**
  * DP点处理服务
