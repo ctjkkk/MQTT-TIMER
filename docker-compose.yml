@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     ports:
       - '8018:8018' # HTTP API 端口
-      - '1884:1884' # MQTT 端口
+      - '1885:1885' # MQTT 端口
       - '8445:8445' # MQTT PSK 端口
     environment:
       - NODE_ENV=production

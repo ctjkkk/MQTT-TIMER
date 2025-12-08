@@ -38,9 +38,6 @@ importers:
       bcrypt:
         specifier: ^6.0.0
         version: 6.0.0
-      bson:
-        specifier: ^7.0.0
-        version: 7.0.0
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -1468,10 +1465,6 @@ packages:
   bson@5.5.1:
     resolution: {integrity: sha512-ix0EwukN2EpC0SRWIj/7B5+A6uQMQy6KMREI9qQqvgpkV2frH63T0UDVd1SYedL6dNCmDBYB3QtXi4ISk9YT+g==}
     engines: {node: '>=14.20.1'}
-
-  bson@7.0.0:
-    resolution: {integrity: sha512-Kwc6Wh4lQ5OmkqqKhYGKIuELXl+EPYSCObVE6bWsp1T/cGkOCBN0I8wF/T44BiuhHyNi1mmKVPXk60d41xZ7kw==}
-    engines: {node: '>=20.19.0'}
 
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
@@ -5172,8 +5165,6 @@ snapshots:
       node-int64: 0.4.0
 
   bson@5.5.1: {}
-
-  bson@7.0.0: {}
 
   buffer-from@1.1.2: {}
 

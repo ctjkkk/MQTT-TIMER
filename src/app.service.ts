@@ -1,8 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common'
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Hello World!';
+  getRootPage(): Object {
+    return {
+      name: 'device-api',
+      version: '1.0.0',
+      status: 'ok',
+      docs: 'http://3.216.169.117:8018/docs.html',
+    }
   }
 }
