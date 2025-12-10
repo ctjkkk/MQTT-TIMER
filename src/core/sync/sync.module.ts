@@ -4,6 +4,7 @@ import { MqttModule } from '@/core/mqtt/mqtt.module'
 import { SyncService } from './sync.service'
 import { UserCache, UserCacheSchema } from './schema/user-cache.schema'
 import { RoleCache, RoleCacheSchema } from './schema/role-cache.schema'
+import { MqttDispatchService } from '../mqtt/services/mqttDispatch.service'
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { RoleCache, RoleCacheSchema } from './schema/role-cache.schema'
     ]),
     MqttModule,
   ],
-  providers: [SyncService],
+  providers: [SyncService, MqttDispatchService],
   exports: [SyncService],
 })
 export class SyncModule {}

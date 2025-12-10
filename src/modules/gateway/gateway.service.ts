@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
-import { AedesBrokerService } from '@/core/mqtt/mqttBroker.service'
+import { MqttBrokerService } from '@/core/mqtt/services/mqttBroker.service'
 import { MqttUnifiedMessage, MqttTopic, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import { Gateway, GatewayDocument } from './schema/HanqiGateway.schema'
 import { Timer, TimerDocument } from '@/modules/timer/schema/timer.schema'
@@ -22,17 +22,17 @@ import { IGatewayServiceInterface } from './interface/gateway-service.interface'
 @Injectable()
 export class GatewayService implements IGatewayServiceInterface {
   constructor(
-    @InjectModel(Gateway.name) private readonly hanqiGatewayModel: Model<GatewayDocument>,
-    @InjectModel(Timer.name) private readonly hanqiTimerModel: Model<TimerDocument>,
-    @Inject(AedesBrokerService) private readonly broker: AedesBrokerService,
+    @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
+    @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
+    @Inject(MqttBrokerService) private readonly broker: MqttBrokerService,
     private readonly loggerServer: LoggerService,
   ) {}
 
   async findAllOfSubDevice(macAddress: string): Promise<TimerDocument[]> {
-    const gateway = await this.hanqiGatewayModel.findOne({ mac_address: macAddress }).exec()
+    const gateway = await this.gatewayModel.findOne({ mac_address: macAddress }).exec()
     if (!gateway) throw new NotFoundException('该网关不存在!')
 
-    const timers = await this.hanqiTimerModel.find({ gatewayId: macAddress }).exec()
+    const timers = await this.timerModel.find({ gatewayId: macAddress }).exec()
     if (!timers.length) throw new NotFoundException('该网关下无子设备')
 
     return timers
@@ -47,7 +47,7 @@ export class GatewayService implements IGatewayServiceInterface {
     console.log(`[GatewayService] 处理网关状态: ${message.deviceId}`)
     const { online, wifi_rssi, firmware, memory_usage, cpu_usage } = message.data
 
-    await this.hanqiGatewayModel.updateOne(
+    await this.gatewayModel.updateOne(
       { gatewayId: message.deviceId },
       {
         $set: {
@@ -66,7 +66,7 @@ export class GatewayService implements IGatewayServiceInterface {
    * 处理网关心跳
    */
   async handleHeartbeat(message: MqttUnifiedMessage) {
-    await this.hanqiGatewayModel.updateOne({ gatewayId: message.deviceId }, { $set: { last_seen: new Date() } })
+    await this.gatewayModel.updateOne({ gatewayId: message.deviceId }, { $set: { last_seen: new Date() } })
   }
 
   // ========== 向网关发送命令 ==========
@@ -117,9 +117,9 @@ export class GatewayService implements IGatewayServiceInterface {
    * 这个方法会被其他Service频繁调用
    */
   async findGatewayBySubDeviceId(subDeviceId: string) {
-    const timer = await this.hanqiTimerModel.findOne({ timerId: subDeviceId })
+    const timer = await this.timerModel.findOne({ timerId: subDeviceId })
     if (!timer) return null
-    const gateway = await this.hanqiGatewayModel.findById(timer.gatewayId)
+    const gateway = await this.gatewayModel.findById(timer.gatewayId)
     return gateway
   }
 

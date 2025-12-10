@@ -1,17 +1,17 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { HydratedDocument, Schema as MongooseSchema } from 'mongoose'
 
-export type HanqiScheduleDocument = HydratedDocument<HanqiSchedule>
+export type ScheduleDocument = HydratedDocument<Schedule>
 
-@Schema({ timestamps: true, collection: 'hanqischedules' })
-export class HanqiSchedule {
+@Schema({ timestamps: true, collection: 'schedules' })
+export class Schedule {
   @Prop({ type: String, required: true, unique: true, trim: true })
   scheduleId: string
 
   @Prop({ type: String, required: true, trim: true, default: '定时任务' })
   name: string
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'HanqiOutlet', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Outlet', required: true })
   outletId: MongooseSchema.Types.ObjectId
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
@@ -69,14 +69,14 @@ export class HanqiSchedule {
   status: number
 }
 
-export const HanqiScheduleSchema = SchemaFactory.createForClass(HanqiSchedule)
+export const ScheduleSchema = SchemaFactory.createForClass(Schedule)
 
 // 添加索引
-HanqiScheduleSchema.index({ outletId: 1 })
-HanqiScheduleSchema.index({ userId: 1 })
-HanqiScheduleSchema.index({ scheduleId: 1 }, { unique: true })
-HanqiScheduleSchema.index({ is_enabled: 1 })
-HanqiScheduleSchema.index({ status: 1 })
-HanqiScheduleSchema.index({ next_run_time: 1 })
-HanqiScheduleSchema.index({ start_time: 1 })
-HanqiScheduleSchema.index({ outletId: 1, start_time: 1 })
+ScheduleSchema.index({ outletId: 1 })
+ScheduleSchema.index({ userId: 1 })
+ScheduleSchema.index({ scheduleId: 1 }, { unique: true })
+ScheduleSchema.index({ is_enabled: 1 })
+ScheduleSchema.index({ status: 1 })
+ScheduleSchema.index({ next_run_time: 1 })
+ScheduleSchema.index({ start_time: 1 })
+ScheduleSchema.index({ outletId: 1, start_time: 1 })

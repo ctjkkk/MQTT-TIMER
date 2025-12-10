@@ -4,7 +4,7 @@ export enum DeviceConnectionStatus {
 }
 
 export const MQTT_TOPIC_METADATA = 'MQTT_TOPIC_METADATA',
-  MQTT_PARAM_METADATA = 'MQTT_PARAM_METADATA'
+  MQTT_PARAM_METADATA = 'MQTT_PARAM_METADATA' as const
 
 export const AuthErrorCode = {
   UNACCEPTABLE_PROTOCOL_VERSION: 1, // 不支持的协议版本（客户端 MQTT 版本号与服务端不匹配）
@@ -14,3 +14,6 @@ export const AuthErrorCode = {
   USERNAME_PASSWORD_ERROR: 4, // 与 NOT_AUTHORIZED 同值，仅作别名，便于代码里一眼看出是账号密码错
   NOT_AUTHORIZED_5: 5, //  MQTT 5 专用“未授权”码；MQTT 3.x 客户端不会收到该值
 }
+
+// psk支持的加密算法白名单
+export const PSK_CIPHERS = 'PSK-AES128-CBC-SHA256:PSK-AES256-CBC-SHA384:PSK-AES128-GCM-SHA256:PSK-AES256-GCM-SHA384' as const

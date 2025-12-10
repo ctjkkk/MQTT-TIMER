@@ -1,17 +1,17 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { HydratedDocument, Schema as MongooseSchema } from 'mongoose'
 
-export type HanqiOutletDocument = HydratedDocument<HanqiOutlet>
+export type OutletDocument = HydratedDocument<Outlet>
 
-@Schema({ timestamps: true, collection: 'hanqioutlets' })
-export class HanqiOutlet {
+@Schema({ timestamps: true, collection: 'outlets' })
+export class Outlet {
   @Prop({ type: String, required: true, unique: true, trim: true, comment: '出水口唯一标识' })
   outletId: string
 
   @Prop({ type: String, required: true, trim: true, default: '出水口', comment: '出水口名称' })
   name: string
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'HanqiTimer', required: true, comment: '所属Timer设备ID' })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Timer', required: true, comment: '所属Timer设备ID' })
   timerId: MongooseSchema.Types.ObjectId
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true, comment: '所属用户ID' })
@@ -48,12 +48,12 @@ export class HanqiOutlet {
   last_dp_update: Date
 }
 
-export const HanqiOutletSchema = SchemaFactory.createForClass(HanqiOutlet)
+export const OutletSchema = SchemaFactory.createForClass(Outlet)
 
 // 添加索引
-HanqiOutletSchema.index({ timerId: 1 })
-HanqiOutletSchema.index({ userId: 1 })
-HanqiOutletSchema.index({ outletId: 1 }, { unique: true })
-HanqiOutletSchema.index({ timerId: 1, outlet_number: 1 }, { unique: true })
-HanqiOutletSchema.index({ current_status: 1 })
-HanqiOutletSchema.index({ is_enabled: 1 })
+OutletSchema.index({ timerId: 1 })
+OutletSchema.index({ userId: 1 })
+OutletSchema.index({ outletId: 1 }, { unique: true })
+OutletSchema.index({ timerId: 1, outlet_number: 1 }, { unique: true })
+OutletSchema.index({ current_status: 1 })
+OutletSchema.index({ is_enabled: 1 })

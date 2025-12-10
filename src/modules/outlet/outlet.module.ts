@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
 import { OutletController } from './outlet.controller'
 import { OutletService } from './outlet.service'
-import { HanqiOutlet, HanqiOutletSchema } from './schema/outlet.schema'
+import { Outlet, OutletSchema } from './schema/outlet.schema'
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: HanqiOutlet.name, schema: HanqiOutletSchema }])],
+  imports: [MongooseModule.forFeature([{ name: Outlet.name, schema: OutletSchema }])],
   controllers: [OutletController],
   providers: [OutletService],
   exports: [OutletService],

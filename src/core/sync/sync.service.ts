@@ -1,12 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { InjectConnection } from '@nestjs/mongoose'
 import { Connection } from 'mongoose'
-import { AedesBrokerService } from '@/core/mqtt/mqttBroker.service'
 import { SYNC_TABLES, SyncTableConfig } from '@/core/config/syncTables.config'
 import { deserialize } from '@/common/utils/transform'
 import { filterFields } from '@/common/utils/dataFilters'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { MqttDispatchService } from '../mqtt/services/mqttDispatch.service'
 /**
  * 表同步服务（TIMER-MQTT 端）
  *
@@ -19,7 +19,7 @@ export class SyncService implements OnModuleInit {
   private readonly logger = new Logger(SyncService.name)
   constructor(
     @InjectConnection() private connection: Connection,
-    private mqttBrokerService: AedesBrokerService,
+    private readonly dispatchService: MqttDispatchService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -33,7 +33,7 @@ export class SyncService implements OnModuleInit {
 
   // 订阅指定表的同步消息
   private subscribeTable(config: SyncTableConfig) {
-    this.mqttBrokerService.subscribe(config.topic, async (payload: Buffer) => {
+    this.dispatchService.subscribe(config.topic, async (payload: Buffer) => {
       try {
         const message = deserialize(JSON.parse(payload.toString()))
         await this.handleSync(config, message)

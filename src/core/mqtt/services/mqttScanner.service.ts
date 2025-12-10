@@ -1,35 +1,32 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { ModuleRef, ModulesContainer } from '@nestjs/core'
-import { AedesBrokerService } from './mqttBroker.service'
 import { MQTT_TOPIC_METADATA } from '@/shared/constants/mqtt.constants'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { MqttDispatchService } from './mqttDispatch.service'
 @Injectable()
-export class MqttScannerService implements OnModuleInit {
+export class MqttScannerService implements OnApplicationBootstrap {
   private readonly logger = new Logger(MqttScannerService.name)
 
   constructor(
     private readonly moduleRef: ModuleRef,
     private readonly modulesContainer: ModulesContainer,
-    private readonly mqttBroker: AedesBrokerService,
+    private readonly dispatchService: MqttDispatchService,
   ) {}
 
-  async onModuleInit() {
-    // 等待所有模块加载完成后扫描
-    setTimeout(() => {
-      this.scanMqttHandlers()
-    }, 100)
+  // onApplicationBootstrap 在所有模块初始化完成但尚未开始监听连接时调用。
+  async onApplicationBootstrap() {
+    await this.scanMqttHandlers()
   }
   private async scanMqttHandlers(): Promise<void> {
     this.logger.log(LogMessages.MQTT.SCANNING_PROCESSOR())
 
     let handlerCount = 0
-
     // 1. 遍历所有模块
     for (const moduleRef of this.modulesContainer.values()) {
       // 2. 合并 controllers + providers 统一扫描
       const entries = [...moduleRef.controllers.entries(), ...moduleRef.providers.entries()]
 
-      for (const [token, controllerOrProvider] of entries) {
+      for (const [token, _] of entries) {
         try {
           // 3. 拿到实例（可能抛出，catch 跳过）
           const instance = await this.moduleRef.get(token, { strict: false })
@@ -45,7 +42,7 @@ export class MqttScannerService implements OnModuleInit {
 
             const topicList = Array.isArray(topics) ? topics : [topics]
             for (const topic of topicList) {
-              this.mqttBroker.subscribe(topic, { instance, methodName })
+              this.dispatchService.subscribe(topic, { instance, methodName })
               handlerCount++
               this.logger.debug(LogMessages.MQTT.REGISTER_PROCESSOR(topic, instance.constructor.name, methodName))
             }
@@ -55,18 +52,5 @@ export class MqttScannerService implements OnModuleInit {
     }
 
     this.logger.log(LogMessages.MQTT.SCANNING_PROCESSOR_SCCUSS(handlerCount))
-  }
-
-  // 手动重新扫描（用于开发时热重载）
-  async rescanHandlers(): Promise<void> {
-    this.logger.log('🔄 重新扫描 MQTT 处理器...')
-    await this.scanMqttHandlers()
-  }
-
-  // 获取已注册的主题列表
-  getRegisteredTopics(): string[] {
-    // 注意：这里需要访问 mqttBroker 的私有属性，实际使用时可能需要修改
-    // 这里返回一个空数组作为示例，实际实现可能需要修改 MqttBrokerService
-    return []
   }
 }
