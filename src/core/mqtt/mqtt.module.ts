@@ -29,6 +29,6 @@ import { MqttPublishService } from './services/mqttPublish.service'
     MqttClientManagerService,
     MqttPublishService,
   ],
-  exports: [MqttBrokerService, MqttScannerService],
+  exports: [MqttBrokerService, MqttScannerService, MqttDispatchService],
 })
 export class MqttModule {}

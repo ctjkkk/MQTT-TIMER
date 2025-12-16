@@ -183,25 +183,10 @@ export class LoggerService {
     const dirname = fileConfig.dirname || 'logs'
     const datePattern = fileConfig.datePattern || 'YYYY-MM-DD'
     const maxSize = fileConfig.maxSize || '20m'
-    let maxFiles = '7d' // 默认保留7天（更安全）
+    const maxFiles = '30d' // 统一保留30天，长期存储通过 Graylog 实现
 
     // 根据上下文和日志级别确定文件名
     let filename = this.getFilenameByContextAndLevel(level, context)
-
-    // 设置不同日志类型的保留时间
-    if (level === 'error') {
-      maxFiles = '30d' // 错误日志保留30天
-    } else if (context === 'MQTT' && level === 'debug') {
-      maxFiles = '3d' // MQTT消息日志保留3天
-    } else if (context === 'MongoDB') {
-      maxFiles = '7d' // 数据库日志保留7天
-    } else if (context === 'HTTP') {
-      maxFiles = '14d' // HTTP日志保留14天
-    } else if (level === 'debug') {
-      maxFiles = '3d' // Debug日志保留3天
-    } else if (level === 'info' || level === 'warn') {
-      maxFiles = '7d' // Info/Warn日志保留7天
-    }
 
     return createLogger({
       level: level,
@@ -220,8 +205,8 @@ export class LoggerService {
   }
 
   private getFilenameByContextAndLevel(level: string, context?: string): string {
-    // 根据上下文分类
-    if (context === 'MQTT') {
+    // 根据上下文分类 - 使用 startsWith 支持更灵活的命名
+    if (context?.startsWith('MQTT')) {
       if (level === 'error') return 'mqtt-error-%DATE%.log'
       if (level === 'debug') return 'mqtt-message-%DATE%.log'
       return 'mqtt-%DATE%.log'
@@ -237,6 +222,11 @@ export class LoggerService {
       if (level === 'error') return 'http-error-%DATE%.log'
       if (level === 'warn') return 'http-warn-%DATE%.log'
       return 'http-%DATE%.log'
+    }
+
+    if (context === 'Sync') {
+      if (level === 'error') return 'sync-error-%DATE%.log'
+      return 'sync-%DATE%.log'
     }
 
     // 通用日志根据级别分类

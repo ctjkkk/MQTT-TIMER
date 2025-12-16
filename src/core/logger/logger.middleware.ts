@@ -25,6 +25,11 @@ export class LoggerMiddleware implements NestMiddleware {
       const { statusCode } = res
       const duration = Date.now() - start
 
+      // 排除日志查看器自身的 API 请求，避免日志噪音
+      if (originalUrl.startsWith('/logs/api/') || originalUrl === '/logs') {
+        return
+      }
+
       // 记录 HTTP 请求日志
       this.logger.httpRequest(method, originalUrl, statusCode, duration, ip, userAgent, requestId)
     })

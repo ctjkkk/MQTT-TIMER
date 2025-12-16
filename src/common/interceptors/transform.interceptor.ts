@@ -11,3 +11,19 @@ export const Transform = (code = 200, msg = '成功') =>
       }
     },
   )
+
+/** 日志模块专用响应包装 */
+export const LogsResponse = (code = 200, msg = 'success') =>
+  mixin(
+    class implements NestInterceptor {
+      intercept(context: ExecutionContext, next: CallHandler) {
+        const req = context.switchToHttp().getRequest()
+        const url: string = req.url
+
+        // 只拦截 /logs/api/* ，页面和静态资源直接跳过
+        if (!url.startsWith('/logs/api')) return next.handle()
+
+        return next.handle().pipe(map(data => ({ code, data, msg })))
+      }
+    },
+  )

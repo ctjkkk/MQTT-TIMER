@@ -46,6 +46,10 @@ export const LogMessages = {
     SUBSCRIBED: (tableCount: number) => `✅ 已订阅 ${tableCount} 个表的同步消息`,
     SYNC_FAILED: (collection: string, error: string) => `❌ 同步失败 [${collection}]: ${error}`,
     UNSUPPORTED_OPERATION: (operation: string) => `⚠️ 不支持的操作: ${operation}`,
+    INSERT_SUCCESS: (collection: string, key: any) => `➕ 插入数据 [${collection}] key: ${key}`,
+    UPDATE_SUCCESS: (collection: string, key: any) => `🔄 更新数据 [${collection}] key: ${key}`,
+    REPLACE_SUCCESS: (collection: string, key: any) => `🔁 替换数据 [${collection}] key: ${key}`,
+    DELETE_SUCCESS: (collection: string, key: any) => `🗑️ 删除数据 [${collection}] key: ${key}`,
   },
   DEVICE: {
     UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,

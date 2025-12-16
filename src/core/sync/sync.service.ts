@@ -38,7 +38,7 @@ export class SyncService implements OnModuleInit {
         const message = deserialize(JSON.parse(payload.toString()))
         await this.handleSync(config, message)
       } catch (error) {
-        this.loggerService.error(LogMessages.SYNC.SYNC_FAILED(config.localCollection, error.message), 'SYNC')
+        this.loggerService.error(LogMessages.SYNC.SYNC_FAILED(config.localCollection, error.message), 'Sync')
       }
     })
   }
@@ -52,12 +52,30 @@ export class SyncService implements OnModuleInit {
       case 'insert': {
         const { _id, ...data } = filterFields(payload.data, config)
         await collection.updateOne({ [keyField]: payload.key }, { $set: { ...data, syncedAt: new Date() } }, { upsert: true })
+
+        // 记录详细日志
+        this.loggerService.info(LogMessages.SYNC.INSERT_SUCCESS(config.localCollection, payload.key), 'Sync', {
+          operation: 'insert',
+          collection: config.localCollection,
+          key: payload.key,
+          fields: Object.keys(data),
+          data: data,
+        })
         break
       }
 
       case 'replace': {
         const { _id, ...data } = filterFields(payload.data, config)
         await collection.replaceOne({ [keyField]: payload.key }, { ...data, syncedAt: new Date() }, { upsert: true })
+
+        // 记录详细日志
+        this.loggerService.info(LogMessages.SYNC.REPLACE_SUCCESS(config.localCollection, payload.key), 'Sync', {
+          operation: 'replace',
+          collection: config.localCollection,
+          key: payload.key,
+          fields: Object.keys(data),
+          data: data,
+        })
         break
       }
 
@@ -66,24 +84,48 @@ export class SyncService implements OnModuleInit {
         const updateQuery: any = {
           $set: { ...fields, syncedAt: new Date() },
         }
+
+        // 记录字段变更详情
+        const changedFields = Object.keys(fields)
+        const removedFields: string[] = []
+
         // 只处理配置中允许的移除字段
         if (payload.removedFields?.length) {
           const allowedFields = new Set(config.fields)
           const filteredRemovedFields = payload.removedFields.filter((f: string) => allowedFields.has(f))
           if (filteredRemovedFields.length) {
             updateQuery.$unset = Object.fromEntries(filteredRemovedFields.map((f: string) => [f, '']))
+            removedFields.push(...filteredRemovedFields)
           }
         }
+
         await collection.updateOne({ [keyField]: payload.key }, updateQuery, { upsert: true })
+
+        // 记录详细日志 - 包含修改和删除的字段
+        this.loggerService.info(LogMessages.SYNC.UPDATE_SUCCESS(config.localCollection, payload.key), 'Sync', {
+          operation: 'update',
+          collection: config.localCollection,
+          key: payload.key,
+          changedFields: changedFields,
+          changedData: fields,
+          removedFields: removedFields,
+        })
         break
       }
 
       case 'delete':
         await collection.deleteOne({ [keyField]: payload.key })
+
+        // 记录详细日志
+        this.loggerService.info(LogMessages.SYNC.DELETE_SUCCESS(config.localCollection, payload.key), 'Sync', {
+          operation: 'delete',
+          collection: config.localCollection,
+          key: payload.key,
+        })
         break
 
       default:
-        this.loggerService.warn(LogMessages.SYNC.UNSUPPORTED_OPERATION(payload.operation), 'SYNC')
+        this.loggerService.warn(LogMessages.SYNC.UNSUPPORTED_OPERATION(payload.operation), 'Sync')
     }
   }
 }

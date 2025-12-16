@@ -2,7 +2,7 @@ import { applyDecorators, UseFilters, UseGuards, UseInterceptors } from '@nestjs
 import { ApiHeader, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { HttpExceptionsFilter } from '../filters/exceptions.filter'
 import { Transform } from '../interceptors/transform.interceptor'
-import { ApiKeyGuard } from '../guards/api-key.guard'
+import { ApiKeyGuard } from '../guards/apiKey.guard'
 import { SignatureGuard } from '@/auth/psk/guards/signature'
 
 // gateway等模块 需要请求头中apikey的公共装饰器工厂函数

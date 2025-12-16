@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Soildrops Timer Logs File</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>📊 日志查看器</h1>
+        <p>实时监控系统日志 · HTTP & MQTT & Sync</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>总文件数</h3>
+          <div class="value" id="totalFiles">-</div>
+        </div>
+        <div class="stat-card">
+          <h3>HTTP 日志</h3>
+          <div class="value" id="httpFiles">-</div>
+        </div>
+        <div class="stat-card">
+          <h3>MQTT 日志</h3>
+          <div class="value" id="mqttFiles">-</div>
+        </div>
+        <div class="stat-card">
+          <h3>同步日志</h3>
+          <div class="value" id="syncFiles">-</div>
+        </div>
+        <div class="stat-card">
+          <h3>错误日志</h3>
+          <div class="value" id="errorFiles">-</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <label>📁 选择日志文件</label>
+          <select id="fileSelector">
+            <option value="">查看所有最近日志</option>
+          </select>
+        </div>
+        <div class="controls">
+          <div class="controls-row">
+            <select id="logType">
+              <option value="">全部类型</option>
+              <option value="http">HTTP 日志</option>
+              <option value="mqtt">MQTT 日志</option>
+              <option value="sync">同步日志</option>
+              <option value="error">错误日志</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="🔍 搜索日志内容..." />
+            <button class="btn btn-primary" onclick="searchLogs()">搜索</button>
+            <button class="btn btn-secondary" onclick="loadRecentLogs()">刷新</button>
+          </div>
+        </div>
+        <div id="logsContent" class="loading">加载中...</div>
+      </div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadRecentLogs()" title="刷新日志">⟳</button>
+
+    <script>
+      /* ---- 工具函数 ---- */
+      const escapeHtml = text => {
+        const d = document.createElement('div')
+        d.textContent = text
+        return d.innerHTML
+      }
+      const formatTimestamp = ts => new Date(ts).toLocaleString('zh-CN', { hour12: false })
+
+      // 高亮json
+      function syntaxHighlight(json) {
+        let str = typeof json === 'string' ? json : JSON.stringify(json, null, 2)
+        str = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        str = str.replace(/"(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(?=\s*[,}\]])/g, '<span class="json-string">$&</span>')
+        str = str.replace(/"(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(?=\s*:)/g, '<span class="json-key">$&</span>')
+        str = str.replace(/\b(-?\d+(?:\.\d+)?([eE][+-]?\d+)?)\b/g, '<span class="json-number">$1</span>')
+        str = str.replace(/\b(true|false|null)\b/g, '<span class="json-boolean">$&</span>')
+        return str
+      }
+
+      /* ---- API 调用 ---- */
+      async function loadStats() {
+        try {
+          const res = await fetch('/logs/api/stats')
+          const json = await res.json()
+          if (json.code === 200) {
+            const s = json.data
+            ;['totalFiles', 'httpFiles', 'mqttFiles', 'syncFiles', 'errorFiles'].forEach(k => (document.getElementById(k).textContent = s[k]))
+          }
+        } catch (e) {
+          console.error('stats error', e)
+        }
+      }
+      async function loadFileList() {
+        try {
+          const res = await fetch('/logs/api/files')
+          const json = await res.json()
+          if (json.code === 200) {
+            const sel = document.getElementById('fileSelector')
+            sel.innerHTML = '<option value="">查看所有最近日志</option>'
+            json.data.forEach(f => {
+              const opt = document.createElement('option')
+              opt.value = f.name
+              opt.textContent = `${f.name} (${(f.size / 1024).toFixed(2)} KB - ${new Date(f.modified).toLocaleString('zh-CN')})`
+              sel.appendChild(opt)
+            })
+          }
+        } catch (e) {
+          console.error('file list error', e)
+        }
+      }
+      async function loadRecentLogs() {
+        const type = document.getElementById('logType').value
+        const filename = document.getElementById('fileSelector').value
+        if (filename) return loadFileContent(filename)
+        const url = type ? `/logs/api/recent?type=${type}&limit=200` : '/logs/api/recent?limit=200'
+        try {
+          const res = await fetch(url)
+          const json = await res.json()
+          if (json.code === 200) displayLogs(json.data)
+        } catch (e) {
+          document.getElementById('logsContent').innerHTML = '<div class="empty">❌ 加载失败</div>'
+        }
+      }
+      async function loadFileContent(filename) {
+        try {
+          const res = await fetch(`/logs/api/file?filename=${encodeURIComponent(filename)}&limit=500`)
+          const json = await res.json()
+          if (json.code === 200) displayLogs(json.data)
+        } catch (e) {
+          document.getElementById('logsContent').innerHTML = '<div class="empty">❌ 加载文件失败</div>'
+        }
+      }
+      async function searchLogs() {
+        const kw = document.getElementById('searchInput').value.trim()
+        const type = document.getElementById('logType').value
+        if (!kw) return loadRecentLogs()
+        try {
+          const url = type
+            ? `/logs/api/search?keyword=${encodeURIComponent(kw)}&type=${type}`
+            : `/logs/api/search?keyword=${encodeURIComponent(kw)}`
+          const res = await fetch(url)
+          const json = await res.json()
+          if (json.code === 200) displayLogs(json.data)
+        } catch (e) {
+          document.getElementById('logsContent').innerHTML = '<div class="empty">❌ 搜索失败</div>'
+        }
+      }
+
+      /* ---- 渲染 ---- */
+      function displayLogs(logs) {
+        const box = document.getElementById('logsContent')
+        if (!logs || !logs.length) {
+          box.innerHTML = '<div class="empty">📭 暂无日志</div>'
+          return
+        }
+        box.innerHTML = logs
+          .map(
+            log => `
+        <div class="log-entry">
+            <div class="log-header">
+                <span class="log-timestamp">${formatTimestamp(log.timestamp)}</span>
+                <span class="log-level ${log.level}">${log.level}</span>
+                ${log.context ? `<span class="log-context">${escapeHtml(log.context)}</span>` : ''}
+            </div>
+            <div class="log-message">${escapeHtml(log.message)}</div>
+            ${log.data ? `<div class="log-data"><pre>${syntaxHighlight(log.data)}</pre></div>` : ''}
+        </div>
+    `,
+          )
+          .join('')
+      }
+
+      document.getElementById('logType').addEventListener('change', loadRecentLogs)
+      document.getElementById('fileSelector').addEventListener('change', loadRecentLogs)
+      document.getElementById('searchInput').addEventListener('keypress', e => {
+        if (e.key === 'Enter') searchLogs()
+      })
+
+      loadStats()
+      loadFileList()
+      loadRecentLogs()
+      setInterval(() => {
+        if (!document.getElementById('searchInput').value) {
+          loadStats()
+          loadRecentLogs()
+        }
+      }, 30000)
+    </script>
+  </body>
+</html>

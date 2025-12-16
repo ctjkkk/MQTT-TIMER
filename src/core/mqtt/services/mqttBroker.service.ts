@@ -1,4 +1,3 @@
-// src/core/mqtt/aedes-broker.service.ts
 import Aedes from 'aedes'
 import * as tls from 'tls'
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
@@ -50,9 +49,6 @@ export class MqttBrokerService implements OnModuleInit {
     })
   }
 
-  private async listenPromisify(server: NetServer | tls.Server, port: number): Promise<void> {
-    return new Promise<void>((resolve, _) => server.listen(port, resolve))
-  }
   private async initMqttBroker(): Promise<void> {
     const { ID, CONNECT_TIME, HEART_BEAT_INTERVAL, TCP_MQTT_PORT, PSK_MQTT_PORT } = this.configService.get('mqtt')
     this.aedes = new Aedes({
@@ -86,8 +82,10 @@ export class MqttBrokerService implements OnModuleInit {
     )
 
     // 统一监听启动
-    await Promise.all([this.listenPromisify(this.tcpServer, TCP_MQTT_PORT), this.listenPromisify(this.tlsServer, PSK_MQTT_PORT)])
-
+    await Promise.all([
+      new Promise<void>(resolve => this.tcpServer.listen(TCP_MQTT_PORT, resolve)),
+      new Promise<void>(resolve => this.tlsServer.listen(PSK_MQTT_PORT, resolve)),
+    ])
     this.logger.log(LogMessages.MQTT.BROKER_START('TCP', TCP_MQTT_PORT))
     this.logger.log(LogMessages.MQTT.BROKER_START('PSK', PSK_MQTT_PORT))
   }
@@ -120,6 +118,7 @@ export class MqttBrokerService implements OnModuleInit {
       }
     })
   }
+
   publish(topic: string, payload: string | object, qos: 0 | 1 = 0): void {
     this.publishService.publish(this.aedes, topic, payload, qos)
   }
