@@ -91,7 +91,9 @@
           const json = await res.json()
           if (json.code === 200) {
             const s = json.data
-            ;['totalFiles', 'httpFiles', 'mqttFiles', 'syncFiles', 'errorFiles'].forEach(k => (document.getElementById(k).textContent = s[k]))
+            ;['totalFiles', 'httpFiles', 'mqttFiles', 'syncFiles', 'errorFiles'].forEach(
+              k => (document.getElementById(k).textContent = s[k]),
+            )
           }
         } catch (e) {
           console.error('stats error', e)

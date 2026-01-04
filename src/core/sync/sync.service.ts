@@ -86,7 +86,6 @@ export class SyncService implements OnModuleInit {
         }
 
         // 记录字段变更详情
-        const changedFields = Object.keys(fields)
         const removedFields: string[] = []
 
         // 只处理配置中允许的移除字段
@@ -106,9 +105,7 @@ export class SyncService implements OnModuleInit {
           operation: 'update',
           collection: config.localCollection,
           key: payload.key,
-          changedFields: changedFields,
           changedData: fields,
-          removedFields: removedFields,
         })
         break
       }

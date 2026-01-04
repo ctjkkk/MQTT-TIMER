@@ -39,12 +39,14 @@ export class MqttBrokerService implements OnModuleInit {
     this.aedes.on('publish', (packet, client) => {
       //当有客户端向 broker 发布消息时触发
       if (client) {
+        this.dispatchService.dispatch(packet.topic, packet.payload, client?.id || '')
+
+        if (packet.topic.startsWith('sync/')) return
         this.loggerService.info(
           LogMessages.MQTT.MESSAGE_PUBLISHED(client.id, packet.topic),
           'MQTTPublish',
           packet.payload.toString(),
         )
-        this.dispatchService.dispatch(packet.topic, packet.payload, client?.id || '')
       }
     })
   }
