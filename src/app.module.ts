@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { MongooseModule } from '@nestjs/mongoose'
+import { EventEmitterModule } from '@nestjs/event-emitter'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { GatewayModule } from './modules/gateway/gateway.module'
@@ -13,6 +14,7 @@ import databaseConfig from '@/core/config/database.config'
 import mqttConfig from '@/core/config/mqtt.config'
 import { LoggerMiddleware } from '@/core/logger/logger.middleware'
 import { SyncModule } from '@/core/sync/sync.module'
+import { UserModule } from './modules/user/user.module';
 
 @Module({
   imports: [
@@ -31,6 +33,14 @@ import { SyncModule } from '@/core/sync/sync.module'
         }
       },
     }),
+    // 事件驱动模块（全局）
+    EventEmitterModule.forRoot({
+      wildcard: true, // 支持通配符 'mqtt.*'
+      delimiter: '.', // 事件名分隔符
+      maxListeners: 20, // 每个事件最多20个监听器
+      verboseMemoryLeak: true, // 内存泄漏警告
+    }),
+
     MqttModule,
     GatewayModule,
     TimerModule,
@@ -38,6 +48,7 @@ import { SyncModule } from '@/core/sync/sync.module'
     ScheduleModule,
     PskModule,
     SyncModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],

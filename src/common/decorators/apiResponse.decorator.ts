@@ -2,8 +2,8 @@ import { applyDecorators, UseFilters, UseGuards, UseInterceptors } from '@nestjs
 import { ApiHeader, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { HttpExceptionsFilter } from '../filters/exceptions.filter'
 import { Transform } from '../interceptors/transform.interceptor'
-import { ApiKeyGuard } from '../guards/apiKey.guard'
 import { SignatureGuard } from '@/auth/psk/guards/signature'
+import { JwtAuthGuard } from '../guards/jwtAuth.guard'
 
 // gateway等模块 需要请求头中apikey的公共装饰器工厂函数
 export const ApiResponseStandard = (summary: string, msg = '操作成功', code = 200) => {
@@ -11,7 +11,7 @@ export const ApiResponseStandard = (summary: string, msg = '操作成功', code 
   return applyDecorators(
     ApiOperation({ summary }),
     ApiResponse({ status: code, description: summary }),
-    UseGuards(ApiKeyGuard),
+    UseGuards(JwtAuthGuard),
     UseFilters(HttpExceptionsFilter),
     UseInterceptors(Transform(code, msg)),
   )

@@ -1,8 +1,8 @@
 export const LogMessages = {
   MQTT: {
     USER_CONNECTION_SUCCESSFUL: (ClientId: string, username: string) =>
-      `✅ ${ClientId} Authentication successful for user: ${username}`,
-    BROKER_START: (way: string, port: string | number) => `✅ ${way} 模式成功连接到 MQTT 代理，端口：${port}`,
+      `${ClientId} Authentication successful for user: ${username}`,
+    BROKER_START: (way: string, port: string | number) => `${way} 模式成功连接到 MQTT 代理，端口：${port}`,
     BROKER_STOP: '🛑 MQTT Broker 已停止',
     CLIENT_CONNECTED: (clientId: string) => `🔗 客户端连接: ${clientId}`,
     CLIENT_DISCONNECTED: (clientId: string) => `🔌 客户端断开: ${clientId}`,
@@ -13,13 +13,14 @@ export const LogMessages = {
     WHITELIST_EMPTY: '⚠️ MQTT_WHITELIST 为空或未设置，禁止所有用户连接',
     INTERNAL_ERROR: '🚨 内部认证错误',
     PUBLISH_ERROR: (error: string) => `📤 发布错误: ${error}`,
-    SCANNING_PROCESSOR: () => '🔍 开始扫描 MQTT 处理器...',
+    SCANNING_PROCESSOR: () => '开始扫描 MQTT 处理器...',
     REGISTER_PROCESSOR: (topic: string, controllerName: string, methodName: string) =>
       `注册处理器: ${topic} -> ${controllerName}.${methodName}`,
-    SCANNING_PROCESSOR_SCCUSS: (handlerCount: number) => `✅ MQTT 处理器扫描完成，共找到 ${handlerCount} 个处理器`,
+    SCANNING_PROCESSOR_SCCUSS: (handlerCount: number) => `MQTT 处理器扫描完成，共找到 ${handlerCount} 个处理器`,
+    PARSE_ERROR: (error?: string) => `MQTT 消息解析错误: ${error}`,
   },
   DATABASE: {
-    CONNECT_SCCUSS: (dbName: string) => `✅ MongoDB 连接成功 - 数据库: ${dbName}`,
+    CONNECT_SCCUSS: (dbName: string) => `MongoDB 连接成功 - 数据库: ${dbName}`,
     CONNECT_ERROR: (errMsg: string) => `❌ MongoDB 连接错误: ${errMsg}`,
     CONNECT_FAIL: (errMsg: string) => `❌ MongoDB 连接失败: ${errMsg}`,
     DISCONNECTED: () => `⚠️ MongoDB 已断开连接`,
@@ -43,7 +44,7 @@ export const LogMessages = {
     UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,
   },
   SYNC: {
-    SUBSCRIBED: (tableCount: number) => `✅ 已订阅 ${tableCount} 个表的同步消息`,
+    SUBSCRIBED: (tableCount: number) => `已订阅 ${tableCount} 个表的同步消息`,
     SYNC_FAILED: (collection: string, error: string) => `❌ 同步失败 [${collection}]: ${error}`,
     UNSUPPORTED_OPERATION: (operation: string) => `不支持的操作: ${operation}`,
     INSERT_SUCCESS: (collection: string, key: any) => `插入数据 [${collection}] key: ${key}`,

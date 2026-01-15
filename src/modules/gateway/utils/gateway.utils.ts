@@ -59,6 +59,6 @@ export function parseMqttMessage<T = any>(payload: Buffer | string): MqttUnified
     return JSON.parse(str) as MqttUnifiedMessage<T>
   } catch (error) {
     console.error('Failed to parse MQTT message:', error)
-    return null
+    return error
   }
 }

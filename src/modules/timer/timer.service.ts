@@ -1,9 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
+import { OnEvent } from '@nestjs/event-emitter'
 import { Model } from 'mongoose'
 import { GatewayService } from '../gateway/gateway.service'
 import { OutletService } from '../outlet/outlet.service'
-import { MqttUnifiedMessage, DpReportData, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
+import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/mqtt-topic.constants'
+import { MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
+import { AppEvents } from '@/shared/constants/events.constants'
 import { Timer, TimerDocument } from './schema/timer.schema'
 import { LogMessages } from '@/shared/constants/log-messages.constants'
 import { LoggerService } from '@/core/logger/logger.service'
@@ -26,11 +29,44 @@ export class TimerService {
     private readonly loggerServer: LoggerService,
   ) {}
 
+  // ========== 事件监听器 ==========
+
+  /**
+   * 监听子设备MQTT消息事件
+   * 根据消息类型分发到对应的处理方法
+   */
+  @OnEvent(AppEvents.MQTT_SUBDEVICE_MESSAGE)
+  async handleSubDeviceMessage(message: MqttUnifiedMessage) {
+    // 这里可以根据 deviceType 或其他字段判断是否是 Timer 设备
+    // 暂时处理所有子设备消息
+
+    switch (message.msgType) {
+      case MqttMessageType.DP_REPORT:
+        // DP点数据上报
+        await this.handleDpReport(message)
+        break
+      case MqttMessageType.EVENT_REPORT:
+        // 事件上报（告警、故障等）
+        await this.handleEventReport(message)
+        break
+      case MqttMessageType.HEARTBEAT:
+        // 心跳（子设备）
+        await this.handleHeartbeat(message)
+        break
+      case MqttMessageType.OPERATE_DEVICE:
+        // 设备生命周期
+        await this.handleLifecycle(message)
+        break
+      default:
+        this.loggerServer.warn(`未知的子设备消息类型: ${message.msgType}`, 'TimerService')
+    }
+  }
+
   // ========== MQTT消息处理 ==========
 
   /**
    * 处理Timer设备的DP点上报
-   * 由GatewayController调用
+   * 通过事件监听器自动触发
    */
   async handleDpReport(message: MqttUnifiedMessage<DpReportData>) {
     const { deviceId } = message

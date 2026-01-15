@@ -1,8 +1,11 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
+import { OnEvent } from '@nestjs/event-emitter'
 import { Model } from 'mongoose'
 import { MqttBrokerService } from '@/core/mqtt/services/mqttBroker.service'
-import { MqttUnifiedMessage, MqttTopic, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
+import type { MqttUnifiedMessage } from '@/shared/constants/mqtt-topic.constants'
+import { MqttTopic, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
+import { AppEvents } from '@/shared/constants/events.constants'
 import { Gateway, GatewayDocument } from './schema/HanqiGateway.schema'
 import { Timer, TimerDocument } from '@/modules/timer/schema/timer.schema'
 import { buildGatewayMessage, buildSubDeviceMessage } from './utils/gateway.utils'
@@ -18,6 +21,7 @@ import { IGatewayServiceInterface } from './interface/gateway-service.interface'
  * 1. 处理网关自身的业务逻辑（连接、状态、子设备列表）
  * 2. 提供通过网关发送命令到子设备的能力
  * 3. 管理网关和子设备的关联关系
+ * 4. 发布网关业务事件供其他模块监听
  */
 @Injectable()
 export class GatewayService implements IGatewayServiceInterface {
@@ -38,7 +42,25 @@ export class GatewayService implements IGatewayServiceInterface {
     return timers
   }
 
-  // ========== 网关消息处理 ==========
+  /**
+   * 监听网关MQTT消息事件
+   * 根据消息类型分发到对应的处理方法
+   */
+  @OnEvent(AppEvents.MQTT_GATEWAY_MESSAGE)
+  async handleGatewayMessage(message: MqttUnifiedMessage) {
+    switch (message.msgType) {
+      case MqttMessageType.HEARTBEAT:
+        // 心跳（网关）
+        await this.handleHeartbeat(message)
+        break
+      case MqttMessageType.OPERATE_DEVICE:
+        // 处理网关自身的生命周期
+        await this.handleGatewayLifecycle(message)
+        break
+      default:
+        this.loggerServer.warn(`未知的网关消息类型: ${message.msgType}`, 'GatewayService')
+    }
+  }
 
   /**
    * 处理网关状态上报
