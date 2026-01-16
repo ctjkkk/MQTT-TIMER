@@ -24,18 +24,16 @@ export class JwtAuthGuard implements CanActivate {
     const token = JwtAuthGuard.extractTokenFromHeaders(request)
     if (!token) {
       //如果没登录，抛异常
-      throw new UnauthorizedException('Please log in.')
+      throw new UnauthorizedException('Please log in...')
     }
 
     // 如果已登录，需要去jwt去验证该token可用性，然后将token解析出来
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET, //验证token是否过期，是否正确，并得到解析过后的身份信息
-      })
+      const payload = await this.jwtService.verifyAsync(token) //验证token是否过期，是否正确，并得到解析过后的身份信息
       //将解析出来的用户信息放到每个请求中，以后接受到任意请求只要用户请求头带了token，都可以拿到该用户的信息
       request['user'] = payload
     } catch (e) {
-      throw new UnauthorizedException('The token has expired.') //如果token过期，或者token有误，抛出异常
+      throw new UnauthorizedException('Token invalid or expired.')
     }
     return true //如果上面的异步操作都执行成功了，才会执行这行代码，放行
   }

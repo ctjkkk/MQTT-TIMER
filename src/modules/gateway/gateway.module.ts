@@ -18,6 +18,7 @@ import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: '365d' },
       }),
       inject: [ConfigService],
     }),
