@@ -8,7 +8,7 @@ export const buildSwagger = (app: INestApplication): OpenAPIObject => {
     .setDescription('设备 PSK 生成、确认、网关等 API')
     .setVersion('1.0')
     .setContact('Jams Williams', '', '2283025597@qq.com')
-    .addServer('http://3.216.169.117:8018', '生产环境')
+    .addServer('http://35.172.194.174:8018', '生产环境')
     .addTag('设备管理')
     .build()
 
