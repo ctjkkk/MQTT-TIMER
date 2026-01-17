@@ -9,7 +9,7 @@ import { ApiHeader, ApiTags } from '@nestjs/swagger'
 import { LoggerService } from '@/core/logger/logger.service'
 import { ApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
 import { UserService } from './../user/user.service'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages } from '@/shared/constants/logger.constants'
 
 /**
  * Gateway模块的Controller

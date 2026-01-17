@@ -1,3 +1,64 @@
+/**
+ * 日志上下文常量
+ * 用于统一管理日志的 context 参数，避免硬编码字符串
+ *
+ * 命名规范：
+ * - MQTT 相关：以 MQTT_ 开头（会被归类到 mqtt-*.log）
+ * - 其他模块：使用清晰的模块名
+ */
+export const LogContext = {
+  // ==================== MQTT 相关 ====================
+  /** MQTT 认证（TCP + PSK） */
+  MQTT_AUTH: 'MQTTAuth',
+  /** MQTT 连接成功 */
+  MQTT_CONNECTION: 'MQTTConnection',
+  /** MQTT 消息发布 */
+  MQTT_PUBLISH: 'MQTTPublish',
+  /** MQTT 消息分发 */
+  MQTT_DISPATCH: 'MQTTDispatch',
+  /** MQTT 扫描器 */
+  MQTT_SCANNER: 'MQTTScanner',
+
+  // ==================== 认证/安全 ====================
+  /** PSK 认证和签名验证 */
+  PSK: 'PSK',
+
+  // ==================== 基础设施 ====================
+  /** 数据库操作 */
+  MONGODB: 'MongoDB',
+  /** HTTP 请求 */
+  HTTP: 'HTTP',
+  /** 数据同步 */
+  SYNC: 'Sync',
+
+  // ==================== 业务模块 ====================
+  /** 网关模块 */
+  GATEWAY: 'Gateway',
+  /** 网关服务 */
+  GATEWAY_SERVICE: 'GatewayService',
+  /** 定时器模块 */
+  TIMER: 'Timer',
+  /** 定时器服务 */
+  TIMER_SERVICE: 'TimerService',
+  /** 出水口模块 */
+  OUTLET: 'Outlet',
+  /** 调度模块 */
+  SCHEDULE: 'Schedule',
+  /** 消息分发服务 */
+  DISPATCH_SERVICE: 'DispatchService',
+
+  // ==================== 通用 ====================
+  /** 应用程序通用日志 */
+  APPLICATION: 'Application',
+} as const
+
+// 导出类型，用于 TypeScript 类型检查
+export type LogContextType = (typeof LogContext)[keyof typeof LogContext]
+
+/**
+ * 日志消息模板常量
+ * 用于统一管理日志消息格式
+ */
 export const LogMessages = {
   MQTT: {
     USER_CONNECTION_SUCCESSFUL: (ClientId: string, username: string) =>

@@ -160,18 +160,70 @@ export class LogsViewerService {
     }
   }
 
+  /**
+   * 计算日志文件中的记录条数
+   */
+  private async countLinesInFile(filePath: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      let count = 0
+      const stream = fs.createReadStream(filePath)
+      const rl = readline.createInterface({
+        input: stream,
+        crlfDelay: Infinity,
+      })
+
+      rl.on('line', () => count++)
+      rl.on('close', () => resolve(count))
+      rl.on('error', reject)
+    })
+  }
+
   async getLogStats(): Promise<any> {
     try {
       this.ensureLogsDirExists()
 
       const files = await this.getLogFiles()
+
+      // 分类文件
+      const httpFiles = files.filter(f => f.name.startsWith('http-'))
+      const mqttFiles = files.filter(f => f.name.startsWith('mqtt-'))
+      const syncFiles = files.filter(f => f.name.startsWith('sync-'))
+      const errorFiles = files.filter(f => f.name.includes('error'))
+
+      // 计算每个分类的记录数（只统计最新的5个文件，避免性能问题）
+      const countRecords = async (fileList: LogFile[]) => {
+        let total = 0
+        for (const file of fileList.slice(0, 5)) {
+          try {
+            const count = await this.countLinesInFile(file.path)
+            total += count
+          } catch (err) {
+            console.warn(`统计文件 ${file.name} 行数失败:`, err)
+          }
+        }
+        return total
+      }
+
+      const [httpRecords, mqttRecords, syncRecords, errorRecords] = await Promise.all([
+        countRecords(httpFiles),
+        countRecords(mqttFiles),
+        countRecords(syncFiles),
+        countRecords(errorFiles),
+      ])
+
       const stats = {
         totalFiles: files.length,
         totalSize: files.reduce((sum, f) => sum + f.size, 0),
-        httpFiles: files.filter(f => f.name.startsWith('http-')).length,
-        mqttFiles: files.filter(f => f.name.startsWith('mqtt-')).length,
-        syncFiles: files.filter(f => f.name.startsWith('sync-')).length,
-        errorFiles: files.filter(f => f.name.includes('error')).length,
+        httpFiles: httpFiles.length,
+        mqttFiles: mqttFiles.length,
+        syncFiles: syncFiles.length,
+        errorFiles: errorFiles.length,
+        // 新增：日志记录数
+        httpRecords,
+        mqttRecords,
+        syncRecords,
+        errorRecords,
+        totalRecords: httpRecords + mqttRecords + syncRecords + errorRecords,
         latestUpdate: files.length > 0 ? files[0].modified : null,
       }
       return stats
@@ -184,6 +236,11 @@ export class LogsViewerService {
         mqttFiles: 0,
         syncFiles: 0,
         errorFiles: 0,
+        httpRecords: 0,
+        mqttRecords: 0,
+        syncRecords: 0,
+        errorRecords: 0,
+        totalRecords: 0,
         latestUpdate: null,
       }
     }

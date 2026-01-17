@@ -4,7 +4,7 @@ import { Model } from 'mongoose'
 import { randomBytes } from 'crypto'
 import { Psk, PskDocument } from './schema/psk.schema'
 import { LoggerService } from '@/core/logger/logger.service'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import type { PskMeta } from './types/psk'
 import { IPskServiceInterface } from './interface/pskService.interface'
 
@@ -51,7 +51,7 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
         runValidators: true, // 触发 schema 校验
       },
     )
-    this.loggerService.info(LogMessages.PSK.GENERATED(identity, key), 'PSK')
+    this.loggerService.info(LogMessages.PSK.GENERATED(identity, key), LogContext.PSK)
     return { identity, key }
   }
 

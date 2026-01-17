@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common'
 import { Request } from 'express'
 import { SignatureUtil } from '../utils/signature'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import { LoggerService } from '@/core/logger/logger.service'
 /**
  * 签名验证守卫
@@ -23,7 +23,7 @@ export class SignatureGuard implements CanActivate {
     // 从环境变量获取签名密钥
     this.signatureSecret = process.env.SIGNATURE_SECRET ?? ''
     if (!this.signatureSecret) {
-      this.logger.warn(LogMessages.SERVER.NO_SIGN_ENV_VAR(), 'PSK')
+      this.logger.warn(LogMessages.SERVER.NO_SIGN_ENV_VAR(), LogContext.PSK)
     }
   }
 
@@ -34,16 +34,16 @@ export class SignatureGuard implements CanActivate {
     const timestamp = request.headers['x-timestamp'] as string
     // 检查必需的请求头
     if (!signature) {
-      this.logger.warn(LogMessages.SERVER.X_SIGN_IS_MISSING(), 'PSK')
+      this.logger.warn(LogMessages.SERVER.X_SIGN_IS_MISSING(), LogContext.PSK)
       throw new UnauthorizedException('缺少签名')
     }
     if (!timestamp) {
-      this.logger.warn(LogMessages.SERVER.X_TIME_IS_MISSING(), 'PSK')
+      this.logger.warn(LogMessages.SERVER.X_TIME_IS_MISSING(), LogContext.PSK)
       throw new UnauthorizedException('缺少时间戳')
     }
     // 验证时间戳是否在有效期内（5分钟）
     if (!SignatureUtil.verifyTimestamp(timestamp)) {
-      this.logger.warn(LogMessages.SERVER.X_TIME_IS_EXPIRED_OR_INVALID(timestamp), 'PSK')
+      this.logger.warn(LogMessages.SERVER.X_TIME_IS_EXPIRED_OR_INVALID(timestamp), LogContext.PSK)
       throw new UnauthorizedException('时间戳无效或已过期')
     }
     // 验证签名
@@ -51,10 +51,10 @@ export class SignatureGuard implements CanActivate {
     const path = request.path.replace(/^\/api/, '')
     const isValid = SignatureUtil.verifySignature(signature, method, path, timestamp, this.signatureSecret, body)
     if (!isValid) {
-      this.logger.warn(LogMessages.SERVER.X_SIGN_VERIFY_FAILED(method, path, timestamp), 'PSK')
+      this.logger.warn(LogMessages.SERVER.X_SIGN_VERIFY_FAILED(method, path, timestamp), LogContext.PSK)
       throw new UnauthorizedException('签名验证失败')
     }
-    this.logger.debug(LogMessages.SERVER.X_SIGN_TIME_VERIFY_SCCUSS(path), 'PSK')
+    this.logger.debug(LogMessages.SERVER.X_SIGN_TIME_VERIFY_SCCUSS(path), LogContext.PSK)
     return true
   }
 }

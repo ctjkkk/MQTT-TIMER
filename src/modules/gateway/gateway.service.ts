@@ -11,7 +11,7 @@ import { Timer, TimerDocument } from '@/modules/timer/schema/timer.schema'
 import { buildGatewayMessage, buildSubDeviceMessage } from './utils/gateway.utils'
 import { GatewayStatusData } from './types/gateway.type'
 import { LoggerService } from '@/core/logger/logger.service'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import { IGatewayServiceInterface } from './interface/gateway-service.interface'
 
 /**
@@ -58,7 +58,7 @@ export class GatewayService implements IGatewayServiceInterface {
         await this.handleGatewayLifecycle(message)
         break
       default:
-        this.loggerServer.warn(`未知的网关消息类型: ${message.msgType}`, 'GatewayService')
+        this.loggerServer.warn(`未知的网关消息类型: ${message.msgType}`, LogContext.GATEWAY_SERVICE)
     }
   }
 
@@ -158,7 +158,7 @@ export class GatewayService implements IGatewayServiceInterface {
     ])
     const handler = actionHandlers.get(action)
     if (!handler) {
-      this.loggerServer.error(LogMessages.GATEWAY.UNKNOWN_ACTION(action), 'GATEWAY')
+      this.loggerServer.error(LogMessages.GATEWAY.UNKNOWN_ACTION(action), LogContext.GATEWAY)
       throw new NotFoundException('无效的action!')
     }
     await handler()

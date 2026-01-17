@@ -5,7 +5,7 @@ import { authError } from '@/common/utils/error'
 import { createServer, Server as NetServer } from 'net'
 import { LoggerService } from '@/core/logger/logger.service'
 import { ConfigService } from '@nestjs/config'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import { AuthErrorCode, PSK_CIPHERS } from '@/shared/constants/mqtt.constants'
 import { MqttDispatchService } from './mqttDispatch.service'
 import { PskAuthStrategy } from '../authentication/psk.strategy'
@@ -44,7 +44,7 @@ export class MqttBrokerService implements OnModuleInit {
         if (packet.topic.startsWith('sync/')) return
         this.loggerService.info(
           LogMessages.MQTT.MESSAGE_PUBLISHED(client.id, packet.topic),
-          'MQTTPublish',
+          LogContext.MQTT_PUBLISH,
           packet.payload.toString(),
         )
       }

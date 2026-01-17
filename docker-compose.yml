@@ -13,6 +13,7 @@ services:
       - NODE_ENV=production
     volumes:
       - ./logs:/app/logs # 挂载日志目录到主机
+      - ./.env.production:/app/.env.production # 挂载环境变量文件（动态更新）
     networks:
       - app-network
     # 如果需要等待 MongoDB 启动，可以添加 depends_on

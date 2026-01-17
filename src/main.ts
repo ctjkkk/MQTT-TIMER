@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { Logger } from '@nestjs/common'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages } from '@/shared/constants/logger.constants'
 import { buildSwagger } from '@/core/config/swagger.config'
 import { join } from 'path'
 import { NestExpressApplication } from '@nestjs/platform-express'

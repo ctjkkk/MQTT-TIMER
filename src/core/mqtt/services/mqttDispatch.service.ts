@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { LoggerService } from '@/core/logger/logger.service'
 import { Handler, HandlerMetadata } from '../types/mqtt.type'
+import { LogContext } from '@/shared/constants/logger.constants'
 
 @Injectable()
 export class MqttDispatchService {
@@ -36,10 +37,10 @@ export class MqttDispatchService {
         //如果是通过 subscribe 方法订阅的主题，直接调用回调函数
         await handler(payload, clientId, topic)
       } else {
-        this.loggerService.warn(`Unknown handler type for topic: ${topic}`, 'DispatchService')
+        this.loggerService.warn(`Unknown handler type for topic: ${topic}`, LogContext.DISPATCH_SERVICE)
       }
     } catch (error) {
-      this.loggerService.error(`Handler execution failed for topic ${topic}: ${error.message}`, 'DispatchService')
+      this.loggerService.error(`Handler execution failed for topic ${topic}: ${error.message}`, LogContext.DISPATCH_SERVICE)
     }
   }
 

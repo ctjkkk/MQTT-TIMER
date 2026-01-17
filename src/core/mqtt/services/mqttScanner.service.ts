@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
 import { ModuleRef, ModulesContainer } from '@nestjs/core'
 import { MQTT_TOPIC_METADATA } from '@/shared/constants/mqtt.constants'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages } from '@/shared/constants/logger.constants'
 import { MqttDispatchService } from './mqttDispatch.service'
 @Injectable()
 export class MqttScannerService implements OnApplicationBootstrap {

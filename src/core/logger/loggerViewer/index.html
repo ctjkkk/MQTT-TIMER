@@ -18,22 +18,27 @@
         <div class="stat-card">
           <h3>总文件数</h3>
           <div class="value" id="totalFiles">-</div>
+          <div class="sub-value" id="totalRecords">- 条记录</div>
         </div>
         <div class="stat-card">
           <h3>HTTP 日志</h3>
           <div class="value" id="httpFiles">-</div>
+          <div class="sub-value" id="httpRecords">- 条记录</div>
         </div>
         <div class="stat-card">
           <h3>MQTT 日志</h3>
           <div class="value" id="mqttFiles">-</div>
+          <div class="sub-value" id="mqttRecords">- 条记录</div>
         </div>
         <div class="stat-card">
           <h3>同步日志</h3>
           <div class="value" id="syncFiles">-</div>
+          <div class="sub-value" id="syncRecords">- 条记录</div>
         </div>
         <div class="stat-card">
           <h3>错误日志</h3>
           <div class="value" id="errorFiles">-</div>
+          <div class="sub-value" id="errorRecords">- 条记录</div>
         </div>
       </div>
 
@@ -91,9 +96,17 @@
           const json = await res.json()
           if (json.code === 200) {
             const s = json.data
+            // 更新文件数
             ;['totalFiles', 'httpFiles', 'mqttFiles', 'syncFiles', 'errorFiles'].forEach(
               k => (document.getElementById(k).textContent = s[k]),
             )
+            // 更新记录数
+            const formatNumber = num => num.toLocaleString('zh-CN')
+            document.getElementById('totalRecords').textContent = `${formatNumber(s.totalRecords || 0)} 条记录`
+            document.getElementById('httpRecords').textContent = `${formatNumber(s.httpRecords || 0)} 条记录`
+            document.getElementById('mqttRecords').textContent = `${formatNumber(s.mqttRecords || 0)} 条记录`
+            document.getElementById('syncRecords').textContent = `${formatNumber(s.syncRecords || 0)} 条记录`
+            document.getElementById('errorRecords').textContent = `${formatNumber(s.errorRecords || 0)} 条记录`
           }
         } catch (e) {
           console.error('stats error', e)

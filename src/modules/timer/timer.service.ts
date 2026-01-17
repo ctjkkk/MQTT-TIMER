@@ -8,7 +8,7 @@ import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/mqtt-t
 import { MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import { AppEvents } from '@/shared/constants/events.constants'
 import { Timer, TimerDocument } from './schema/timer.schema'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import { LoggerService } from '@/core/logger/logger.service'
 
 /**
@@ -58,7 +58,7 @@ export class TimerService {
         await this.handleLifecycle(message)
         break
       default:
-        this.loggerServer.warn(`未知的子设备消息类型: ${message.msgType}`, 'TimerService')
+        this.loggerServer.warn(`未知的子设备消息类型: ${message.msgType}`, LogContext.TIMER_SERVICE)
     }
   }
 
@@ -231,7 +231,7 @@ export class TimerService {
     ])
     const handler = actionHandlers.get(action)
     if (!handler) {
-      this.loggerServer.error(LogMessages.DEVICE.UNKNOWN_ACTION(action), 'GATEWAY')
+      this.loggerServer.error(LogMessages.DEVICE.UNKNOWN_ACTION(action), LogContext.GATEWAY)
       throw new NotFoundException('无效的action!')
     }
     await handler()

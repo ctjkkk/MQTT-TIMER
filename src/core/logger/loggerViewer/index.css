@@ -68,6 +68,19 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+.stat-card .sub-value {
+  font-size: 14px;
+  color: #718096;
+  margin-top: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stat-card .sub-value::before {
+  content: '📝';
+  font-size: 12px;
+}
 .card {
   background: white;
   border-radius: 20px;

@@ -5,7 +5,7 @@ import { SYNC_TABLES, SyncTableConfig } from '@/core/config/syncTables.config'
 import { deserialize } from '@/common/utils/transform'
 import { filterFields } from '@/common/utils/dataFilters'
 import { LoggerService } from '@/core/logger/logger.service'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import { MqttDispatchService } from '../mqtt/services/mqttDispatch.service'
 /**
  * 表同步服务（TIMER-MQTT 端）
@@ -38,7 +38,7 @@ export class SyncService implements OnModuleInit {
         const message = deserialize(JSON.parse(payload.toString()))
         await this.handleSync(config, message)
       } catch (error) {
-        this.loggerService.error(LogMessages.SYNC.SYNC_FAILED(config.localCollection, error.message), 'Sync')
+        this.loggerService.error(LogMessages.SYNC.SYNC_FAILED(config.localCollection, error.message), LogContext.SYNC)
       }
     })
   }
@@ -54,7 +54,7 @@ export class SyncService implements OnModuleInit {
         await collection.updateOne({ [keyField]: payload.key }, { $set: { ...data, syncedAt: new Date() } }, { upsert: true })
 
         // 记录详细日志
-        this.loggerService.info(LogMessages.SYNC.INSERT_SUCCESS(config.localCollection, payload.key), 'Sync', {
+        this.loggerService.info(LogMessages.SYNC.INSERT_SUCCESS(config.localCollection, payload.key), LogContext.SYNC, {
           operation: 'insert',
           collection: config.localCollection,
           key: payload.key,
@@ -69,7 +69,7 @@ export class SyncService implements OnModuleInit {
         await collection.replaceOne({ [keyField]: payload.key }, { ...data, syncedAt: new Date() }, { upsert: true })
 
         // 记录详细日志
-        this.loggerService.info(LogMessages.SYNC.REPLACE_SUCCESS(config.localCollection, payload.key), 'Sync', {
+        this.loggerService.info(LogMessages.SYNC.REPLACE_SUCCESS(config.localCollection, payload.key), LogContext.SYNC, {
           operation: 'replace',
           collection: config.localCollection,
           key: payload.key,
@@ -101,7 +101,7 @@ export class SyncService implements OnModuleInit {
         await collection.updateOne({ [keyField]: payload.key }, updateQuery, { upsert: true })
 
         // 记录详细日志 - 包含修改和删除的字段
-        this.loggerService.info(LogMessages.SYNC.UPDATE_SUCCESS(config.localCollection, payload.key), 'Sync', {
+        this.loggerService.info(LogMessages.SYNC.UPDATE_SUCCESS(config.localCollection, payload.key), LogContext.SYNC, {
           operation: 'update',
           collection: config.localCollection,
           key: payload.key,
@@ -114,7 +114,7 @@ export class SyncService implements OnModuleInit {
         await collection.deleteOne({ [keyField]: payload.key })
 
         // 记录详细日志
-        this.loggerService.info(LogMessages.SYNC.DELETE_SUCCESS(config.localCollection, payload.key), 'Sync', {
+        this.loggerService.info(LogMessages.SYNC.DELETE_SUCCESS(config.localCollection, payload.key), LogContext.SYNC, {
           operation: 'delete',
           collection: config.localCollection,
           key: payload.key,
@@ -122,7 +122,7 @@ export class SyncService implements OnModuleInit {
         break
 
       default:
-        this.loggerService.warn(LogMessages.SYNC.UNSUPPORTED_OPERATION(payload.operation), 'Sync')
+        this.loggerService.warn(LogMessages.SYNC.UNSUPPORTED_OPERATION(payload.operation), LogContext.SYNC)
     }
   }
 }

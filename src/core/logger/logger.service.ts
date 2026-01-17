@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common'
 import { createLogger, format, transports } from 'winston'
 import DailyRotateFile from 'winston-daily-rotate-file'
 import type { LoggerOptions } from './interface/logger.interface'
-import { LogMessages } from '@/shared/constants/log-messages.constants'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import moment from 'moment'
 import { AsyncLocalStorage } from 'async_hooks'
 
@@ -81,7 +81,7 @@ export class LoggerService {
 
   // MQTT 连接相关日志
   mqttConnect(username?: string, ClientId?: string) {
-    this.info(LogMessages.MQTT.USER_CONNECTION_SUCCESSFUL(ClientId, username), 'MQTTConnection')
+    this.info(LogMessages.MQTT.USER_CONNECTION_SUCCESSFUL(ClientId, username), LogContext.MQTT_CONNECTION)
   }
 
   mqttDisconnect(clientId: string, reason?: string) {
@@ -212,19 +212,19 @@ export class LoggerService {
       return 'mqtt-%DATE%.log'
     }
 
-    if (context === 'MongoDB') {
+    if (context === LogContext.MONGODB) {
       if (level === 'error') return 'database-error-%DATE%.log'
       if (level === 'debug') return 'database-query-%DATE%.log'
       return 'database-%DATE%.log'
     }
 
-    if (context === 'HTTP') {
+    if (context === LogContext.HTTP) {
       if (level === 'error') return 'http-error-%DATE%.log'
       if (level === 'warn') return 'http-warn-%DATE%.log'
       return 'http-%DATE%.log'
     }
 
-    if (context === 'Sync') {
+    if (context === LogContext.SYNC) {
       if (level === 'error') return 'sync-error-%DATE%.log'
       return 'sync-%DATE%.log'
     }
