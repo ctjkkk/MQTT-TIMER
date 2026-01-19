@@ -103,6 +103,20 @@ export const LogMessages = {
     CONNECTION_UPDATED: (mac: string, status: string) => `🔄 连接状态更新: ${mac} -> ${status}`,
     DEVICE_DISCONNECTED: (mac: string) => `🔌 设备断开: ${mac}`,
     UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,
+    // 配网相关
+    ONLINE: (gatewayId: string) => `✅ 网关上线: ${gatewayId}`,
+    OFFLINE: (gatewayId: string) => `❌ 网关离线: ${gatewayId}`,
+    REGISTERED: (gatewayId: string) => `📝 网关注册: ${gatewayId}`,
+    REBOOT: (gatewayId: string) => `🔄 网关重启: ${gatewayId}`,
+    BIND_SUCCESS: (gatewayId: string, userId: string) => `🔗 网关绑定成功: ${gatewayId}, 用户: ${userId}`,
+    BIND_UPDATE: (gatewayId: string, userId: string) => `🔗 网关绑定更新: ${gatewayId}, 用户: ${userId}`,
+    UNBIND: (gatewayId: string, userId: string) => `🔓 网关解绑: ${gatewayId}, 用户: ${userId}`,
+    HEARTBEAT_UNKNOWN: (deviceId: string) => `⚠️ 收到未知网关的心跳: ${deviceId}`,
+    STATUS_UPDATED: (deviceId: string, online: boolean) => `📊 网关状态已更新: ${deviceId}, 在线: ${online}`,
+    UNHANDLED_OPERATION: (action: string) => `⚠️ 未处理的网关操作: ${action}`,
+    COMMAND_SENT: (gatewayId: string, msgType: string) => `📤 发送网关命令: ${gatewayId}, 类型: ${msgType}`,
+    SUBDEVICE_COMMAND_SENT: (gatewayId: string, subDeviceId: string, msgType: string) =>
+      `📤 发送子设备命令: 网关=${gatewayId}, 设备=${subDeviceId}, 类型=${msgType}`,
   },
   SYNC: {
     SUBSCRIBED: (tableCount: number) => `已订阅 ${tableCount} 个表的同步消息`,

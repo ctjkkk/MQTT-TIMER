@@ -16,14 +16,22 @@ export class PskController {
   constructor(private readonly pskService: PskService) {}
   @Post('generate')
   @ApiBody({ type: GeneratePskDto })
-  @PskApiResponseStandard('生成设备 PSK', '返回 PSK 与密钥', 'key生成成功!云端已保存该条记录!', 200)
+  @PskApiResponseStandard({
+    summary: '生成设备 PSK',
+    responseDescription: '返回 PSK 与密钥',
+    msg: 'key生成成功!云端已保存该条记录!',
+  })
   async generatePsk(@Body() body: { mac: string }) {
     return this.pskService.generatePsk(body?.mac)
   }
 
   @Post('confirm')
   @ApiBody({ type: ConfirmPskDto })
-  @PskApiResponseStandard('确认mac地址烧录成功!', '返回 PSK 与密钥', 'Psk烧录成功!云端已将该网关激活', 200)
+  @PskApiResponseStandard({
+    summary: '确认mac地址烧录成功!',
+    responseDescription: '返回 PSK 与密钥',
+    msg: 'Psk烧录成功!云端已将该网关激活',
+  })
   async confirmPsk(@Body() body: { mac: string }) {
     return this.pskService.confirmPsk(body?.mac)
   }

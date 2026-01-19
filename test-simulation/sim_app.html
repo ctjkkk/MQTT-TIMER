@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>汉奇网关配网模拟器</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 24px;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
+
+      .content {
+        padding: 30px;
+      }
+
+      .step {
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+      }
+
+      .step.active {
+        background: #e3f2fd;
+        border-left-color: #2196f3;
+      }
+
+      .step.completed {
+        background: #e8f5e9;
+        border-left-color: #4caf50;
+      }
+
+      .step-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .step-number {
+        width: 30px;
+        height: 30px;
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+      }
+
+      .step.completed .step-number {
+        background: #4caf50;
+      }
+
+      .input-group {
+        margin-bottom: 15px;
+      }
+
+      .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #333;
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      .input-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .input-group input:disabled {
+        background: #f5f5f5;
+        cursor: not-allowed;
+      }
+
+      button {
+        width: 100%;
+        padding: 14px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      button:hover:not(:disabled) {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      }
+
+      button:disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .status {
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 15px;
+        font-size: 14px;
+      }
+
+      .status.info {
+        background: #e3f2fd;
+        color: #1976d2;
+        border-left: 4px solid #2196f3;
+      }
+
+      .status.success {
+        background: #e8f5e9;
+        color: #388e3c;
+        border-left: 4px solid #4caf50;
+      }
+
+      .status.error {
+        background: #ffebee;
+        color: #c62828;
+        border-left: 4px solid #f44336;
+      }
+
+      .status.warning {
+        background: #fff3e0;
+        color: #f57c00;
+        border-left: 4px solid #ff9800;
+      }
+
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .device-list {
+        list-style: none;
+        margin-top: 15px;
+      }
+
+      .device-item {
+        padding: 12px;
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .device-item:hover {
+        border-color: #667eea;
+        transform: translateX(5px);
+      }
+
+      .device-item.selected {
+        border-color: #667eea;
+        background: #f5f7ff;
+      }
+
+      .config-section {
+        margin-top: 15px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        border: 2px solid #e0e0e0;
+      }
+
+      .log-container {
+        margin-top: 20px;
+        padding: 15px;
+        background: #1e1e1e;
+        color: #00ff00;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .log-entry {
+        margin-bottom: 5px;
+      }
+
+      .log-timestamp {
+        color: #888;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🌟 汉奇网关配网模拟器</h1>
+        <p>无需真实硬件，完整测试配网流程</p>
+        <p style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 8px; font-size: 13px;">
+          ⚠️ <strong>业务规则：一个用户只能绑定一个网关</strong><br>
+          如需更换网关，请先解绑当前网关
+        </p>
+      </div>
+
+      <div class="content">
+        <!-- 步骤1：蓝牙扫描 -->
+        <div class="step active" id="step1">
+          <div class="step-title">
+            <span class="step-number">1</span>
+            <span>蓝牙扫描网关</span>
+          </div>
+          <button onclick="scanBluetooth()">开始扫描蓝牙设备</button>
+          <ul class="device-list" id="deviceList"></ul>
+        </div>
+
+        <!-- 步骤2：读取网关ID -->
+        <div class="step" id="step2">
+          <div class="step-title">
+            <span class="step-number">2</span>
+            <span>读取网关ID</span>
+          </div>
+          <div class="input-group">
+            <label>网关ID（MAC地址）</label>
+            <input type="text" id="gatewayId" disabled placeholder="等待读取..." />
+          </div>
+          <button onclick="readGatewayId()" id="btnReadId" disabled>读取网关ID</button>
+        </div>
+
+        <!-- 步骤3：配置WiFi -->
+        <div class="step" id="step3">
+          <div class="step-title">
+            <span class="step-number">3</span>
+            <span>配置WiFi</span>
+          </div>
+          <div class="input-group">
+            <label>WiFi名称（SSID）</label>
+            <input type="text" id="wifiSsid" placeholder="输入WiFi名称" disabled />
+          </div>
+          <div class="input-group">
+            <label>WiFi密码</label>
+            <input type="password" id="wifiPassword" placeholder="输入WiFi密码" disabled />
+          </div>
+          <button onclick="configureWiFi()" id="btnConfigWiFi" disabled>配置WiFi</button>
+        </div>
+
+        <!-- 步骤4：检测上线 -->
+        <div class="step" id="step4">
+          <div class="step-title">
+            <span class="step-number">4</span>
+            <span>等待网关上线</span>
+          </div>
+          <button onclick="waitForOnline()" id="btnWaitOnline" disabled>开始检测</button>
+          <div id="onlineStatus"></div>
+        </div>
+
+        <!-- 步骤5：绑定网关 -->
+        <div class="step" id="step5">
+          <div class="step-title">
+            <span class="step-number">5</span>
+            <span>绑定网关</span>
+          </div>
+          <div class="config-section">
+            <div class="input-group">
+              <label>JWT Token</label>
+              <input type="text" id="jwtToken" placeholder="粘贴JWT token" disabled />
+            </div>
+            <div class="input-group">
+              <label>网关名称</label>
+              <input type="text" id="gatewayName" placeholder="客厅网关" disabled />
+            </div>
+          </div>
+          <button onclick="bindGateway()" id="btnBind" disabled>绑定网关</button>
+        </div>
+
+        <!-- 日志 -->
+        <div class="log-container" id="logContainer">
+          <div class="log-entry"><span class="log-timestamp">[系统]</span> 模拟器已就绪</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ========== 配置 ==========
+      const API_BASE = 'http://localhost:8018/api'
+
+      // 真实Token配置（可选）
+      // 如果设置了REAL_TOKEN，页面加载时会自动填充
+      const REAL_TOKEN =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4ZWM1Y2Q0Y2RlZWM3ZTNlOTI2YWUyNSIsImlhdCI6MTc2ODc5MjkyMCwiZXhwIjoxODAwMzI4OTIwfQ.7D0QOP21ffhC_j76kULCKaePqDetbpoMajF5_64U1Qw'
+      // 留空则需要手动输入token
+      // const REAL_TOKEN = ''
+
+      let currentGatewayId = ''
+      let pollingInterval = null
+
+      // ========== 工具函数 ==========
+
+      function log(message, type = 'info') {
+        const container = document.getElementById('logContainer')
+        const timestamp = new Date().toLocaleTimeString('zh-CN')
+        const color =
+          {
+            info: '#00ff00',
+            success: '#00ff00',
+            error: '#ff0000',
+            warning: '#ffaa00',
+          }[type] || '#00ff00'
+
+        const entry = document.createElement('div')
+        entry.className = 'log-entry'
+        entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> <span style="color:${color}">${message}</span>`
+        container.appendChild(entry)
+        container.scrollTop = container.scrollHeight
+      }
+
+      function showStatus(stepId, message, type) {
+        const step = document.getElementById(stepId)
+        let statusDiv = step.querySelector('.status')
+
+        if (!statusDiv) {
+          statusDiv = document.createElement('div')
+          statusDiv.className = 'status'
+          step.appendChild(statusDiv)
+        }
+
+        statusDiv.className = `status ${type}`
+        statusDiv.textContent = message
+      }
+
+      function completeStep(stepNum) {
+        document.getElementById(`step${stepNum}`).classList.add('completed')
+        if (stepNum < 5) {
+          document.getElementById(`step${stepNum + 1}`).classList.add('active')
+        }
+      }
+
+      function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms))
+      }
+
+      // ========== 步骤1：蓝牙扫描 ==========
+
+      async function scanBluetooth() {
+        log('🔍 开始扫描蓝牙设备...')
+        showStatus('step1', '正在扫描...', 'info')
+
+        await sleep(2000) // 模拟扫描延迟
+
+        // 模拟发现设备（一个用户只能绑定一个网关，所以只显示当前要配网的网关）
+        const devices = [
+          { id: 'TEST_GATEWAY_001', name: 'HanQi_GW_001', rssi: -45 },
+        ]
+
+        const deviceList = document.getElementById('deviceList')
+        deviceList.innerHTML = ''
+
+        devices.forEach(device => {
+          const li = document.createElement('li')
+          li.className = 'device-item'
+          li.innerHTML = `
+                    <strong>${device.name}</strong><br>
+                    <small>ID: ${device.id} | 信号: ${device.rssi} dBm</small>
+                `
+          li.onclick = () => selectDevice(device.id, li)
+          deviceList.appendChild(li)
+        })
+
+        log(`✅ 发现网关设备：${devices[0].name}`)
+        log(`💡 提示：一个用户只能绑定一个网关`)
+        showStatus('step1', '发现设备，点击选择', 'success')
+      }
+
+      function selectDevice(deviceId, element) {
+        // 移除其他选中状态
+        document.querySelectorAll('.device-item').forEach(item => {
+          item.classList.remove('selected')
+        })
+
+        element.classList.add('selected')
+        currentGatewayId = deviceId
+
+        log(`📱 已选择设备: ${deviceId}`)
+        document.getElementById('btnReadId').disabled = false
+        completeStep(1)
+      }
+
+      // ========== 步骤2：读取网关ID ==========
+
+      async function readGatewayId() {
+        log('📖 正在读取网关ID...')
+        showStatus('step2', '正在通过蓝牙读取...', 'info')
+
+        await sleep(1500) // 模拟蓝牙读取延迟
+
+        document.getElementById('gatewayId').value = currentGatewayId
+
+        log(`✅ 网关ID: ${currentGatewayId}`)
+        showStatus('step2', '读取成功', 'success')
+
+        // 启用WiFi配置
+        document.getElementById('wifiSsid').disabled = false
+        document.getElementById('wifiPassword').disabled = false
+        document.getElementById('btnConfigWiFi').disabled = false
+
+        completeStep(2)
+      }
+
+      // ========== 步骤3：配置WiFi ==========
+
+      async function configureWiFi() {
+        const ssid = document.getElementById('wifiSsid').value
+        const password = document.getElementById('wifiPassword').value
+
+        if (!ssid || !password) {
+          showStatus('step3', '请输入WiFi信息', 'error')
+          return
+        }
+
+        log(`📡 正在配置WiFi: ${ssid}`)
+        showStatus('step3', '正在通过蓝牙发送配置...', 'info')
+
+        await sleep(2000) // 模拟配置延迟
+
+        log('✅ WiFi配置已发送到网关')
+        log('⏳ 网关正在连接WiFi...')
+        log('⏳ 网关正在连接MQTT...')
+
+        showStatus('step3', 'WiFi配置成功，网关正在重新连接...', 'success')
+
+        await sleep(3000) // 模拟网关重连延迟
+
+        log('💡 提示: 现在需要运行网关模拟脚本')
+        log('💡 执行: node 2-simulate-gateway.js')
+
+        showStatus('step3', '配置完成！请运行网关模拟脚本', 'warning')
+
+        // 启用在线检测
+        document.getElementById('btnWaitOnline').disabled = false
+        completeStep(3)
+      }
+
+      // ========== 步骤4：等待上线 ==========
+
+      async function waitForOnline() {
+        log('🔍 开始轮询检测网关在线状态...')
+        showStatus('step4', '正在检测...', 'info')
+
+        document.getElementById('btnWaitOnline').disabled = true
+
+        let attempts = 0
+        const maxAttempts = 30
+
+        pollingInterval = setInterval(async () => {
+          attempts++
+
+          try {
+            const response = await fetch(`${API_BASE}/gateway/${currentGatewayId}/verify`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            })
+
+            const data = await response.json()
+
+            if (data.data && data.data.isOnline) {
+              clearInterval(pollingInterval)
+              log('✅ 网关已上线！')
+              showStatus('step4', '网关已上线', 'success')
+
+              // 启用绑定
+              document.getElementById('jwtToken').disabled = false
+              document.getElementById('gatewayName').disabled = false
+              document.getElementById('btnBind').disabled = false
+
+              completeStep(4)
+              return
+            }
+
+            log(`⏳ 第 ${attempts} 次检测: 网关离线`)
+            showStatus('step4', `检测中... (${attempts}/${maxAttempts})`, 'info')
+          } catch (error) {
+            log(`❌ 检测失败: ${error.message}`, 'error')
+          }
+
+          if (attempts >= maxAttempts) {
+            clearInterval(pollingInterval)
+            log('❌ 超时: 网关未上线', 'error')
+            showStatus('step4', '超时！请检查网关模拟脚本是否运行', 'error')
+            document.getElementById('btnWaitOnline').disabled = false
+          }
+        }, 2000) // 每2秒检测一次
+      }
+
+      // ========== 步骤5：绑定网关 ==========
+
+      async function bindGateway() {
+        const token = document.getElementById('jwtToken').value
+        const name = document.getElementById('gatewayName').value || '测试网关'
+
+        if (!token) {
+          showStatus('step5', '请输入JWT token', 'error')
+          log('❌ 缺少JWT token', 'error')
+          return
+        }
+
+        log(`🔗 正在绑定网关: ${currentGatewayId}`)
+        showStatus('step5', '正在绑定...', 'info')
+
+        try {
+          const response = await fetch(`${API_BASE}/gateway/bind`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              gatewayId: currentGatewayId,
+              name: name,
+            }),
+          })
+
+          const data = await response.json()
+
+          if (response.ok && data.code === 200) {
+            log('🎉 网关绑定成功！')
+            log(`📝 网关名称: ${data.data.name}`)
+            log(`🆔 网关ID: ${data.data.gatewayId}`)
+            log(`🟢 在线状态: ${data.data.isOnline ? '在线' : '离线'}`)
+
+            showStatus('step5', '绑定成功！配网流程完成 🎉', 'success')
+            completeStep(5)
+          } else {
+            log(`❌ 绑定失败: ${data.message || '未知错误'}`, 'error')
+            showStatus('step5', `绑定失败: ${data.message}`, 'error')
+          }
+        } catch (error) {
+          log(`❌ 网络错误: ${error.message}`, 'error')
+          showStatus('step5', `请求失败: ${error.message}`, 'error')
+        }
+      }
+
+      // ========== 初始化 ==========
+
+      window.onload = function () {
+        log('✅ 前端模拟器已就绪')
+
+        // 自动填充真实Token（如果配置了）
+        if (REAL_TOKEN) {
+          const tokenInput = document.getElementById('jwtToken')
+          tokenInput.value = REAL_TOKEN
+          log('🔑 已自动填充真实用户Token (qumeng039@126.com)', 'success')
+          log('   Token: ' + REAL_TOKEN.substring(0, 50) + '...', 'info')
+        }
+
+        log('📌 请按步骤操作：')
+        log('   1. 点击"开始扫描蓝牙设备"')
+        log('   2. 选择一个网关')
+        log('   3. 按步骤完成配网')
+      }
+
+      // 清理
+      window.onbeforeunload = function () {
+        if (pollingInterval) {
+          clearInterval(pollingInterval)
+        }
+      }
+    </script>
+  </body>
+</html>
