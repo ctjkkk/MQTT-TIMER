@@ -10,33 +10,40 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>📊 日志查看器</h1>
-        <p>实时监控系统日志 · HTTP & MQTT & Sync</p>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h1 data-i18n="title">📊 日志查看器</h1>
+            <p data-i18n="subtitle">实时监控系统日志 · HTTP & MQTT & Sync</p>
+          </div>
+          <button class="lang-btn" onclick="toggleLanguage()" title="切换语言 / Switch Language">
+            <span id="langText">EN</span>
+          </button>
+        </div>
       </div>
 
       <div class="stats-grid">
         <div class="stat-card">
-          <h3>总文件数</h3>
+          <h3 data-i18n="stat.totalFiles">总文件数</h3>
           <div class="value" id="totalFiles">-</div>
           <div class="sub-value" id="totalRecords">- 条记录</div>
         </div>
         <div class="stat-card">
-          <h3>HTTP 日志</h3>
+          <h3 data-i18n="stat.httpLogs">HTTP 日志</h3>
           <div class="value" id="httpFiles">-</div>
           <div class="sub-value" id="httpRecords">- 条记录</div>
         </div>
         <div class="stat-card">
-          <h3>MQTT 日志</h3>
+          <h3 data-i18n="stat.mqttLogs">MQTT 日志</h3>
           <div class="value" id="mqttFiles">-</div>
           <div class="sub-value" id="mqttRecords">- 条记录</div>
         </div>
         <div class="stat-card">
-          <h3>同步日志</h3>
+          <h3 data-i18n="stat.syncLogs">同步日志</h3>
           <div class="value" id="syncFiles">-</div>
           <div class="sub-value" id="syncRecords">- 条记录</div>
         </div>
         <div class="stat-card">
-          <h3>错误日志</h3>
+          <h3 data-i18n="stat.errorLogs">错误日志</h3>
           <div class="value" id="errorFiles">-</div>
           <div class="sub-value" id="errorRecords">- 条记录</div>
         </div>
@@ -44,39 +51,153 @@
 
       <div class="card">
         <div class="card-header">
-          <label>📁 选择日志文件</label>
+          <label data-i18n="fileSelector.label">📁 选择日志文件</label>
           <select id="fileSelector">
-            <option value="">查看所有最近日志</option>
+            <option value="" data-i18n="fileSelector.viewAll">查看所有最近日志</option>
           </select>
         </div>
         <div class="controls">
           <div class="controls-row">
             <select id="logType">
-              <option value="">全部类型</option>
-              <option value="http">HTTP 日志</option>
-              <option value="mqtt">MQTT 日志</option>
-              <option value="sync">同步日志</option>
-              <option value="error">错误日志</option>
+              <option value="" data-i18n="logType.all">全部类型</option>
+              <option value="http" data-i18n="logType.http">HTTP 日志</option>
+              <option value="mqtt" data-i18n="logType.mqtt">MQTT 日志</option>
+              <option value="sync" data-i18n="logType.sync">同步日志</option>
+              <option value="error" data-i18n="logType.error">错误日志</option>
             </select>
-            <input type="text" id="searchInput" placeholder="🔍 搜索日志内容..." />
-            <button class="btn btn-primary" onclick="searchLogs()">搜索</button>
-            <button class="btn btn-secondary" onclick="loadRecentLogs()">刷新</button>
+            <input type="text" id="searchInput" placeholder="🔍 搜索日志内容..." data-i18n-placeholder="searchPlaceholder" />
+            <button class="btn btn-primary" onclick="searchLogs()" data-i18n="button.search">搜索</button>
+            <button class="btn btn-secondary" onclick="loadRecentLogs()" data-i18n="button.refresh">刷新</button>
           </div>
         </div>
-        <div id="logsContent" class="loading">加载中...</div>
+        <div id="logsContent" class="loading" data-i18n="loading">加载中...</div>
       </div>
     </div>
 
-    <button class="refresh-btn" onclick="loadRecentLogs()" title="刷新日志">⟳</button>
+    <button class="refresh-btn" onclick="loadRecentLogs()" title="刷新日志" data-i18n-title="refreshTitle">⟳</button>
 
     <script>
+      /* ---- 国际化配置 ---- */
+      const i18n = {
+        zh: {
+          title: '📊 日志查看器',
+          subtitle: '实时监控系统日志 · HTTP & MQTT & Sync',
+          stat: {
+            totalFiles: '总文件数',
+            httpLogs: 'HTTP 日志',
+            mqttLogs: 'MQTT 日志',
+            syncLogs: '同步日志',
+            errorLogs: '错误日志'
+          },
+          fileSelector: {
+            label: '📁 选择日志文件',
+            viewAll: '查看所有最近日志'
+          },
+          logType: {
+            all: '全部类型',
+            http: 'HTTP 日志',
+            mqtt: 'MQTT 日志',
+            sync: '同步日志',
+            error: '错误日志'
+          },
+          searchPlaceholder: '🔍 搜索日志内容...',
+          button: {
+            search: '搜索',
+            refresh: '刷新'
+          },
+          loading: '加载中...',
+          refreshTitle: '刷新日志',
+          records: '条记录',
+          noLogs: '📭 暂无日志',
+          loadFailed: '❌ 加载失败',
+          loadFileFailed: '❌ 加载文件失败',
+          searchFailed: '❌ 搜索失败'
+        },
+        en: {
+          title: '📊 Log Viewer',
+          subtitle: 'Real-time System Logs Monitor · HTTP & MQTT & Sync',
+          stat: {
+            totalFiles: 'Total Files',
+            httpLogs: 'HTTP Logs',
+            mqttLogs: 'MQTT Logs',
+            syncLogs: 'Sync Logs',
+            errorLogs: 'Error Logs'
+          },
+          fileSelector: {
+            label: '📁 Select Log File',
+            viewAll: 'View All Recent Logs'
+          },
+          logType: {
+            all: 'All Types',
+            http: 'HTTP Logs',
+            mqtt: 'MQTT Logs',
+            sync: 'Sync Logs',
+            error: 'Error Logs'
+          },
+          searchPlaceholder: '🔍 Search log content...',
+          button: {
+            search: 'Search',
+            refresh: 'Refresh'
+          },
+          loading: 'Loading...',
+          refreshTitle: 'Refresh logs',
+          records: 'records',
+          noLogs: '📭 No logs',
+          loadFailed: '❌ Load failed',
+          loadFileFailed: '❌ Failed to load file',
+          searchFailed: '❌ Search failed'
+        }
+      }
+
+      let currentLang = localStorage.getItem('logViewerLang') || 'zh'
+
+      function toggleLanguage() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh'
+        localStorage.setItem('logViewerLang', currentLang)
+        applyLanguage()
+        loadStats()
+        loadFileList()
+      }
+
+      function applyLanguage() {
+        const t = i18n[currentLang]
+        document.getElementById('langText').textContent = currentLang === 'zh' ? 'EN' : '中文'
+
+        // 更新所有带有 data-i18n 属性的元素
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n')
+          const keys = key.split('.')
+          let value = t
+          for (const k of keys) {
+            value = value[k]
+          }
+          el.textContent = value
+        })
+
+        // 更新占位符
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const key = el.getAttribute('data-i18n-placeholder')
+          el.placeholder = t[key]
+        })
+
+        // 更新title属性
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+          const key = el.getAttribute('data-i18n-title')
+          el.title = t[key]
+        })
+      }
+
+      function getI18nText(key) {
+        return i18n[currentLang][key]
+      }
+
       /* ---- 工具函数 ---- */
       const escapeHtml = text => {
         const d = document.createElement('div')
         d.textContent = text
         return d.innerHTML
       }
-      const formatTimestamp = ts => new Date(ts).toLocaleString('zh-CN', { hour12: false })
+      const formatTimestamp = ts => new Date(ts).toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US', { hour12: false })
 
       // 高亮json
       function syntaxHighlight(json) {
@@ -101,12 +222,13 @@
               k => (document.getElementById(k).textContent = s[k]),
             )
             // 更新记录数
-            const formatNumber = num => num.toLocaleString('zh-CN')
-            document.getElementById('totalRecords').textContent = `${formatNumber(s.totalRecords || 0)} 条记录`
-            document.getElementById('httpRecords').textContent = `${formatNumber(s.httpRecords || 0)} 条记录`
-            document.getElementById('mqttRecords').textContent = `${formatNumber(s.mqttRecords || 0)} 条记录`
-            document.getElementById('syncRecords').textContent = `${formatNumber(s.syncRecords || 0)} 条记录`
-            document.getElementById('errorRecords').textContent = `${formatNumber(s.errorRecords || 0)} 条记录`
+            const formatNumber = num => num.toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US')
+            const recordsText = getI18nText('records')
+            document.getElementById('totalRecords').textContent = `${formatNumber(s.totalRecords || 0)} ${recordsText}`
+            document.getElementById('httpRecords').textContent = `${formatNumber(s.httpRecords || 0)} ${recordsText}`
+            document.getElementById('mqttRecords').textContent = `${formatNumber(s.mqttRecords || 0)} ${recordsText}`
+            document.getElementById('syncRecords').textContent = `${formatNumber(s.syncRecords || 0)} ${recordsText}`
+            document.getElementById('errorRecords').textContent = `${formatNumber(s.errorRecords || 0)} ${recordsText}`
           }
         } catch (e) {
           console.error('stats error', e)
@@ -118,11 +240,16 @@
           const json = await res.json()
           if (json.code === 200) {
             const sel = document.getElementById('fileSelector')
-            sel.innerHTML = '<option value="">查看所有最近日志</option>'
+            const defaultOption = document.createElement('option')
+            defaultOption.value = ''
+            defaultOption.setAttribute('data-i18n', 'fileSelector.viewAll')
+            defaultOption.textContent = getI18nText('fileSelector').viewAll
+            sel.innerHTML = ''
+            sel.appendChild(defaultOption)
             json.data.forEach(f => {
               const opt = document.createElement('option')
               opt.value = f.name
-              opt.textContent = `${f.name} (${(f.size / 1024).toFixed(2)} KB - ${new Date(f.modified).toLocaleString('zh-CN')})`
+              opt.textContent = `${f.name} (${(f.size / 1024).toFixed(2)} KB - ${new Date(f.modified).toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US')})`
               sel.appendChild(opt)
             })
           }
@@ -140,7 +267,7 @@
           const json = await res.json()
           if (json.code === 200) displayLogs(json.data)
         } catch (e) {
-          document.getElementById('logsContent').innerHTML = '<div class="empty">❌ 加载失败</div>'
+          document.getElementById('logsContent').innerHTML = `<div class="empty">${getI18nText('loadFailed')}</div>`
         }
       }
       async function loadFileContent(filename) {
@@ -149,7 +276,7 @@
           const json = await res.json()
           if (json.code === 200) displayLogs(json.data)
         } catch (e) {
-          document.getElementById('logsContent').innerHTML = '<div class="empty">❌ 加载文件失败</div>'
+          document.getElementById('logsContent').innerHTML = `<div class="empty">${getI18nText('loadFileFailed')}</div>`
         }
       }
       async function searchLogs() {
@@ -164,7 +291,7 @@
           const json = await res.json()
           if (json.code === 200) displayLogs(json.data)
         } catch (e) {
-          document.getElementById('logsContent').innerHTML = '<div class="empty">❌ 搜索失败</div>'
+          document.getElementById('logsContent').innerHTML = `<div class="empty">${getI18nText('searchFailed')}</div>`
         }
       }
 
@@ -172,7 +299,7 @@
       function displayLogs(logs) {
         const box = document.getElementById('logsContent')
         if (!logs || !logs.length) {
-          box.innerHTML = '<div class="empty">📭 暂无日志</div>'
+          box.innerHTML = `<div class="empty">${getI18nText('noLogs')}</div>`
           return
         }
         box.innerHTML = logs
@@ -197,6 +324,9 @@
       document.getElementById('searchInput').addEventListener('keypress', e => {
         if (e.key === 'Enter') searchLogs()
       })
+
+      // 初始化语言设置
+      applyLanguage()
 
       loadStats()
       loadFileList()
