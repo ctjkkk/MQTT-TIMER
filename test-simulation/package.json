@@ -1,0 +1,26 @@
+{
+  "name": "hanqi-gateway-simulator",
+  "version": "1.0.0",
+  "description": "汉奇网关配网模拟测试套件",
+  "main": "sim_gateway.js",
+  "scripts": {
+    "start": "node sim_gateway.js",
+    "start:psk": "cross-env MODE=psk node sim_gateway.js"
+  },
+  "keywords": [
+    "iot",
+    "mqtt",
+    "gateway",
+    "simulator",
+    "testing"
+  ],
+  "author": "Soildrops Team",
+  "license": "MIT",
+  "dependencies": {
+    "mqtt": "^5.3.5"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "http-server": "^14.1.1"
+  }
+}
