@@ -17,7 +17,7 @@ export const buildSwagger = (app: INestApplication): OpenAPIObject => {
 
   knife4jSetup(app, [
     {
-      name: '汉奇设备',
+      name: '汉奇业务Http接口',
       url: '/swagger-json',
       swaggerVersion: '3.0',
       location: '/swagger-json',

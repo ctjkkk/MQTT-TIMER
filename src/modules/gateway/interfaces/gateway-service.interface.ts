@@ -1,7 +1,7 @@
 import type { MqttUnifiedMessage, MqttMessageType } from '@/shared/constants/mqtt-topic.constants'
 import type { GatewayStatusData } from '../types/gateway.type'
 import type { TimerDocument } from '@/modules/timer/schema/timer.schema'
-import { BindGatewayResponseDto, GatewayStatusResponseDto } from '../dto/response.dto'
+import { BindGatewayResponseDto, GatewayStatusResponseDto } from '../dto/http-response.dto'
 
 export interface IGatewayServiceInterface {
   // ============ MQTT消息处理方法 ============

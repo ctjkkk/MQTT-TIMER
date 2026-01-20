@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Body, Param, Request, Delete } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { ApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
-import { UserService } from './../user/user.service'
 import { GatewayService } from './gateway.service'
 import { BindGatewayDto } from './dto/pairing.dto'
 import {
@@ -9,7 +8,7 @@ import {
   VerifyPairingResponseDto,
   GatewayStatusResponseDto,
   UnbindGatewayResponseDto,
-} from './dto/response.dto'
+} from './dto/http-response.dto'
 
 /**
  * Gateway模块的HTTP Controller
@@ -27,12 +26,7 @@ import {
 @ApiTags('Gateway')
 @Controller('gateway')
 export class GatewayController {
-  constructor(
-    private readonly gatewayService: GatewayService,
-    private readonly userService: UserService,
-  ) {}
-
-  // ============ HTTP API 接口 ============
+  constructor(private readonly gatewayService: GatewayService) {}
   /**
    * 绑定网关到用户账号（严格模式）
    *
@@ -122,18 +116,5 @@ export class GatewayController {
   })
   async getSubDevices(@Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.getSubDevices(gatewayId)
-  }
-
-  /**
-   * 测试接口
-   */
-  @Get('/test/protected')
-  @ApiResponseStandard({
-    summary: '测试受保护的接口',
-    responseDescription: '返回用户信息',
-    msg: '请求成功',
-  })
-  async testProtectedEndpoint(@Request() req: any) {
-    return await this.userService.findOne(req.user.id)
   }
 }
