@@ -1,31 +1,28 @@
-import { Controller, Get, Post, Body, Param, Request, Delete, UseGuards } from '@nestjs/common'
-import { EventEmitter2 } from '@nestjs/event-emitter'
+import { Controller, Get, Post, Body, Param, Request, Delete } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { MqttSubscribe, MqttPayload } from '@/common/decorators/mqtt.decorator'
-import { MqttTopic } from '@/shared/constants/mqtt-topic.constants'
-import { AppEvents } from '@/shared/constants/events.constants'
-import { isGatewayMessage, isSubDeviceMessage, parseMqttMessage } from './utils/gateway.utils'
-import { LoggerService } from '@/core/logger/logger.service'
 import { ApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
 import { UserService } from './../user/user.service'
 import { GatewayService } from './gateway.service'
-import { LogMessages } from '@/shared/constants/logger.constants'
 import { BindGatewayDto } from './dto/pairing.dto'
 import {
   BindGatewayResponseDto,
   VerifyPairingResponseDto,
   GatewayStatusResponseDto,
-  GatewayListItemDto,
   UnbindGatewayResponseDto,
 } from './dto/response.dto'
 
 /**
- * Gateway模块的Controller
+ * Gateway模块的HTTP Controller
+ *
  * 职责：
- * 1. 唯一的MQTT消息入口
- * 2. 订阅所有网关的上报消息
- * 3. 提供配网和网关管理的 HTTP API
- * 4. 使用事件驱动模式发布消息，解耦模块间依赖
+ * - 提供网关配网和管理的 HTTP REST API
+ * - 处理用户的网关绑定、查询、解绑等操作
+ * - 调用 Service 执行业务逻辑
+ *
+ * 注意：
+ * - MQTT消息处理已移至 gateway.mqtt.ts
+ * - 事件监听已移至 gateway.events.ts
+ * - 业务逻辑在 gateway.service.ts
  */
 @ApiTags('Gateway')
 @Controller('gateway')
@@ -33,23 +30,9 @@ export class GatewayController {
   constructor(
     private readonly gatewayService: GatewayService,
     private readonly userService: UserService,
-    private readonly eventEmitter: EventEmitter2,
-    private readonly loggerService: LoggerService,
   ) {}
 
-  // 唯一的MQTT消息入口
-  @MqttSubscribe(MqttTopic.allGatewayReport())
-  async handleGatewayReport(@MqttPayload() payload: Buffer) {
-    const message = parseMqttMessage(payload)
-    if (!message) {
-      this.loggerService.error(LogMessages.MQTT.PARSE_ERROR('payload parsed error'), 'MQTT-report')
-      return
-    }
-    isGatewayMessage(message) && (await this.eventEmitter.emitAsync(AppEvents.MQTT_GATEWAY_MESSAGE, message))
-    isSubDeviceMessage(message) && (await this.eventEmitter.emitAsync(AppEvents.MQTT_SUBDEVICE_MESSAGE, message))
-  }
-
-  // ========== 配网相关 API ==========
+  // ============ HTTP API 接口 ============
   /**
    * 绑定网关到用户账号（严格模式）
    *
@@ -81,6 +64,7 @@ export class GatewayController {
 
   /**
    * 验证网关是否在线（配网完成后轮询调用）
+   * 注意：此接口为公开接口，不需要身份验证（用于配网流程）
    */
   @Post('/:gatewayId/verify')
   @ApiResponseStandard({
@@ -94,7 +78,7 @@ export class GatewayController {
     return {
       gatewayId,
       isOnline,
-      message: isOnline ? '网关已上线' : '网关未上线，请稍候重试',
+      message: isOnline ? 'The gateway has been launched.' : 'The gateway is not online. Please try again later.',
     }
   }
 
@@ -110,21 +94,6 @@ export class GatewayController {
   })
   async getGatewayStatus(@Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.getGatewayStatus(gatewayId)
-  }
-
-  /**
-   * 获取用户的所有网关
-   */
-  @Get('/list')
-  @ApiResponseStandard({
-    summary: '获取用户的网关列表',
-    responseDescription: '返回网关列表',
-    msg: '查询成功',
-    responseType: [GatewayListItemDto],
-  })
-  async getUserGateways(@Request() req: any) {
-    const userId = req.user.id
-    return await this.gatewayService.getUserGateways(userId)
   }
 
   /**

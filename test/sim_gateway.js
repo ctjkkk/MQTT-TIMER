@@ -11,9 +11,29 @@
  */
 
 const mqtt = require('mqtt')
+const http = require('http')
 const readline = require('readline')
+const fs = require('fs')
+const path = require('path')
 
-// ========== 配置区域 ==========
+// 读取.env文件
+const envPath = path.join(__dirname, '.env')
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf-8')
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim()
+    if (trimmed && !trimmed.startsWith('#')) {
+      const match = trimmed.match(/^([^=]+)=(.*)$/)
+      if (match) {
+        const key = match[1].trim()
+        const value = match[2].trim()
+        if (!process.env[key]) {
+          process.env[key] = value
+        }
+      }
+    }
+  })
+}
 
 const CONFIG = {
   // 网关ID（模拟MAC地址）
@@ -32,17 +52,15 @@ const CONFIG = {
 
   // PSK模式配置（如果使用）
   PSK_PORT: 8445,
-  PSK_IDENTITY: process.env.PSK_IDENTITY || 'TEST_GATEWAY_001',
+  PSK_IDENTITY: process.env.PSK_IDENTITY || process.env.GATEWAY_ID || 'TEST_GATEWAY_001',
   PSK_KEY: process.env.PSK_KEY || '', // 从后端生成的PSK密钥
 
   // 心跳间隔（毫秒）
-  HEARTBEAT_INTERVAL: 30000, // 30秒
+  HEARTBEAT_INTERVAL: parseInt(process.env.HEARTBEAT_INTERVAL) || 30000, // 30秒
 
   // 固件版本
   FIRMWARE_VERSION: '1.0.0-simulator',
 }
-
-// ========== 主程序 ==========
 
 class GatewaySimulator {
   constructor(config) {
@@ -50,6 +68,8 @@ class GatewaySimulator {
     this.client = null
     this.heartbeatTimer = null
     this.isConnected = false
+    this.wifiConfigured = false // WiFi是否已配置
+    this.wifiConfig = null // WiFi配置信息
 
     this.setupReadline()
   }
@@ -67,6 +87,127 @@ class GatewaySimulator {
     console.log(`🌐 MQTT服务器: ${this.config.MQTT_HOST}`)
     console.log('')
 
+    // 启动BLE HTTP服务（模拟蓝牙扫描）
+    this.startBLEService()
+
+    console.log('⏳ 等待接收WiFi配置...')
+    console.log('💡 提示: 前端配置WiFi后，网关将自动连接MQTT')
+    console.log('')
+
+    // 不立即连接MQTT，等待WiFi配置
+    // this.connect()
+  }
+
+  /**
+   * 启动BLE服务（HTTP模拟）
+   */
+  startBLEService() {
+    const server = http.createServer((req, res) => {
+      // CORS头部必须在所有响应中设置
+      res.setHeader('Access-Control-Allow-Origin', '*')
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+      // 处理OPTIONS预检请求（必须返回200）
+      if (req.method === 'OPTIONS') {
+        res.writeHead(200, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        })
+        res.end()
+        return
+      }
+
+      // 获取网关信息（蓝牙扫描）
+      if (req.url === '/bluetooth/info' && req.method === 'GET') {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        })
+        res.end(
+          JSON.stringify({
+            id: this.config.GATEWAY_ID,
+            name: `HanQi_${this.config.GATEWAY_ID.slice(-6)}`,
+            rssi: -45,
+          }),
+        )
+      }
+      // 接收WiFi配置（模拟蓝牙传输）
+      else if (req.url === '/bluetooth/configure' && req.method === 'POST') {
+        let body = ''
+        req.on('data', chunk => {
+          body += chunk.toString()
+        })
+        req.on('end', () => {
+          try {
+            const wifiConfig = JSON.parse(body)
+            console.log('📩 收到WiFi配置:')
+            console.log(`   SSID: ${wifiConfig.ssid}`)
+            console.log(`   密码: ${'*'.repeat(wifiConfig.password.length)}`)
+            console.log('')
+
+            // 保存WiFi配置
+            this.wifiConfig = wifiConfig
+            this.wifiConfigured = true
+
+            // 模拟连接WiFi并连接MQTT
+            this.connectWiFiAndMQTT()
+
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            })
+            res.end(
+              JSON.stringify({
+                success: true,
+                message: 'WiFi配置已接收',
+              }),
+            )
+          } catch (error) {
+            res.writeHead(400, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+            })
+            res.end(
+              JSON.stringify({
+                success: false,
+                message: '配置数据格式错误',
+              }),
+            )
+          }
+        })
+      } else {
+        res.writeHead(404, {
+          'Access-Control-Allow-Origin': '*',
+        })
+        res.end()
+      }
+    })
+
+    server.listen(3002, () => {
+      console.log('📡 BLE服务: http://localhost:3002')
+      console.log('')
+    })
+  }
+
+  /**
+   * 连接WiFi并连接MQTT（模拟真实流程）
+   */
+  async connectWiFiAndMQTT() {
+    console.log('🔄 正在连接WiFi...')
+    console.log(`   SSID: ${this.wifiConfig.ssid}`)
+
+    // 模拟WiFi连接延迟
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    console.log('✅ WiFi连接成功！')
+    console.log(`   IP地址: 192.168.1.${Math.floor(Math.random() * 200 + 10)}`)
+    console.log('')
+
+    console.log('🔄 正在连接MQTT Broker...')
+
+    // 连接MQTT
     this.connect()
   }
 
@@ -74,9 +215,7 @@ class GatewaySimulator {
    * 连接MQTT服务器
    */
   connect() {
-    const options = this.config.MODE === 'psk'
-      ? this.getPskOptions()
-      : this.getTcpOptions()
+    const options = this.config.MODE === 'psk' ? this.getPskOptions() : this.getTcpOptions()
 
     console.log('🔄 正在连接MQTT Broker...')
     console.log(`   地址: ${options.host}:${options.port}`)
@@ -101,7 +240,7 @@ class GatewaySimulator {
       this.showMenu()
     })
 
-    this.client.on('error', (error) => {
+    this.client.on('error', error => {
       console.error('❌ MQTT连接错误:', error.message)
       this.isConnected = false
     })
@@ -155,9 +294,9 @@ class GatewaySimulator {
       pskCallback: () => {
         return {
           identity: this.config.PSK_IDENTITY,
-          psk: Buffer.from(this.config.PSK_KEY, 'hex')
+          psk: Buffer.from(this.config.PSK_KEY, 'hex'),
         }
-      }
+      },
     }
   }
 
@@ -167,7 +306,7 @@ class GatewaySimulator {
   subscribe() {
     const commandTopic = `hanqi/gateway/${this.config.GATEWAY_ID}/command`
 
-    this.client.subscribe(commandTopic, (err) => {
+    this.client.subscribe(commandTopic, err => {
       if (err) {
         console.error('❌ 订阅失败:', err.message)
       } else {
@@ -181,14 +320,15 @@ class GatewaySimulator {
    */
   sendRegisterMessage() {
     const message = {
-      msgType: 'operate_device',
+      msgType: 'operate_devices',
       deviceId: this.config.GATEWAY_ID,
       data: {
+        entityType: 'gateway',
         action: 'gateway_register',
         firmware: this.config.FIRMWARE_VERSION,
         model: 'HQ-GW-SIM',
         timestamp: Date.now(),
-      }
+      },
     }
 
     this.publish('report', message)
@@ -224,6 +364,9 @@ class GatewaySimulator {
       msgType: 'heartbeat',
       deviceId: this.config.GATEWAY_ID,
       timestamp: Date.now(),
+      data: {
+        entityType: 'gateway',
+      },
     }
 
     this.publish('report', message)
@@ -239,7 +382,7 @@ class GatewaySimulator {
     const topic = `hanqi/gateway/${this.config.GATEWAY_ID}/${type}`
     const payload = JSON.stringify(message)
 
-    this.client.publish(topic, payload, { qos: 0 }, (err) => {
+    this.client.publish(topic, payload, { qos: 0 }, err => {
       if (err) {
         console.error('❌ 发布失败:', err.message)
       }
@@ -259,7 +402,6 @@ class GatewaySimulator {
 
       // 这里可以添加命令处理逻辑
       // 例如：控制子设备、固件升级等
-
     } catch (error) {
       console.error('❌ 命令解析失败:', error.message)
     }
@@ -272,10 +414,10 @@ class GatewaySimulator {
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: '> '
+      prompt: '> ',
     })
 
-    this.rl.on('line', (line) => {
+    this.rl.on('line', line => {
       this.handleUserInput(line.trim())
       if (this.isConnected) {
         this.rl.prompt()
@@ -378,7 +520,7 @@ class GatewaySimulator {
 // ========== 启动程序 ==========
 
 // 处理未捕获的异常
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   console.error('❌ 未捕获的异常:', error)
   process.exit(1)
 })

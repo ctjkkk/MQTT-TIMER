@@ -5,12 +5,21 @@
 ## 📁 文件说明
 
 ```
-test-simulation/
-├── sim_gateway.js    # 网关固件模拟器
-├── sim_app.html     # 前端配网模拟页面
-├── package.json             # 依赖配置
-└── README.md                # 本文档
+test/
+├── sim_gateway.js    # 网关固件模拟器（支持BLE HTTP服务 + MQTT）
+├── sim_app.html      # 前端配网模拟页面（真实扫描网关）
+├── package.json      # 依赖配置
+├── .env.example      # 环境变量配置示例（可选）
+└── README.md         # 本文档
 ```
+
+## 🔥 核心功能
+
+- ✅ **真实扫描网关**：前端通过HTTP真实扫描运行中的网关模拟器
+- ✅ **BLE服务模拟**：网关模拟器提供HTTP BLE服务（端口3002）
+- ✅ **真实WiFi配网**：前端通过蓝牙（HTTP）发送WiFi配置给网关
+- ✅ **WiFi连接模拟**：网关收到WiFi配置后，模拟连接WiFi，然后连接MQTT
+- ✅ **完整配网流程**：扫描 → 读取ID → 配置WiFi → 网关连WiFi → 网关连MQTT → 上线 → 绑定
 
 ---
 
@@ -45,7 +54,7 @@ npm run start:dev
 
 ```bash
 # 进入测试目录
-cd test-simulation
+cd test
 
 # 首次运行需要安装依赖
 npm install
@@ -86,11 +95,26 @@ npx http-server -p 3000 -o sim_app.html
 
 在浏览器中按步骤操作：
 
-1. **扫描蓝牙** → 选择 `TEST_GATEWAY_001`
-2. **读取网关ID** → 自动填充
-3. **配置WiFi** → 随便输入（模拟）
-4. **等待上线** → 点击"开始检测"
-5. **绑定网关** → 输入Token和网关名称
+1. **扫描蓝牙** → 🔥 **真实扫描运行中的网关模拟器！**
+   - 前端通过HTTP调用网关的BLE服务
+   - 自动发现正在运行的网关（`http://localhost:3002`）
+   - 如果扫描失败，请确认网关模拟器已启动
+
+2. **读取网关ID** → 点击选中的网关，自动读取ID
+
+3. **配置WiFi** → 🔥 **真实发送WiFi配置给网关！**
+   - 输入WiFi信息（可以随便填，只是模拟）
+   - 点击"配置WiFi"后，前端通过HTTP（模拟蓝牙）发送给网关
+   - **观察网关模拟器窗口**，你会看到：
+     - 📩 收到WiFi配置
+     - 🔄 正在连接WiFi...
+     - ✅ WiFi连接成功！
+     - 🔄 正在连接MQTT Broker...
+     - ✅ MQTT连接成功！
+
+4. **等待上线** → 输入Token，点击"开始检测"
+
+5. **绑定网关** → 输入网关名称，完成绑定
 
 **Token配置**：
 - 如果已在HTML中配置 `REAL_TOKEN`，会自动填充
@@ -98,9 +122,105 @@ npx http-server -p 3000 -o sim_app.html
 
 ---
 
+## 🎯 真实配网流程说明
+
+### 模拟的是真实硬件配网过程
+
+本测试系统**完整模拟了真实的IoT设备配网流程**：
+
+#### 1️⃣ **网关启动（离线状态）**
+```
+网关上电 → 只开启BLE服务 → 等待WiFi配置
+状态：无网络连接，无法连接云端
+```
+
+#### 2️⃣ **手机扫描网关（蓝牙近距离通信）**
+```
+手机 ←(蓝牙/HTTP)→ 网关
+发现网关 → 读取网关ID
+```
+
+#### 3️⃣ **发送WiFi配置（关键步骤）**
+```
+手机 →(蓝牙/HTTP)→ 网关
+发送：{ ssid: "家里的WiFi", password: "密码" }
+
+网关收到配置后：
+📩 收到WiFi配置
+🔄 连接WiFi (SSID: 家里的WiFi)
+✅ WiFi连接成功 (IP: 192.168.1.xxx)
+```
+
+#### 4️⃣ **网关连接云端（联网状态）**
+```
+网关 →(WiFi)→ 路由器 →(互联网)→ MQTT Broker
+🔄 正在连接MQTT Broker...
+✅ MQTT连接成功！
+📝 已发送注册消息
+💓 心跳循环已启动
+```
+
+#### 5️⃣ **手机检测上线并绑定**
+```
+手机 →(互联网)→ 后端API
+轮询检测网关是否在线 → 在线 → 绑定到用户账号
+```
+
+### 为什么需要WiFi？
+
+| 阶段 | 使用技术 | 目的 | 通信距离 |
+|------|---------|------|---------|
+| **配网** | 蓝牙 (BLE) | 传输WiFi配置 | 近距离（10米内） |
+| **运行** | WiFi + MQTT | 联网通信，远程控制 | 无限制（通过互联网） |
+
+**关键点：**
+- 蓝牙只用于**配网时临时通信**（传输WiFi信息）
+- WiFi用于**长期联网**，让设备连接云端，实现远程控制
+- 没有WiFi，设备无法连接云端，无法远程控制
+
+---
+
 ## 🔑 配置说明
 
-### 1. 配置真实Token（可选）
+### 1. 环境变量配置（可选）
+
+网关模拟器支持通过环境变量配置，但**已有默认值，无需配置也能直接运行**。
+
+#### 方式一：使用环境变量文件
+```bash
+# 复制示例文件
+cp .env.example .env
+
+# 编辑 .env 文件修改配置
+GATEWAY_ID=MY_GATEWAY_001
+MODE=tcp
+```
+
+#### 方式二：命令行传递（Windows）
+```bash
+# 自定义网关ID
+cross-env GATEWAY_ID=MY_GATEWAY npm start
+
+# PSK模式 + 自定义密钥
+cross-env MODE=psk PSK_KEY=your_psk_key node sim_gateway.js
+```
+
+#### 方式三：直接修改代码
+编辑 `sim_gateway.js` 文件第18-43行，修改 `CONFIG` 对象的默认值。
+
+**支持的环境变量**：
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `GATEWAY_ID` | `TEST_GATEWAY_001` | 网关ID（MAC地址） |
+| `MQTT_HOST` | `127.0.0.1` | MQTT服务器地址 |
+| `MODE` | `tcp` | 连接模式（tcp/psk） |
+| `PSK_IDENTITY` | `TEST_GATEWAY_001` | PSK身份标识 |
+| `PSK_KEY` | *(空)* | PSK密钥（128位十六进制） |
+| `HEARTBEAT_INTERVAL` | `30000` | 心跳间隔（毫秒） |
+
+---
+
+### 2. 配置真实Token（可选）
 
 编辑 `sim_app.html` 文件第340行左右：
 
@@ -114,48 +234,37 @@ const REAL_TOKEN = ''
 
 ---
 
-### 2. 配置网关ID（可选）
+### 3. PSK密钥配置（PSK加密模式）
 
-编辑 `sim_gateway.js` 文件第15行左右：
+如果需要测试PSK-TLS加密连接：
 
+**第1步**：生成PSK密钥
+```bash
+# 使用你的PSK生成代码生成密钥
+# 例如：MAC地址: TEST_GATEWAY_001
+#      PSK密钥: a1b2c3d4e5f67890a1b2c3d4e5f67890
+```
+
+**第2步**：配置密钥（三选一）
+
+方式A - 修改 `.env` 文件：
+```bash
+PSK_KEY=a1b2c3d4e5f67890a1b2c3d4e5f67890
+```
+
+方式B - 命令行传递：
+```bash
+cross-env MODE=psk PSK_KEY=a1b2c3d4e5f67890a1b2c3d4e5f67890 node sim_gateway.js
+```
+
+方式C - 直接修改代码 `sim_gateway.js` 第36行：
 ```javascript
-// 默认网关ID
-GATEWAY_ID: process.env.GATEWAY_ID || 'TEST_GATEWAY_001',
-
-// 通过环境变量修改（Windows）
-// cross-env GATEWAY_ID=MY_GATEWAY npm start
-```
-
----
-
-### 3. PSK密钥配置（PSK模式）
-
-如果要测试PSK-TLS加密连接：
-
-#### 步骤1：生成PSK
-使用你的PSK生成代码生成密钥，例如：
-```
-MAC地址: TEST_GATEWAY_001
-PSK密钥: a1b2c3d4e5f67890a1b2c3d4e5f67890
-```
-
-#### 步骤2：粘贴配置
-编辑 `sim_gateway.js` 文件第29行左右：
-
-```javascript
-// PSK模式配置
-PSK_IDENTITY: process.env.PSK_IDENTITY || 'TEST_GATEWAY_001',
 PSK_KEY: process.env.PSK_KEY || 'a1b2c3d4e5f67890a1b2c3d4e5f67890',  // ← 粘贴到这里
 ```
 
-#### 步骤3：启动PSK模式
+**第3步**：启动PSK模式
 ```bash
 npm run start:psk
-```
-
-或者通过环境变量指定密钥（Windows）：
-```bash
-cross-env PSK_KEY=你的密钥 MODE=psk node sim_gateway.js
 ```
 
 ---

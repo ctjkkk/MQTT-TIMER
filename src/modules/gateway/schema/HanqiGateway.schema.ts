@@ -11,7 +11,7 @@ export class Gateway {
   @Prop({ type: String, required: true, trim: true, comment: '网关名称' })
   name: string
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true, comment: '所属用户ID' })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', comment: '所属用户ID' })
   userId: MongooseSchema.Types.ObjectId
 
   @Prop({ type: Number, comment: '是否弃用' })

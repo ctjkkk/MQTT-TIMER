@@ -1,11 +1,13 @@
 import Aedes from 'aedes'
 import * as tls from 'tls'
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { authError } from '@/common/utils/error'
 import { createServer, Server as NetServer } from 'net'
 import { LoggerService } from '@/core/logger/logger.service'
 import { ConfigService } from '@nestjs/config'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
+import { AppEvents } from '@/shared/constants/events.constants'
 import { AuthErrorCode, PSK_CIPHERS } from '@/shared/constants/mqtt.constants'
 import { MqttDispatchService } from './mqttDispatch.service'
 import { PskAuthStrategy } from '../authentication/psk.strategy'
@@ -23,6 +25,7 @@ export class MqttBrokerService implements OnModuleInit {
     private readonly tcpAuthStrategy: TcpAuthStrategy,
     private readonly clientManagerService: MqttClientManagerService,
     private readonly publishService: MqttPublishService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
   private aedes: Aedes
   private tcpServer: NetServer
@@ -35,7 +38,10 @@ export class MqttBrokerService implements OnModuleInit {
 
   private registerMqttEvents() {
     this.aedes.on('client', c => this.clientManagerService.addClient(c.id, c))
-    this.aedes.on('clientDisconnect', c => this.clientManagerService.removeClient(c.id))
+    this.aedes.on('clientDisconnect', c => {
+      this.clientManagerService.removeClient(c.id) //从缓存中移除
+      this.handleClientDisconnect(c.id) //处理真正的断开连接逻辑(发布事件到网关服务模块进行处理)
+    })
     this.aedes.on('publish', (packet, client) => {
       //当有客户端向 broker 发布消息时触发
       if (client) {
@@ -127,5 +133,31 @@ export class MqttBrokerService implements OnModuleInit {
 
   publishToClient(clientId: string, topic: string, payload: string | Buffer): void {
     this.publishService.publishToClient(clientId, topic, payload)
+  }
+
+  /**
+   * 处理客户端断开连接
+   * 从clientId中提取gatewayId并发布离线事件
+   */
+  private handleClientDisconnect(clientId: string): void {
+    try {
+      if (clientId.startsWith('gateway_')) {
+        const parts = clientId.split('_')
+        if (parts.length >= 2) {
+          const gatewayId = parts[1]
+
+          this.loggerService.info(`网关断开连接: ${gatewayId}`, LogContext.MQTT_BROKER)
+
+          // 发布网关离线事件
+          this.eventEmitter.emit(AppEvents.GATEWAY_OFFLINE, {
+            gatewayId,
+            clientId,
+            timestamp: new Date(),
+          })
+        }
+      }
+    } catch (error) {
+      this.loggerService.error(`处理客户端断开连接失败: ${error.message}`, LogContext.MQTT_BROKER)
+    }
   }
 }

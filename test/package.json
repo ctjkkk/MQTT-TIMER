@@ -4,8 +4,9 @@
   "description": "汉奇网关配网模拟测试套件",
   "main": "sim_gateway.js",
   "scripts": {
-    "start": "node sim_gateway.js",
-    "start:psk": "cross-env MODE=psk node sim_gateway.js"
+    "start:gateway": "node sim_gateway.js",
+    "start:psk": "cross-env MODE=psk node sim_gateway.js",
+    "start:sign": "node client_sign.js"
   },
   "keywords": [
     "iot",

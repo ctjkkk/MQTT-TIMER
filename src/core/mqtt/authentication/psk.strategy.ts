@@ -22,11 +22,21 @@ export class PskAuthStrategy implements IAuthStrategy {
 
   getPskKey(identity: string): Buffer | null {
     try {
-      const { key } = this.psk.pskCacheMap.get(identity)
-      if (!key) {
+      const pskData = this.psk.pskCacheMap.get(identity)
+
+      // 检查PSK数据是否存在
+      if (!pskData) {
+        this.logger.warn(`PSK not found for identity: ${identity}`, LogContext.MQTT_AUTH)
         this.logger.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(identity), LogContext.MQTT_AUTH)
         return null
       }
+
+      const { key } = pskData
+      if (!key) {
+        this.logger.warn(`PSK key is empty for identity: ${identity}`, LogContext.MQTT_AUTH)
+        return null
+      }
+
       return Buffer.from(key, 'hex')
     } catch (error) {
       this.logger.error(`PSK key lookup error: ${error}`, LogContext.MQTT_AUTH)

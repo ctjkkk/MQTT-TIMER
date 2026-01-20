@@ -252,8 +252,8 @@
       <div class="header">
         <h1>🌟 汉奇网关配网模拟器</h1>
         <p>无需真实硬件，完整测试配网流程</p>
-        <p style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 8px; font-size: 13px;">
-          ⚠️ <strong>业务规则：一个用户只能绑定一个网关</strong><br>
+        <p style="margin-top: 15px; padding: 10px; background: rgba(255, 255, 255, 0.2); border-radius: 8px; font-size: 13px">
+          ⚠️ <strong>业务规则：一个用户只能绑定一个网关</strong><br />
           如需更换网关，请先解绑当前网关
         </p>
       </div>
@@ -265,7 +265,7 @@
             <span class="step-number">1</span>
             <span>蓝牙扫描网关</span>
           </div>
-          <button onclick="scanBluetooth()">开始扫描蓝牙设备</button>
+          <button type="button" onclick="scanBluetooth()">开始扫描蓝牙设备</button>
           <ul class="device-list" id="deviceList"></ul>
         </div>
 
@@ -279,7 +279,7 @@
             <label>网关ID（MAC地址）</label>
             <input type="text" id="gatewayId" disabled placeholder="等待读取..." />
           </div>
-          <button onclick="readGatewayId()" id="btnReadId" disabled>读取网关ID</button>
+          <button type="button" onclick="readGatewayId()" id="btnReadId" disabled>读取网关ID</button>
         </div>
 
         <!-- 步骤3：配置WiFi -->
@@ -296,7 +296,7 @@
             <label>WiFi密码</label>
             <input type="password" id="wifiPassword" placeholder="输入WiFi密码" disabled />
           </div>
-          <button onclick="configureWiFi()" id="btnConfigWiFi" disabled>配置WiFi</button>
+          <button type="button" onclick="configureWiFi()" id="btnConfigWiFi" disabled>配置WiFi</button>
         </div>
 
         <!-- 步骤4：检测上线 -->
@@ -305,7 +305,14 @@
             <span class="step-number">4</span>
             <span>等待网关上线</span>
           </div>
-          <button onclick="waitForOnline()" id="btnWaitOnline" disabled>开始检测</button>
+          <div class="config-section">
+            <div class="input-group">
+              <label>JWT Token（用于验证网关状态）</label>
+              <input type="text" id="jwtToken" placeholder="粘贴JWT token" disabled />
+              <small style="color: #666; margin-top: 5px; display: block">💡 Token会在步骤3完成后自动启用</small>
+            </div>
+          </div>
+          <button type="button" onclick="waitForOnline()" id="btnWaitOnline" disabled>开始检测</button>
           <div id="onlineStatus"></div>
         </div>
 
@@ -317,15 +324,12 @@
           </div>
           <div class="config-section">
             <div class="input-group">
-              <label>JWT Token</label>
-              <input type="text" id="jwtToken" placeholder="粘贴JWT token" disabled />
-            </div>
-            <div class="input-group">
               <label>网关名称</label>
               <input type="text" id="gatewayName" placeholder="客厅网关" disabled />
+              <small style="color: #666; margin-top: 5px; display: block">💡 Token已在步骤4输入</small>
             </div>
           </div>
-          <button onclick="bindGateway()" id="btnBind" disabled>绑定网关</button>
+          <button type="button" onclick="bindGateway()" id="btnBind" disabled>绑定网关</button>
         </div>
 
         <!-- 日志 -->
@@ -336,6 +340,19 @@
     </div>
 
     <script>
+      // ========== 全局错误捕获 ==========
+      window.addEventListener('error', function (event) {
+        console.error('全局错误捕获:', event.error)
+        log(`❌ 捕获到错误: ${event.error?.message || '未知错误'}`, 'error')
+        event.preventDefault() // 阻止默认错误处理（防止页面重载）
+      })
+
+      window.addEventListener('unhandledrejection', function (event) {
+        console.error('未处理的Promise拒绝:', event.reason)
+        log(`❌ Promise错误: ${event.reason?.message || '未知错误'}`, 'error')
+        event.preventDefault() // 阻止默认错误处理（防止页面重载）
+      })
+
       // ========== 配置 ==========
       const API_BASE = 'http://localhost:8018/api'
 
@@ -352,41 +369,72 @@
       // ========== 工具函数 ==========
 
       function log(message, type = 'info') {
-        const container = document.getElementById('logContainer')
-        const timestamp = new Date().toLocaleTimeString('zh-CN')
-        const color =
-          {
-            info: '#00ff00',
-            success: '#00ff00',
-            error: '#ff0000',
-            warning: '#ffaa00',
-          }[type] || '#00ff00'
+        try {
+          const container = document.getElementById('logContainer')
+          if (!container) {
+            console.log(`[LOG] ${message}`)
+            return
+          }
 
-        const entry = document.createElement('div')
-        entry.className = 'log-entry'
-        entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> <span style="color:${color}">${message}</span>`
-        container.appendChild(entry)
-        container.scrollTop = container.scrollHeight
+          const timestamp = new Date().toLocaleTimeString('zh-CN')
+          const color =
+            {
+              info: '#00ff00',
+              success: '#00ff00',
+              error: '#ff0000',
+              warning: '#ffaa00',
+            }[type] || '#00ff00'
+
+          const entry = document.createElement('div')
+          entry.className = 'log-entry'
+          entry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> <span style="color:${color}">${message}</span>`
+          container.appendChild(entry)
+          container.scrollTop = container.scrollHeight
+        } catch (err) {
+          console.error('Log函数错误:', err)
+          console.log(`[LOG] ${message}`)
+        }
       }
 
       function showStatus(stepId, message, type) {
-        const step = document.getElementById(stepId)
-        let statusDiv = step.querySelector('.status')
+        try {
+          const step = document.getElementById(stepId)
+          if (!step) {
+            console.log(`[STATUS] ${stepId}: ${message}`)
+            return
+          }
 
-        if (!statusDiv) {
-          statusDiv = document.createElement('div')
-          statusDiv.className = 'status'
-          step.appendChild(statusDiv)
+          let statusDiv = step.querySelector('.status')
+
+          if (!statusDiv) {
+            statusDiv = document.createElement('div')
+            statusDiv.className = 'status'
+            step.appendChild(statusDiv)
+          }
+
+          statusDiv.className = `status ${type}`
+          statusDiv.textContent = message
+        } catch (err) {
+          console.error('showStatus错误:', err)
+          console.log(`[STATUS] ${stepId}: ${message}`)
         }
-
-        statusDiv.className = `status ${type}`
-        statusDiv.textContent = message
       }
 
       function completeStep(stepNum) {
-        document.getElementById(`step${stepNum}`).classList.add('completed')
-        if (stepNum < 5) {
-          document.getElementById(`step${stepNum + 1}`).classList.add('active')
+        try {
+          const currentStep = document.getElementById(`step${stepNum}`)
+          if (currentStep) {
+            currentStep.classList.add('completed')
+          }
+
+          if (stepNum < 5) {
+            const nextStep = document.getElementById(`step${stepNum + 1}`)
+            if (nextStep) {
+              nextStep.classList.add('active')
+            }
+          }
+        } catch (err) {
+          console.error('completeStep错误:', err)
         }
       }
 
@@ -400,44 +448,79 @@
         log('🔍 开始扫描蓝牙设备...')
         showStatus('step1', '正在扫描...', 'info')
 
-        await sleep(2000) // 模拟扫描延迟
-
-        // 模拟发现设备（一个用户只能绑定一个网关，所以只显示当前要配网的网关）
-        const devices = [
-          { id: 'TEST_GATEWAY_001', name: 'HanQi_GW_001', rssi: -45 },
-        ]
-
         const deviceList = document.getElementById('deviceList')
         deviceList.innerHTML = ''
 
-        devices.forEach(device => {
+        try {
+          // 真实扫描：调用网关模拟器的BLE服务
+          const response = await fetch('http://localhost:3002/bluetooth/info').catch(err => {
+            throw new Error('无法连接到网关模拟器（端口3002）')
+          })
+
+          if (!response) {
+            throw new Error('网关模拟器未响应')
+          }
+
+          if (!response.ok) {
+            throw new Error('网关模拟器返回错误状态: ' + response.status)
+          }
+
+          let gateway
+          try {
+            gateway = await response.json()
+          } catch (jsonErr) {
+            throw new Error('网关返回数据格式错误')
+          }
+
+          if (!gateway || !gateway.id) {
+            throw new Error('网关数据不完整')
+          }
+
           const li = document.createElement('li')
           li.className = 'device-item'
           li.innerHTML = `
-                    <strong>${device.name}</strong><br>
-                    <small>ID: ${device.id} | 信号: ${device.rssi} dBm</small>
-                `
-          li.onclick = () => selectDevice(device.id, li)
+            <strong>${gateway.name || '未知网关'}</strong><br>
+            <small>ID: ${gateway.id} | 信号: ${gateway.rssi || '?'} dBm</small>
+          `
+          li.onclick = () => selectDevice(gateway.id, li)
           deviceList.appendChild(li)
-        })
 
-        log(`✅ 发现网关设备：${devices[0].name}`)
-        log(`💡 提示：一个用户只能绑定一个网关`)
-        showStatus('step1', '发现设备，点击选择', 'success')
+          log(`✅ 发现网关设备：${gateway.name}`)
+          log(`💡 提示：一个用户只能绑定一个网关`)
+          showStatus('step1', '发现设备，点击选择', 'success')
+        } catch (error) {
+          console.error('蓝牙扫描错误:', error)
+          log(`❌ 扫描失败: ${error.message}`, 'error')
+          log('💡 请先启动网关模拟器: cd test && npm start', 'warning')
+          showStatus('step1', '扫描失败，请先启动网关模拟器', 'error')
+        }
       }
 
       function selectDevice(deviceId, element) {
-        // 移除其他选中状态
-        document.querySelectorAll('.device-item').forEach(item => {
-          item.classList.remove('selected')
-        })
+        try {
+          // 移除其他选中状态
+          document.querySelectorAll('.device-item').forEach(item => {
+            item.classList.remove('selected')
+          })
 
-        element.classList.add('selected')
-        currentGatewayId = deviceId
+          if (element) {
+            element.classList.add('selected')
+          }
 
-        log(`📱 已选择设备: ${deviceId}`)
-        document.getElementById('btnReadId').disabled = false
-        completeStep(1)
+          currentGatewayId = deviceId
+
+          log(`📱 已选择设备: ${deviceId}`)
+
+          const btnReadId = document.getElementById('btnReadId')
+          if (btnReadId) {
+            btnReadId.disabled = false
+          }
+
+          completeStep(1)
+        } catch (err) {
+          console.error('selectDevice错误:', err)
+          log(`❌ 选择设备失败: ${err.message}`, 'error')
+        }
       }
 
       // ========== 步骤2：读取网关ID ==========
@@ -472,32 +555,70 @@
           return
         }
 
-        log(`📡 正在配置WiFi: ${ssid}`)
+        log(`📡 正在通过蓝牙发送WiFi配置: ${ssid}`)
         showStatus('step3', '正在通过蓝牙发送配置...', 'info')
 
-        await sleep(2000) // 模拟配置延迟
+        try {
+          // 真实发送：通过HTTP（模拟蓝牙）发送WiFi配置给网关
+          const response = await fetch('http://localhost:3002/bluetooth/configure', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ssid: ssid,
+              password: password,
+            }),
+          }).catch(err => {
+            throw new Error('无法连接到网关（蓝牙断开？）')
+          })
 
-        log('✅ WiFi配置已发送到网关')
-        log('⏳ 网关正在连接WiFi...')
-        log('⏳ 网关正在连接MQTT...')
+          if (!response) {
+            throw new Error('网关无响应')
+          }
 
-        showStatus('step3', 'WiFi配置成功，网关正在重新连接...', 'success')
+          if (!response.ok) {
+            throw new Error('网关拒绝配置: ' + response.status)
+          }
 
-        await sleep(3000) // 模拟网关重连延迟
+          const result = await response.json()
 
-        log('💡 提示: 现在需要运行网关模拟脚本')
-        log('💡 执行: node 2-simulate-gateway.js')
+          log('✅ WiFi配置已发送到网关')
+          log('⏳ 网关正在连接WiFi...')
+          log('⏳ 等待网关连接MQTT...')
 
-        showStatus('step3', '配置完成！请运行网关模拟脚本', 'warning')
+          showStatus('step3', 'WiFi配置成功，网关正在连接...', 'success')
 
-        // 启用在线检测
-        document.getElementById('btnWaitOnline').disabled = false
-        completeStep(3)
+          await sleep(3000) // 等待网关连接（观察网关模拟器日志）
+
+          log('💡 查看网关模拟器窗口，应该看到WiFi和MQTT连接日志')
+          log('💡 等网关连接成功后，输入Token并开始检测')
+
+          showStatus('step3', '配置完成！请输入Token后开始检测', 'success')
+
+          // 启用Token输入和在线检测
+          document.getElementById('jwtToken').disabled = false
+          document.getElementById('btnWaitOnline').disabled = false
+          completeStep(3)
+        } catch (error) {
+          console.error('WiFi配置错误:', error)
+          log(`❌ WiFi配置失败: ${error.message}`, 'error')
+          log('💡 请检查网关模拟器是否正在运行', 'warning')
+          showStatus('step3', `配置失败: ${error.message}`, 'error')
+        }
       }
 
       // ========== 步骤4：等待上线 ==========
 
       async function waitForOnline() {
+        // 检查是否已输入token
+        const token = document.getElementById('jwtToken').value
+        if (!token) {
+          showStatus('step4', '请先输入JWT Token', 'error')
+          log('❌ 缺少JWT Token', 'error')
+          return
+        }
+
         log('🔍 开始轮询检测网关在线状态...')
         showStatus('step4', '正在检测...', 'info')
 
@@ -505,6 +626,12 @@
 
         let attempts = 0
         const maxAttempts = 30
+
+        // 清除之前可能存在的轮询
+        if (pollingInterval) {
+          clearInterval(pollingInterval)
+          pollingInterval = null
+        }
 
         pollingInterval = setInterval(async () => {
           attempts++
@@ -514,18 +641,32 @@
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                authorization: `Bearer ${token}`,
               },
+            }).catch(err => {
+              // 网络错误处理
+              throw new Error('网络连接失败: ' + err.message)
             })
 
-            const data = await response.json()
+            if (!response) {
+              throw new Error('请求失败，无响应')
+            }
 
-            if (data.data && data.data.isOnline) {
+            // 安全地解析JSON
+            let data
+            try {
+              data = await response.json()
+            } catch (jsonErr) {
+              throw new Error('响应数据格式错误')
+            }
+
+            if (data && data.data && data.data.isOnline) {
               clearInterval(pollingInterval)
+              pollingInterval = null
               log('✅ 网关已上线！')
               showStatus('step4', '网关已上线', 'success')
 
-              // 启用绑定
-              document.getElementById('jwtToken').disabled = false
+              // 启用绑定（token已在步骤3后启用）
               document.getElementById('gatewayName').disabled = false
               document.getElementById('btnBind').disabled = false
 
@@ -536,11 +677,16 @@
             log(`⏳ 第 ${attempts} 次检测: 网关离线`)
             showStatus('step4', `检测中... (${attempts}/${maxAttempts})`, 'info')
           } catch (error) {
+            console.error('轮询错误:', error)
             log(`❌ 检测失败: ${error.message}`, 'error')
+            // 不要因为一次失败就停止轮询，继续尝试
           }
 
           if (attempts >= maxAttempts) {
-            clearInterval(pollingInterval)
+            if (pollingInterval) {
+              clearInterval(pollingInterval)
+              pollingInterval = null
+            }
             log('❌ 超时: 网关未上线', 'error')
             showStatus('step4', '超时！请检查网关模拟脚本是否运行', 'error')
             document.getElementById('btnWaitOnline').disabled = false
@@ -560,6 +706,12 @@
           return
         }
 
+        if (!currentGatewayId) {
+          showStatus('step5', '网关ID丢失，请重新扫描', 'error')
+          log('❌ 网关ID丢失', 'error')
+          return
+        }
+
         log(`🔗 正在绑定网关: ${currentGatewayId}`)
         showStatus('step5', '正在绑定...', 'info')
 
@@ -568,29 +720,43 @@
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
+              authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
               gatewayId: currentGatewayId,
               name: name,
             }),
+          }).catch(err => {
+            throw new Error('网络连接失败: ' + err.message)
           })
 
-          const data = await response.json()
+          if (!response) {
+            throw new Error('请求失败，无响应')
+          }
+
+          let data
+          try {
+            data = await response.json()
+          } catch (jsonErr) {
+            throw new Error('服务器返回数据格式错误')
+          }
 
           if (response.ok && data.code === 200) {
             log('🎉 网关绑定成功！')
-            log(`📝 网关名称: ${data.data.name}`)
-            log(`🆔 网关ID: ${data.data.gatewayId}`)
-            log(`🟢 在线状态: ${data.data.isOnline ? '在线' : '离线'}`)
+            if (data.data) {
+              log(`📝 网关名称: ${data.data.name}`)
+              log(`🆔 网关ID: ${data.data.gatewayId}`)
+              log(`🟢 在线状态: ${data.data.isOnline ? '在线' : '离线'}`)
+            }
 
             showStatus('step5', '绑定成功！配网流程完成 🎉', 'success')
             completeStep(5)
           } else {
             log(`❌ 绑定失败: ${data.message || '未知错误'}`, 'error')
-            showStatus('step5', `绑定失败: ${data.message}`, 'error')
+            showStatus('step5', `绑定失败: ${data.message || '服务器错误'}`, 'error')
           }
         } catch (error) {
+          console.error('绑定错误:', error)
           log(`❌ 网络错误: ${error.message}`, 'error')
           showStatus('step5', `请求失败: ${error.message}`, 'error')
         }
@@ -609,10 +775,22 @@
           log('   Token: ' + REAL_TOKEN.substring(0, 50) + '...', 'info')
         }
 
+        // 阻止所有输入框的Enter键提交表单（防止页面刷新）
+        document.querySelectorAll('input').forEach(input => {
+          input.addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              log('💡 提示：按Enter键无效，请点击按钮继续', 'warning')
+            }
+          })
+        })
+
         log('📌 请按步骤操作：')
         log('   1. 点击"开始扫描蓝牙设备"')
         log('   2. 选择一个网关')
-        log('   3. 按步骤完成配网')
+        log('   3. 配置WiFi')
+        log('   4. 输入Token并检测网关上线')
+        log('   5. 绑定网关')
       }
 
       // 清理

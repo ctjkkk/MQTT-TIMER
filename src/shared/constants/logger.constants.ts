@@ -18,6 +18,8 @@ export const LogContext = {
   MQTT_DISPATCH: 'MQTTDispatch',
   /** MQTT 扫描器 */
   MQTT_SCANNER: 'MQTTScanner',
+  // 网关断开连接
+  MQTT_BROKER: 'MQTTBroker',
 
   // ==================== 认证/安全 ====================
   /** PSK 认证和签名验证 */
@@ -108,9 +110,9 @@ export const LogMessages = {
     OFFLINE: (gatewayId: string) => `❌ 网关离线: ${gatewayId}`,
     REGISTERED: (gatewayId: string) => `📝 网关注册: ${gatewayId}`,
     REBOOT: (gatewayId: string) => `🔄 网关重启: ${gatewayId}`,
-    BIND_SUCCESS: (gatewayId: string, userId: string) => `🔗 网关绑定成功: ${gatewayId}, 用户: ${userId}`,
-    BIND_UPDATE: (gatewayId: string, userId: string) => `🔗 网关绑定更新: ${gatewayId}, 用户: ${userId}`,
-    UNBIND: (gatewayId: string, userId: string) => `🔓 网关解绑: ${gatewayId}, 用户: ${userId}`,
+    BIND_SUCCESS: (gatewayId: string, userId: string) => `网关绑定成功: ${gatewayId}, 用户: ${userId}`,
+    BIND_UPDATE: (gatewayId: string, userId: string) => ` 网关绑定更新: ${gatewayId}, 用户: ${userId}`,
+    UNBIND: (gatewayId: string, userId: string) => `网关解绑: ${gatewayId}, 用户: ${userId}`,
     HEARTBEAT_UNKNOWN: (deviceId: string) => `⚠️ 收到未知网关的心跳: ${deviceId}`,
     STATUS_UPDATED: (deviceId: string, online: boolean) => `📊 网关状态已更新: ${deviceId}, 在线: ${online}`,
     UNHANDLED_OPERATION: (action: string) => `⚠️ 未处理的网关操作: ${action}`,

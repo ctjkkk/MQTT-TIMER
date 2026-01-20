@@ -78,6 +78,6 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
 
   public isActive(identity: string): boolean {
     const mate = this.pskCacheMap.get(identity)
-    return mate.status ? true : false
+    return mate && mate.status ? true : false
   }
 }

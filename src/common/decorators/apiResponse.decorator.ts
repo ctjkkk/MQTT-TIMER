@@ -42,6 +42,11 @@ export const ApiResponseStandard = (options: ApiResponseStandardOptions) => {
       description: responseDescription,
       ...(responseType && { type: responseType }), // 如果提供了 responseType，添加到 ApiResponse
     }),
+    ApiHeader({
+      name: 'authorization',
+      description: '用户身份验证令牌，格式为 Bearer <token>',
+      required: true,
+    }),
     UseGuards(JwtAuthGuard),
     UseFilters(HttpExceptionsFilter),
     UseInterceptors(Transform(code, msg)),

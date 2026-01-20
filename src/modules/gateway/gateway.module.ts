@@ -4,6 +4,8 @@ import { JwtModule } from '@nestjs/jwt'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { GatewayController } from './gateway.controller'
 import { GatewayService } from './gateway.service'
+import { GatewayEventsHandler } from './gateway.events'
+import { GatewayMqttHandler } from './gateway.mqtt'
 import { MqttModule } from '@/core/mqtt/mqtt.module'
 import { UserModule } from '@/modules/user/user.module'
 import { Gateway, GatewaySchema } from './schema/HanqiGateway.schema'
@@ -28,7 +30,11 @@ import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
     // ✅ 消除了循环依赖问题
   ],
   controllers: [GatewayController],
-  providers: [GatewayService],
+  providers: [
+    GatewayService,
+    GatewayEventsHandler, // 事件处理器
+    GatewayMqttHandler, // MQTT消息入口
+  ],
   exports: [GatewayService],
 })
 export class GatewayModule {}
