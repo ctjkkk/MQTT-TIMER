@@ -300,9 +300,13 @@ export class GatewayService implements IGatewayServiceInterface {
   /**
    * 获取网关状态（用于验证配网是否成功）
    */
-  async getGatewayStatus(gatewayId: string) {
+  async getGatewayStatus(gatewayId: string, userId: string) {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
-    if (!gateway) throw new NotFoundException('网关不存在')
+    if (!gateway) throw new NotFoundException('The gateway does not exist.')
+
+    if (!gateway.userId || gateway.userId.toString() !== userId)
+      throw new BadRequestException('You have no right to view the status of this gateway.')
+
     return {
       gatewayId: gateway.gatewayId,
       name: gateway.name,
@@ -321,6 +325,7 @@ export class GatewayService implements IGatewayServiceInterface {
   async verifyGatewayOnline(gatewayId: string): Promise<boolean> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) return false
+
     // 检查是否在线且最后在线时间在 1 分钟内
     const isOnline = gateway.is_connected === 1
     const isRecent = gateway.last_seen && Date.now() - gateway.last_seen.getTime() < 60000
@@ -355,10 +360,8 @@ export class GatewayService implements IGatewayServiceInterface {
     if (gateway.userId?.toString() !== userId)
       throw new BadRequestException('You do not have the authority to operate this gateway.')
 
-    // 删除网关及其子设备
-    await this.gatewayModel.deleteOne({ gatewayId })
-    await this.timerModel.deleteMany({ gatewayId })
-
+    // 只解绑用户，保留网关和子设备
+    await this.gatewayModel.updateOne({ gatewayId }, { $set: { userId: null } })
     this.logger.info(LogMessages.GATEWAY.UNBIND(gatewayId, userId), LogContext.GATEWAY_SERVICE)
     return { message: 'Gateway unbinding successful' }
   }
@@ -368,9 +371,12 @@ export class GatewayService implements IGatewayServiceInterface {
   /**
    * 获取网关下的所有子设备
    */
-  async getSubDevices(gatewayId: string): Promise<TimerDocument[]> {
+  async getSubDevices(gatewayId: string, userId: string): Promise<TimerDocument[]> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('This gateway does not exist.')
+
+    if (!gateway.userId || gateway.userId.toString() !== userId)
+      throw new BadRequestException('You have no right to view the sub-devices under this gateway.')
 
     const timers = await this.timerModel.find({ gatewayId }).exec()
     return timers

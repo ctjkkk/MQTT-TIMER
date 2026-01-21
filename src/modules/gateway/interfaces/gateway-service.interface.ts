@@ -47,7 +47,7 @@ export interface IGatewayServiceInterface {
    * @param gatewayId 网关ID
    * @returns 网关状态信息
    */
-  getGatewayStatus(gatewayId: string): Promise<GatewayStatusResponseDto>
+  getGatewayStatus(gatewayId: string, userId: string): Promise<GatewayStatusResponseDto>
 
   /**
    * 验证网关是否在线
@@ -71,14 +71,14 @@ export interface IGatewayServiceInterface {
    * @param gatewayId 网关ID
    * @returns 子设备列表
    */
-  getSubDevices(gatewayId: string): Promise<TimerDocument[]>
+  getSubDevices(gatewayId: string, userId: string): Promise<TimerDocument[]>
 
   /**
    * 根据子设备ID查找它所属的网关
    * @param subDeviceId 子设备ID
    * @returns 所属网关信息
    */
-  findGatewayBySubDeviceId(subDeviceId: string): Promise<any>
+  findGatewayBySubDeviceId(subDeviceId: string, userId: string): Promise<any>
 
   // ============ MQTT 命令发送 ============
 

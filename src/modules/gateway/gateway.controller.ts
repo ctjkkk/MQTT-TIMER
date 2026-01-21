@@ -86,14 +86,14 @@ export class GatewayController {
     msg: '查询成功',
     responseType: GatewayStatusResponseDto,
   })
-  async getGatewayStatus(@Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.getGatewayStatus(gatewayId)
+  async getGatewayStatus(@Request() req: any, @Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.getGatewayStatus(gatewayId, req.user.id)
   }
 
   /**
    * 解绑网关
    */
-  @Delete('/:gatewayId')
+  @Post('/:gatewayId')
   @ApiResponseStandard({
     summary: '解绑网关',
     responseDescription: '解绑成功',
@@ -114,7 +114,7 @@ export class GatewayController {
     responseDescription: '返回子设备列表',
     msg: '查询成功',
   })
-  async getSubDevices(@Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.getSubDevices(gatewayId)
+  async getSubDevices(@Request() req: any, @Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.getSubDevices(gatewayId, req.user.id)
   }
 }
