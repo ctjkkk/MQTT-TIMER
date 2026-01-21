@@ -6,14 +6,15 @@ import { ApiProperty } from '@nestjs/swagger'
  */
 export class BindGatewayDto {
   @ApiProperty({
-    description: '网关ID（设备唯一标识）',
+    description: '网关ID (设备唯一标识)',
+    example: 'ABCDEF123456',
   })
   @IsString()
   @IsNotEmpty({ message: '网关ID不能为空' })
   gatewayId: string
 
   @ApiProperty({
-    description: '网关名称（用户自定义，可选）',
+    description: '网关名称 (用户自定义，可选)',
     example: '客厅网关',
     required: false,
   })
@@ -28,6 +29,7 @@ export class BindGatewayDto {
 export class VerifyPairingDto {
   @ApiProperty({
     description: '网关ID',
+    example: 'ABCDEF123456',
   })
   @IsString()
   @IsNotEmpty({ message: '网关ID不能为空' })
@@ -44,7 +46,7 @@ export class GatewayStatusDto {
   gatewayId: string
 
   @ApiProperty({
-    description: '是否在线（1:在线, 0:离线）',
+    description: '是否在线 (1:在线, 0:离线)',
     example: 1,
   })
   isOnline: number
