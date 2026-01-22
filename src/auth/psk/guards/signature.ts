@@ -1,60 +1,46 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common'
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common'
 import { Request } from 'express'
-import { SignatureUtil } from '../utils/signature'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import { LoggerService } from '@/core/logger/logger.service'
+
 /**
- * 签名验证守卫
- * 验证HTTP请求的签名和时间戳，防止请求被篡改和重放攻击
+ * API Key认证守卫（简化版）
+ * 用于工厂烧录PSK等场景，只需要提供简单的API Key即可
  *
  * 客户端需要在请求头中提供：
- * - X-Signature: 请求签名
- * - X-Timestamp: 时间戳（毫秒）
+ * - X-API-Key: API密钥
  *
- * 签名算法：
- * 1. 构建待签名字符串：METHOD\nPATH\nTIMESTAMP\nBODY（可选）
- * 2. 使用HMAC-SHA256对待签名字符串进行签名
- * 3. 将签名转为十六进制字符串
+ * 使用方法：
+ * 1. 在环境变量中设置 FACTORY_API_KEY
+ * 2. 请求时在请求头添加：X-API-Key: {你的密钥}
  */
 @Injectable()
 export class SignatureGuard implements CanActivate {
-  private readonly signatureSecret: string
+  private readonly apiKey: string
+
   constructor(private readonly logger: LoggerService) {
-    // 从环境变量获取签名密钥
-    this.signatureSecret = process.env.SIGNATURE_SECRET ?? ''
-    if (!this.signatureSecret) {
-      this.logger.warn(LogMessages.SERVER.NO_SIGN_ENV_VAR(), LogContext.PSK)
-    }
+    // 从环境变量获取API Key，如果没有设置则使用默认值
+    this.apiKey = process.env.FACTORY_API_KEY
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>()
-    // 从请求头获取签名和时间戳
-    const signature = request.headers['x-signature'] as string
-    const timestamp = request.headers['x-timestamp'] as string
-    // 检查必需的请求头
-    if (!signature) {
-      this.logger.warn(LogMessages.SERVER.X_SIGN_IS_MISSING(), LogContext.PSK)
-      throw new UnauthorizedException('缺少签名')
+
+    // 从请求头获取API Key
+    const apiKeyFromHeader = request.headers['x-api-key'] as string
+
+    // 检查是否提供了API Key
+    if (!apiKeyFromHeader) {
+      this.logger.warn('缺少API Key', LogContext.PSK)
+      throw new UnauthorizedException('缺少API Key，请在请求头中添加 X-API-Key')
     }
-    if (!timestamp) {
-      this.logger.warn(LogMessages.SERVER.X_TIME_IS_MISSING(), LogContext.PSK)
-      throw new UnauthorizedException('缺少时间戳')
+
+    // 验证API Key是否正确
+    if (apiKeyFromHeader !== this.apiKey) {
+      this.logger.warn(`API Key验证失败: ${apiKeyFromHeader}`, LogContext.PSK)
+      throw new UnauthorizedException('API Key错误')
     }
-    // 验证时间戳是否在有效期内（5分钟）
-    if (!SignatureUtil.verifyTimestamp(timestamp)) {
-      this.logger.warn(LogMessages.SERVER.X_TIME_IS_EXPIRED_OR_INVALID(timestamp), LogContext.PSK)
-      throw new UnauthorizedException('时间戳无效或已过期')
-    }
-    // 验证签名
-    const { method, body } = request
-    const path = request.path.replace(/^\/api/, '')
-    const isValid = SignatureUtil.verifySignature(signature, method, path, timestamp, this.signatureSecret, body)
-    if (!isValid) {
-      this.logger.warn(LogMessages.SERVER.X_SIGN_VERIFY_FAILED(method, path, timestamp), LogContext.PSK)
-      throw new UnauthorizedException('签名验证失败')
-    }
-    this.logger.debug(LogMessages.SERVER.X_SIGN_TIME_VERIFY_SCCUSS(path), LogContext.PSK)
+    this.logger.debug(`API Key验证成功: ${request.path}`, LogContext.PSK)
     return true
   }
 }

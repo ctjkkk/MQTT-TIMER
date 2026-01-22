@@ -1,13 +1,18 @@
 import { Controller, Post, Body } from '@nestjs/common'
 import { PskService } from './psk.service'
-import { ApiBody, ApiTags } from '@nestjs/swagger'
+import { ApiBody, ApiTags, ApiHeader } from '@nestjs/swagger'
 import { GeneratePskDto, ConfirmPskDto } from './dto/psk.dto'
 import { PskApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
 
 /**
  * PSK认证Controller
  * 提供PSK生成和确认的HTTP接口
- * 使用签名验证保护接口安全
+ * 使用API Key保护接口安全
+ *
+ * 使用方法：
+ * 1. 在环境变量中设置 FACTORY_API_KEY
+ * 2. 请求时在请求头添加：X-API-Key: {你的密钥}
+ * 3. 请求体只需要提供 macAddress
  */
 
 @ApiTags('Psk')

@@ -66,14 +66,10 @@ export const PskApiResponseStandard = (options: PskApiResponseStandardOptions) =
       description: responseDescription,
       ...(responseType && { type: responseType }),
     }),
+
     ApiHeader({
-      name: 'x-timestamp',
-      description: 'Unix 时间戳（秒），与 x-signature 一起使用，须为 5 分钟内',
-      required: true,
-    }),
-    ApiHeader({
-      name: 'x-signature',
-      description: 'PSK 模块签名，有效期 5 分钟',
+      name: 'x-api-key',
+      description: 'PSK 模块请求签名密钥',
       required: true,
     }),
     UseGuards(SignatureGuard),

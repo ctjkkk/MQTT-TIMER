@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import axios from 'axios'
 
-const SIGNATURE_SECRET = 'f45f86e563e965b602cc53c3befc3bfc9eeab4e538d3ebd86d7c26e1e3cffa5f'
-const BASE_URL = 'http://127.0.0.1:8018/api'
+const SIGNATURE_SECRET = '5b1b0c323b9201cc716e61f590ba8f32d06a32512bc86abcda427663ee08b2f1'
+const BASE_URL = 'http://35.172.194.174:8018/api'
 
 /**
  * 生成请求签名
