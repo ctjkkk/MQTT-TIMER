@@ -2,6 +2,7 @@ import { Controller, Post, Body } from '@nestjs/common'
 import { PskService } from './psk.service'
 import { ApiBody, ApiTags, ApiHeader } from '@nestjs/swagger'
 import { GeneratePskDto, ConfirmPskDto } from './dto/psk.dto'
+import { GeneratePskResponseDto, ConfirmPskResponseDto } from './dto/http-response.dto'
 import { PskApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
 
 /**
@@ -13,6 +14,13 @@ import { PskApiResponseStandard } from '@/common/decorators/apiResponse.decorato
  * 1. 在环境变量中设置 FACTORY_API_KEY
  * 2. 请求时在请求头添加：X-API-Key: {你的密钥}
  * 3. 请求体只需要提供 macAddress
+ *
+ * MQTT连接说明：
+ * 1. 调用 /psk/generate 接口获取 identity 和 key
+ * 2. 使用 identity 作为MQTT用户名
+ * 3. 使用 key 作为MQTT密码
+ * 4. 连接到PSK端口：8445
+ * 5. 连接成功后调用 /psk/confirm 接口确认烧录成功
  */
 
 @ApiTags('Psk')
@@ -25,6 +33,7 @@ export class PskController {
     summary: '生成设备 PSK',
     responseDescription: '返回 PSK 与密钥',
     msg: 'key生成成功!云端已保存该条记录!',
+    responseType: GeneratePskResponseDto,
   })
   async generatePsk(@Body() body: { mac: string }) {
     return this.pskService.generatePsk(body?.mac)
@@ -34,8 +43,9 @@ export class PskController {
   @ApiBody({ type: ConfirmPskDto })
   @PskApiResponseStandard({
     summary: '确认mac地址烧录成功!',
-    responseDescription: '返回 PSK 与密钥',
+    responseDescription: '返回确认结果',
     msg: 'Psk烧录成功!云端已将该网关激活',
+    responseType: ConfirmPskResponseDto,
   })
   async confirmPsk(@Body() body: { mac: string }) {
     return this.pskService.confirmPsk(body?.mac)

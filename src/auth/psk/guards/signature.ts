@@ -31,16 +31,17 @@ export class SignatureGuard implements CanActivate {
 
     // 检查是否提供了API Key
     if (!apiKeyFromHeader) {
-      this.logger.warn('缺少API Key', LogContext.PSK)
+      this.logger.warn(LogMessages.API_KEY.MISSING(), LogContext.PSK)
       throw new UnauthorizedException('缺少API Key，请在请求头中添加 X-API-Key')
     }
 
     // 验证API Key是否正确
     if (apiKeyFromHeader !== this.apiKey) {
-      this.logger.warn(`API Key验证失败: ${apiKeyFromHeader}`, LogContext.PSK)
+      this.logger.warn(LogMessages.API_KEY.VERIFY_FAILED(apiKeyFromHeader), LogContext.PSK)
       throw new UnauthorizedException('API Key错误')
     }
-    this.logger.debug(`API Key验证成功: ${request.path}`, LogContext.PSK)
+
+    this.logger.debug(LogMessages.API_KEY.VERIFY_SUCCESS(request.path), LogContext.PSK)
     return true
   }
 }
