@@ -133,6 +133,13 @@ export const LogMessages = {
   PSK: {
     LOAD: (size: number) => `[PskService] 缓存预热完成，已加载 ${size} 条已确认 PSK`,
     GENERATED: (identity: string, key: string) => `PSK identity: ${identity}, key: ${key} 已生成并写入数据库，状态: 待确认`,
+    AUTH_FAILED_DETAIL: (clientId: string, identity: string, exists: boolean, isActive: boolean, cacheSize: number) =>
+      `PSK认证失败 - ClientID: ${clientId}, Identity: ${identity}, 存在: ${exists}, 已激活: ${isActive}, 缓存数量: ${cacheSize}`,
+    KEY_NOT_FOUND: (identity: string, cacheSize: number, cacheKeys: string) =>
+      `PSK密钥未找到 - Identity: ${identity}, 缓存数量: ${cacheSize}, 缓存Keys: [${cacheKeys}]`,
+    KEY_EMPTY: (identity: string) => `PSK密钥为空 - Identity: ${identity}`,
+    KEY_FOUND: (identity: string) => `PSK密钥查找成功 - Identity: ${identity}`,
+    KEY_ERROR: (identity: string, error: string) => `PSK密钥查找异常 - Identity: ${identity}, Error: ${error}`,
   },
   COMMON: {
     ERROR: (context: string, error: string) => `❌ ${context} 错误: ${error}`,
