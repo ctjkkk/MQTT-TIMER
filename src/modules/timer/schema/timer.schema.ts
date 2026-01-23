@@ -32,7 +32,7 @@ export class Timer {
   @Prop({ type: String, trim: true })
   hanqi_device_id: string
 
-  @Prop({ type: Number, required: true, min: 2, max: 4, default: 2 })
+  @Prop({ type: Number, required: true, min: 1, max: 4, default: 2 })
   outlet_count: number
 
   @Prop({ type: Number, default: 0 })

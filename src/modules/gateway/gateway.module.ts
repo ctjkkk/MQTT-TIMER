@@ -26,8 +26,6 @@ import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
     }),
     MqttModule,
     UserModule,
-    // ✅ 使用事件驱动后，不再需要导入 TimerModule 和 ScheduleModule
-    // ✅ 消除了循环依赖问题
   ],
   controllers: [GatewayController],
   providers: [
