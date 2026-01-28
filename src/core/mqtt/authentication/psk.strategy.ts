@@ -13,8 +13,14 @@ export class PskAuthStrategy implements IAuthStrategy {
   ) {}
   async validate(client: MqttClient): Promise<boolean> {
     const id = client.pskIdentity!
-    if (!this.psk.exists(id) || !this.psk.isActive(id)) {
-      this.logger.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(id), LogContext.MQTT_AUTH)
+    const exists = this.psk.exists(id)
+    const isActive = exists ? this.psk.isActive(id) : false
+
+    if (!exists || !isActive) {
+      this.logger.warn(
+        LogMessages.PSK.AUTH_FAILED_DETAIL(client.id, id, exists, isActive, this.psk.pskCacheMap.size),
+        LogContext.MQTT_AUTH,
+      )
       return false
     }
     return true
@@ -26,20 +32,21 @@ export class PskAuthStrategy implements IAuthStrategy {
 
       // 检查PSK数据是否存在
       if (!pskData) {
-        this.logger.warn(`PSK not found for identity: ${identity}`, LogContext.MQTT_AUTH)
-        this.logger.warn(LogMessages.MQTT.AUTHENTICATION_FAILED(identity), LogContext.MQTT_AUTH)
+        const cacheKeys = Array.from(this.psk.pskCacheMap.keys()).join(', ')
+        this.logger.warn(LogMessages.PSK.KEY_NOT_FOUND(identity, this.psk.pskCacheMap.size, cacheKeys), LogContext.MQTT_AUTH)
         return null
       }
 
       const { key } = pskData
       if (!key) {
-        this.logger.warn(`PSK key is empty for identity: ${identity}`, LogContext.MQTT_AUTH)
+        this.logger.warn(LogMessages.PSK.KEY_EMPTY(identity), LogContext.MQTT_AUTH)
         return null
       }
 
+      this.logger.info(LogMessages.PSK.KEY_FOUND(identity), LogContext.MQTT_AUTH)
       return Buffer.from(key, 'hex')
     } catch (error) {
-      this.logger.error(`PSK key lookup error: ${error}`, LogContext.MQTT_AUTH)
+      this.logger.error(LogMessages.PSK.KEY_ERROR(identity, String(error)), LogContext.MQTT_AUTH)
       return null
     }
   }

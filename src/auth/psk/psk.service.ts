@@ -52,6 +52,8 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
         runValidators: true, // 触发 schema 校验
       },
     )
+    // 🔧 同步更新缓存，允许设备立即尝试连接
+    this.pskCacheMap.set(identity, { key, status: 0 })
     this.loggerService.info(LogMessages.PSK.GENERATED(identity, key), LogContext.PSK)
     return { identity, key }
   }
@@ -69,6 +71,9 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
     // 更新status为1，表示烧录成功
     psk.status = 1
     await psk.save()
+    // 🔧 同步更新缓存状态
+    this.pskCacheMap.set(psk.identity, { key: psk.key, status: 1 })
+    this.loggerService.info(`PSK 已确认并激活: ${psk.identity}`, LogContext.PSK)
     return { tip: 'PSK烧录确认成功' }
   }
 
