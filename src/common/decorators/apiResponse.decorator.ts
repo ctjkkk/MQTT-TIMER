@@ -40,7 +40,7 @@ export const ApiResponseStandard = (options: ApiResponseStandardOptions) => {
     ApiResponse({
       status: code,
       description: responseDescription,
-      ...(responseType && { type: responseType }), // 如果提供了 responseType，添加到 ApiResponse
+      ...(responseType && { type: responseType }),
     }),
     ApiHeader({
       name: 'authorization',

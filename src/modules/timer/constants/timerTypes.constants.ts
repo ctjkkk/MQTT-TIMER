@@ -1,31 +1,31 @@
-import { SubDeviceType } from '../interface/timer.interface'
+import { SubDeviceTypeResponseDto } from '../dto/http-response.dto'
 
 /**
  * 所有可用的子设备类型
  */
-export const SUB_DEVICE_TYPES: SubDeviceType[] = [
+export const SUB_DEVICE_TYPES: SubDeviceTypeResponseDto[] = [
   {
     type: 'valve_single',
     outletCount: 1,
-    name: '单出水口水阀',
-    image: '',
+    name: 'One-way Hose timer',
+    image: '/images/timer/valve-single.png',
   },
   {
     type: 'valve_dual',
     outletCount: 2,
-    name: '双出水口水阀',
-    image: '',
+    name: 'Two-way Hose timer',
+    image: '/images/timer/valve_dual.png',
   },
   {
     type: 'valve_triple',
     outletCount: 3,
-    name: '三出水口水阀',
-    image: '',
+    name: 'Three-way Hose timer',
+    image: '/images/timer/valve_triple.png',
   },
   {
     type: 'valve_quad',
     outletCount: 4,
-    name: '四出水口水阀',
-    image: '',
+    name: 'Four-way Hose timer',
+    image: '/images/timer/valve_quad.png',
   },
 ]

@@ -9,6 +9,7 @@ import {
   GatewayStatusResponseDto,
   UnbindGatewayResponseDto,
 } from './dto/http-response.dto'
+import { CurrentUserId } from '@/common/decorators/paramExtractor.decorators'
 
 /**
  * Gateway模块的HTTP Controller
@@ -51,8 +52,7 @@ export class GatewayController {
     msg: '绑定成功',
     responseType: BindGatewayResponseDto,
   })
-  async bindGateway(@Request() req: any, @Body() dto: BindGatewayDto) {
-    const userId = req.user.id
+  async bindGateway(@CurrentUserId() userId: string, @Body() dto: BindGatewayDto) {
     return await this.gatewayService.bindGatewayToUser(userId, dto.gatewayId, dto.name)
   }
 
@@ -86,8 +86,8 @@ export class GatewayController {
     msg: '查询成功',
     responseType: GatewayStatusResponseDto,
   })
-  async getGatewayStatus(@Request() req: any, @Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.getGatewayStatus(gatewayId, req.user.id)
+  async getGatewayStatus(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.getGatewayStatus(gatewayId, userId)
   }
 
   /**
@@ -100,11 +100,23 @@ export class GatewayController {
     msg: '解绑成功',
     responseType: UnbindGatewayResponseDto,
   })
-  async unbindGateway(@Request() req: any, @Param('gatewayId') gatewayId: string) {
-    const userId = req.user.id
+  async unbindGateway(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.unbindGateway(userId, gatewayId)
   }
 
+  /**
+   * 用户点击添加子设备后
+   * 让网关进入配对子设备模式
+   */
+  @Post('/:gatewayId/pairing_start')
+  @ApiResponseStandard({
+    summary: '开始子设备配对',
+    responseDescription: '网关进入配对模式',
+    msg: '网关已进入子设备配对模式，等待子设备连接',
+  })
+  async startSubDevicePairing(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId) {
+    return await this.gatewayService.startSubDevicePairing(userId, gatewayId)
+  }
   /**
    * 获取网关下的子设备列表
    */
@@ -114,7 +126,7 @@ export class GatewayController {
     responseDescription: '返回子设备列表',
     msg: '查询成功',
   })
-  async getSubDevices(@Request() req: any, @Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.getSubDevices(gatewayId, req.user.id)
+  async getSubDevices(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.getSubDevices(gatewayId, userId)
   }
 }

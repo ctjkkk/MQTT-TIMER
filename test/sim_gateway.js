@@ -266,7 +266,7 @@ class GatewaySimulator {
       protocol: 'mqtt',
       username: this.config.TCP_USERNAME,
       password: this.config.TCP_PASSWORD,
-      clientId: `gateway_${this.config.GATEWAY_ID}_${Date.now()}`,
+      clientId: `gateway_${this.config.GATEWAY_ID}`,
       clean: true,
       reconnectPeriod: 5000,
     }
@@ -287,7 +287,7 @@ class GatewaySimulator {
       host: this.config.MQTT_HOST,
       port: this.config.PSK_PORT,
       protocol: 'mqtts',
-      clientId: `gateway_${this.config.GATEWAY_ID}_${Date.now()}`,
+      clientId: `gateway_${this.config.GATEWAY_ID}`,
       clean: true,
       reconnectPeriod: 5000,
       rejectUnauthorized: false, // 开发环境
@@ -395,12 +395,27 @@ class GatewaySimulator {
   handleCommand(topic, message) {
     try {
       const command = JSON.parse(message.toString())
-      console.log('')
-      console.log('📩 收到控制命令:')
-      console.log(JSON.stringify(command, null, 2))
-      console.log('')
 
-      // 这里可以添加命令处理逻辑
+      // 特别处理心跳响应
+      if (command.msgType === 'heartbeat_ack') {
+        const now = new Date().toLocaleTimeString('zh-CN')
+        const bindStatus = command.data.status === 1 ? '✅ 已绑定' : '❌ 未绑定'
+        const userId = command.data.userId ? `, 用户: ${command.data.userId}` : ''
+        console.log(`💚 [${now}] 收到心跳响应: ${bindStatus}${userId}`)
+
+        // 如果未绑定，发出警告
+        if (command.data.status === 0) {
+          console.log('   ⚠️  警告: 网关未绑定用户，请通过APP绑定网关')
+        }
+      } else {
+        // 其他命令的处理
+        console.log('')
+        console.log('📩 收到控制命令:')
+        console.log(JSON.parse(command, null, 2))
+        console.log('')
+      }
+
+      // 这里可以添加更多命令处理逻辑
       // 例如：控制子设备、固件升级等
     } catch (error) {
       console.error('❌ 命令解析失败:', error.message)

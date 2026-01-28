@@ -44,6 +44,10 @@ export class TimerEventsHandler {
         // 心跳（子设备）
         await this.timerService.handleHeartbeat(message)
         break
+      case MqttMessageType.OPERATE_DEVICE:
+        // 子设备生命周期操作（添加、删除、更新）
+        await this.timerService.handleOperateDevice(message)
+        break
       default:
         this.logger.warn(`未知的子设备消息类型: ${message.msgType}`, LogContext.TIMER_SERVICE)
     }

@@ -71,4 +71,12 @@ export class GatewayEventsHandler {
     // - await this.notificationService.notifyAdminNewGateway(payload.gatewayId)
     // - await this.auditService.logGatewayRegistration(payload)
   }
+
+  /**
+   * 监听子设备删除事件
+   */
+  @OnEvent(AppEvents.SUBDEVICE_DELETED)
+  async handleSubDeviceDeleted(payload: { gatewayId: string; timerId: string }) {
+    this.gatewayService.handleSubDeviceDeletion(payload.gatewayId, payload.timerId)
+  }
 }

@@ -63,8 +63,7 @@ export type LogContextType = (typeof LogContext)[keyof typeof LogContext]
  */
 export const LogMessages = {
   MQTT: {
-    USER_CONNECTION_SUCCESSFUL: (ClientId: string, username: string) =>
-      `${ClientId} Authentication successful for user: ${username}`,
+    USER_CONNECTION_SUCCESSFUL: (ClientId: string, username: string) => `${ClientId} Authentication successful for user: ${username}`,
     BROKER_START: (way: string, port: string | number) => `${way} 模式成功连接到 MQTT 代理，端口：${port}`,
     BROKER_STOP: '🛑 MQTT Broker 已停止',
     CLIENT_CONNECTED: (clientId: string) => `🔗 客户端连接: ${clientId}`,
@@ -112,11 +111,20 @@ export const LogMessages = {
     BIND_UPDATE: (gatewayId: string, userId: string) => ` 网关绑定更新: ${gatewayId}, 用户: ${userId}`,
     UNBIND: (gatewayId: string, userId: string) => `网关解绑: ${gatewayId}, 用户: ${userId}`,
     HEARTBEAT_UNKNOWN: (deviceId: string) => `⚠️ 收到未知网关的心跳: ${deviceId}`,
+    HEARTBEAT_ACK_SENT: (deviceId: string, isBound: boolean) =>
+      `心跳响应已发送: ${deviceId}, 用户绑定状态: ${isBound ? '已绑定' : '未绑定'}`,
+    ONLINE_UNBOUND: (deviceId: string) => `网关 ${deviceId} 上线但未绑定用户`,
     STATUS_UPDATED: (deviceId: string, online: boolean) => `📊 网关状态已更新: ${deviceId}, 在线: ${online}`,
     UNHANDLED_OPERATION: (action: string) => `⚠️ 未处理的网关操作: ${action}`,
-    COMMAND_SENT: (gatewayId: string, msgType: string) => `📤 发送网关命令: ${gatewayId}, 类型: ${msgType}`,
+    COMMAND_SENT: (gatewayId: string, msgType: string, message: any) =>
+      `发送网关命令: ${gatewayId}, 类型: ${msgType}, 消息: ${JSON.stringify(message)}`,
     SUBDEVICE_COMMAND_SENT: (gatewayId: string, subDeviceId: string, msgType: string) =>
       `📤 发送子设备命令: 网关=${gatewayId}, 设备=${subDeviceId}, 类型=${msgType}`,
+  },
+  TIMER: {
+    ADDED_SUCCESS: (count: number) => `批量添加子设备完成: ${count} 个成功`,
+    UNKONWN_DEVICE_TYPE: (deviceType: string) => `未知的子设备操作: ${deviceType}`,
+    DELETED_SUCCESS: (timerId: string) => `子设备删除成功: ${timerId}`,
   },
   SYNC: {
     SUBSCRIBED: (tableCount: number) => `已订阅 ${tableCount} 个表的同步消息`,

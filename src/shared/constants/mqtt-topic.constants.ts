@@ -18,6 +18,9 @@ export enum MqttMessageType {
 
   /** 心跳 */
   HEARTBEAT = 'heartbeat',
+
+  /** 心跳响应（服务端 -> 设备） */
+  HEARTBEAT_ACK = 'heartbeat_ack',
 }
 
 //区分设备的类型
@@ -49,6 +52,9 @@ export enum OperateAction {
 
   /** 重置网关 */
   GATEWAY_RESET = 'gateway_reset',
+
+  /** 网关开始配对子设备 */
+  START_PAIRING = 'start_pairing',
 
   // ========== 子设备操作 ==========
   /** 添加子设备 */

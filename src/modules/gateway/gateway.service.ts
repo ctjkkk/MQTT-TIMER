@@ -4,7 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Model } from 'mongoose'
 import { MqttBrokerService } from '@/core/mqtt/services/mqttBroker.service'
 import type { MqttUnifiedMessage } from '@/shared/constants/mqtt-topic.constants'
-import { MqttTopic, MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
+import { MqttTopic, MqttMessageType, OperateAction, EntityType } from '@/shared/constants/mqtt-topic.constants'
 import { AppEvents } from '@/shared/constants/events.constants'
 import { Gateway, GatewayDocument } from './schema/HanqiGateway.schema'
 import { Timer, TimerDocument } from '@/modules/timer/schema/timer.schema'
@@ -13,7 +13,6 @@ import type { GatewayStatusData } from './types/gateway.type'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import type { IGatewayServiceInterface } from './interfaces/gateway-service.interface'
-
 /**
  * Gateway模块的Service
  *
@@ -41,22 +40,19 @@ export class GatewayService implements IGatewayServiceInterface {
   /**
    * 处理网关心跳
    * 更新在线状态，检测状态变化并发布事件
+   * 返回心跳响应，携带绑定状态
    *
    * 调用者：GatewayEventsHandler.handleGatewayMessage
    */
   async processHeartbeat(message: MqttUnifiedMessage) {
     const { deviceId } = message
-
-    // 查询当前网关状态
     const gateway = await this.gatewayModel.findOne({ gatewayId: deviceId })
     if (!gateway) {
       this.logger.warn(LogMessages.GATEWAY.HEARTBEAT_UNKNOWN(deviceId), LogContext.GATEWAY_SERVICE)
       return
     }
-
     const wasOffline = gateway.is_connected === 0
-
-    // 更新心跳时间和在线状态
+    const isBound = gateway.userId !== null && gateway.userId !== undefined
     await this.gatewayModel.updateOne(
       { gatewayId: deviceId },
       {
@@ -66,7 +62,14 @@ export class GatewayService implements IGatewayServiceInterface {
         },
       },
     )
-
+    const heartbeatAck = buildGatewayMessage(MqttMessageType.HEARTBEAT_ACK, deviceId, {
+      status: isBound ? 1 : 0,
+      userId: isBound ? gateway.userId?.toString() : null,
+    })
+    const clientId = `gateway_${deviceId}`
+    this.broker.publishToClient(clientId, MqttTopic.gatewayCommand(deviceId), JSON.stringify(heartbeatAck))
+    // 记录心跳响应日志
+    this.logger.debug(LogMessages.GATEWAY.HEARTBEAT_ACK_SENT(deviceId, isBound), LogContext.GATEWAY_SERVICE)
     // 如果从离线变为在线，发布网关上线事件
     if (wasOffline) {
       this.logger.info(LogMessages.GATEWAY.ONLINE(deviceId), LogContext.GATEWAY_SERVICE)
@@ -74,6 +77,10 @@ export class GatewayService implements IGatewayServiceInterface {
         gatewayId: deviceId,
         timestamp: new Date(),
       })
+      // 如果上线时发现未绑定，额外记录警告日志
+      if (!isBound) {
+        this.logger.warn(LogMessages.GATEWAY.ONLINE_UNBOUND(deviceId), LogContext.GATEWAY_SERVICE)
+      }
     }
   }
 
@@ -230,9 +237,7 @@ export class GatewayService implements IGatewayServiceInterface {
     if (!gateway) {
       // 网关不存在 = 从未连接过MQTT或ID错误
       this.logger.warn(`绑定失败: 网关 ${gatewayId} 未找到，用户: ${userId}`, LogContext.GATEWAY_SERVICE)
-      throw new NotFoundException(
-        'Gateway not found. Please confirm that the device is online or check if the gateway ID is correct.',
-      )
+      throw new NotFoundException('Gateway not found. Please confirm that the device is online or check if the gateway ID is correct.')
     }
 
     //  检查网关是否在线
@@ -350,15 +355,26 @@ export class GatewayService implements IGatewayServiceInterface {
   }
 
   /**
+   * 通知网关处理启动子设备配网请求
+   */
+  async startSubDevicePairing(userId: string, gatewayId: string): Promise<void> {
+    const gateway = await this.gatewayModel.findOne({ gatewayId })
+    if (!gateway) throw new NotFoundException('The gateway does not exist.')
+    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this gateway.')
+    // 发送MQTT命令让网关进入子设备配对模式
+    await this.sendGatewayCommand(gatewayId, MqttMessageType.OPERATE_DEVICE, {
+      entityType: EntityType.GATEWAY,
+      action: OperateAction.START_PAIRING,
+    })
+  }
+  /**
    * 解绑网关
    */
   async unbindGateway(userId: string, gatewayId: string) {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
-
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
 
-    if (gateway.userId?.toString() !== userId)
-      throw new BadRequestException('You do not have the authority to operate this gateway.')
+    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this gateway.')
 
     // 只解绑用户，保留网关和子设备
     await this.gatewayModel.updateOne({ gatewayId }, { $set: { userId: null } })
@@ -393,6 +409,10 @@ export class GatewayService implements IGatewayServiceInterface {
     return gateway
   }
 
+  /**
+   * 处理子设备删除（被GatewayEventsHandler调用）
+   */
+  async handleSubDeviceDeletion(gatewayId: string, timerId: string) {}
   // ========== MQTT 命令发送 ==========
 
   /**
@@ -401,25 +421,20 @@ export class GatewayService implements IGatewayServiceInterface {
   async sendGatewayCommand(gatewayId: string, msgType: MqttMessageType | string, data: any): Promise<void> {
     const message = buildGatewayMessage(msgType, gatewayId, data)
     const topic = MqttTopic.gatewayCommand(gatewayId)
-
-    this.broker.publish(topic, message)
-    this.logger.debug(LogMessages.GATEWAY.COMMAND_SENT(gatewayId, msgType), LogContext.GATEWAY_SERVICE)
+    const clientId = `gateway_${gatewayId}`
+    this.broker.publishToClient(clientId, topic, JSON.stringify(message))
+    this.logger.debug(LogMessages.GATEWAY.COMMAND_SENT(gatewayId, msgType, message), LogContext.GATEWAY_SERVICE)
   }
 
   /**
    * 通过网关向子设备发送命令
    * 这是核心方法，其他Service通过此方法控制子设备
    */
-  async sendSubDeviceCommand(
-    gatewayId: string,
-    subDeviceId: string,
-    msgType: MqttMessageType | string,
-    data: any,
-  ): Promise<void> {
+  async sendSubDeviceCommand(gatewayId: string, subDeviceId: string, msgType: MqttMessageType | string, data: any): Promise<void> {
     const message = buildSubDeviceMessage(msgType, gatewayId, data)
     const topic = MqttTopic.gatewayCommand(gatewayId)
-
-    this.broker.publish(topic, message)
+    const clientId = `gateway_${gatewayId}`
+    this.broker.publishToClient(clientId, topic, JSON.stringify(message))
     this.logger.debug(LogMessages.GATEWAY.SUBDEVICE_COMMAND_SENT(gatewayId, subDeviceId, msgType), LogContext.GATEWAY_SERVICE)
   }
 }

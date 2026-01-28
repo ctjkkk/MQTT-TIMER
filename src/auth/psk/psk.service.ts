@@ -25,6 +25,7 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
     // 此时连接已 ready，可以安全查询
     const activeList = await this.hanqiPskModel.find({ status: 1 }).lean()
     activeList.forEach(d => this.pskCacheMap.set(d.identity, { key: d.key, status: d.status }))
+    this.loggerService.info(LogMessages.PSK.LOAD(this.pskCacheMap.size), LogContext.PSK)
   }
 
   async generatePsk(macAddress: string) {

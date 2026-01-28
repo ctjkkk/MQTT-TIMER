@@ -45,6 +45,12 @@ export const AppEvents = {
   DEVICE_DP_UPDATED: 'device.dp.updated',
 
   /**
+   * 设备添加、删除、更新子设备事件
+   */
+  SUBDEVICE_ADDED: 'subdevice.added',
+  SUBDEVICE_DELETED: 'subdevice.deleted',
+  SUBDEVICE_UPDATED: 'subdevice.updated',
+  /**
    * 设备事件上报
    */
   DEVICE_EVENT_REPORTED: 'device.event.reported',
