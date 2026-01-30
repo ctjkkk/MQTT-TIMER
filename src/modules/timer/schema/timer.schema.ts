@@ -26,8 +26,8 @@ export class Timer {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   userId: MongooseSchema.Types.ObjectId
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Gateway', required: true })
-  gatewayId: MongooseSchema.Types.ObjectId
+  @Prop({ type: String, ref: 'Gateway', required: true })
+  gatewayId: string
 
   @Prop({ type: String, trim: true })
   hanqi_device_id: string

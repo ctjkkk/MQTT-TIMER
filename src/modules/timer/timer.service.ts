@@ -1,17 +1,18 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { GatewayService } from '../gateway/gateway.service'
 import { OutletService } from '../outlet/outlet.service'
 import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/mqtt-topic.constants'
-import { MqttMessageType, OperateAction } from '@/shared/constants/mqtt-topic.constants'
+import { OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import { Timer, TimerDocument } from './schema/timer.schema'
 import { Gateway, GatewayDocument } from '@/modules/gateway/schema/HanqiGateway.schema'
 import { SUB_DEVICE_TYPES } from './constants/timerTypes.constants'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
 import { EventEmitter2 } from '@nestjs/event-emitter'
-import { AppEvents } from '@/shared/constants/events.constants'
+import { MqttBrokerService } from '@/core/mqtt/services/mqttBroker.service'
+import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
 /**
  * Timer设备模块的Service
  *
@@ -29,10 +30,13 @@ export class TimerService {
   constructor(
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
+    @Inject(MqttBrokerService) private readonly broker: MqttBrokerService,
+    @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
     private readonly gatewayService: GatewayService,
     private readonly outletService: OutletService,
     private readonly loggerService: LoggerService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly logger: LoggerService,
   ) {}
 
   // ========== MQTT消息处理方法（由EventsHandler调用） ==========
@@ -177,11 +181,10 @@ export class TimerService {
   }
 
   /**
-   * 删除子设备
+   * 用户长按设备删除子设备
    */
   async deleteSubDevice(subDeviceId: string) {
     await this.timerModel.deleteOne({ timerId: subDeviceId })
-    this.loggerService.info(`子设备已删除: ${subDeviceId}`, LogContext.TIMER_SERVICE)
   }
 
   /**
@@ -207,15 +210,11 @@ export class TimerService {
   async controlOutlet(timerId: string, outletNumber: number, switchOn: boolean, duration?: number): Promise<void> {
     // 查找Timer所属的网关
     const gateway = await this.gatewayService.findGatewayBySubDeviceId(timerId)
-    if (!gateway) {
-      throw new Error(`未找到Timer所属的网关: ${timerId}`)
-    }
+    if (!gateway) throw new Error(`未找到Timer所属的网关: ${timerId}`)
 
     // 计算DP点ID
     const baseDpId = [0, 21, 41, 61, 81][outletNumber]
-    if (!baseDpId) {
-      throw new Error(`出水口编号无效: ${outletNumber}`)
-    }
+    if (!baseDpId) throw new Error(`出水口编号无效: ${outletNumber}`)
 
     // 构建DP命令
     const dps: Record<string, any> = {
@@ -227,8 +226,7 @@ export class TimerService {
       dps[baseDpId + 2] = duration // 手动运行时长
     }
 
-    // 通过网关发送命令
-    await this.gatewayService.sendSubDeviceCommand(gateway.gatewayId as string, timerId, MqttMessageType.DP_COMMAND, { dps })
+    // 发送命令给网关
   }
 
   // 获取所有水阀的类型(一个出水口的，多个出水口的等)
@@ -252,12 +250,8 @@ export class TimerService {
     if (!gateway) throw new NotFoundException('The gateway associated with this Timer does not exist.')
     if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to delete this Timer.')
     await this.timerModel.deleteOne({ timerId })
+    //下发删除命令给网关
+    this.commandSenderService.sendDeleteSubDeviceCommand(gateway.gatewayId, timerId)
     this.loggerService.info(LogMessages.TIMER.DELETED_SUCCESS(timerId), LogContext.TIMER_SERVICE)
-
-    // 发送删除命令给网关模块，让网关模块下发删除指令给网关设备
-    this.eventEmitter.emit(AppEvents.SUBDEVICE_DELETED, {
-      gatewayId: timer.gatewayId,
-      timerId: timer.timerId,
-    })
   }
 }

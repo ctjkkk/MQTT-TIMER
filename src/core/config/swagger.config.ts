@@ -1,26 +1,24 @@
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger'
-import { knife4jSetup } from 'nest-knife4j'
+import { knife4jSetup } from 'nestjs-knife4j-plus'
 import { INestApplication } from '@nestjs/common'
 
 export const buildSwagger = (app: INestApplication): OpenAPIObject => {
-  const config = new DocumentBuilder()
-    .setTitle('设备接口管理')
-    .setDescription('设备 PSK 生成、确认、网关等 API')
+  const options = new DocumentBuilder()
+    .setTitle('Host Timer')
+    .setDescription('Device PSK generation, verification, gateway and other APIs')
     .setVersion('1.0')
     .setContact('Jams Williams', '', '2283025597@qq.com')
     .addServer('http://35.172.194.174:8018', '生产环境')
-    .addTag('设备管理')
     .build()
 
-  const document = SwaggerModule.createDocument(app, config)
-  SwaggerModule.setup('swagger', app, document) // 纯 swagger-ui
+  const document = SwaggerModule.createDocument(app, options)
 
+  // 设置 Swagger UI（必须在 knife4j 之前）
+  SwaggerModule.setup('api', app, document)
   knife4jSetup(app, [
     {
-      name: '汉奇业务Http接口',
-      url: '/swagger-json',
-      swaggerVersion: '3.0',
-      location: '/swagger-json',
+      name: '1.0 version',
+      url: `/api-json`,
     },
   ])
 

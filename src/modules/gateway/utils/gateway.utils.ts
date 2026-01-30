@@ -3,28 +3,7 @@ import { MqttMessageType, MqttUnifiedMessage, EntityType } from '@/shared/consta
 /**
  * 构建网关自身的MQTT消息
  */
-export function buildGatewayMessage<T = any>(
-  msgType: MqttMessageType | string,
-  gatewayId: string,
-  data: T,
-): MqttUnifiedMessage<T> {
-  return {
-    msgType,
-    msgId: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-    deviceId: gatewayId,
-    timestamp: Math.floor(Date.now() / 1000),
-    data,
-  }
-}
-
-/**
- * 构建子设备的MQTT消息（通过网关发送）
- */
-export function buildSubDeviceMessage<T = any>(
-  msgType: MqttMessageType | string,
-  gatewayId: string,
-  data: T,
-): MqttUnifiedMessage<T> {
+export function buildGatewayMessage<T = any>(msgType: MqttMessageType | string, gatewayId: string, data: T): MqttUnifiedMessage<T> {
   return {
     msgType,
     msgId: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,

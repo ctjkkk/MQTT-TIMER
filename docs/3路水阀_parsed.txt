@@ -1,0 +1,42 @@
+Sheet names: ['功能点', '产品高级功能']
+
+=== 功能点 ===
+ DP ID      功能点名称                     标识符     数据传输类型  数据类型                                                            功能点属性  上报频率限制 [object Object]
+     1       区域 A                switch_1 可下发可上报（rw）  bool                                                              NaN     NaN             NaN
+     2       区域 B                switch_2 可下发可上报（rw）  bool                                                              NaN     NaN             NaN
+     3       区域 C                switch_3 可下发可上报（rw）  bool                                                              NaN     NaN             NaN
+    17 设置通道1灌溉时长1             countdown_1 可下发可上报（rw） value 数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位: s     NaN             NaN
+    18 设置通道2灌溉时长2             countdown_2 可下发可上报（rw） value 数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位: s     NaN             NaN
+    19  设置通道3灌溉时长             countdown_3 可下发可上报（rw） value 数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位: s     NaN             NaN
+    38    通道1普通定时                   timer 可下发可上报（rw）   raw                                                              NaN     NaN           自定义协议
+    39       喷雾定时            cycle_timing 可下发可上报（rw）   raw                                                              NaN     NaN           自定义协议
+    42   剩余天气延时时间 remaining_weather_delay    只上报（ro） value   数值范围: 0-240,\n              间距: 1, 倍数: 0,\n              单位: h     NaN             NaN
+    43       天气开关          weather_switch 可下发可上报（rw）  bool                                                              NaN     NaN             NaN
+    44       智能天气           smart_weather 可下发可上报（rw）  enum                                                枚举值: sunny, rainy     NaN             NaN
+    45       雨天延时           weather_delay 可下发可上报（rw）  enum                                 枚举值: 1, 2, 3, 4, 5, 6, 7, cancel     NaN             NaN
+    47     电池电量状态           battery_state    只上报（ro）  enum                                         枚举值: 6, 5, 4, 3, 2, 1, 0     NaN             NaN
+    53       故障告警                   fault    只上报（ro） fault                      故障值: low_battery, fault_1, fault_2, fault_3     NaN             NaN
+   105 通道1运行剩余倒计时     running_countdown_1    只上报（ro） value  数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位:      NaN             NaN
+   106 通道2运行剩余倒计时     running_countdown_2    只上报（ro） value  数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位:      NaN             NaN
+   107 通道3运行剩余倒计时     running_countdown_3    只上报（ro） value  数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位:      NaN             NaN
+   109    通道1下次定时     irr_timestamp_next1    只上报（ro）   raw                                                              NaN     NaN             NaN
+   110    通道2下次定时     irr_timestamp_next2    只上报（ro）   raw                                                              NaN     NaN             NaN
+   111    通道3下次定时     irr_timestamp_next3    只上报（ro）   raw                                                              NaN     NaN             NaN
+   113    通道2普通定时                  timer2 可下发可上报（rw）   raw                                                              NaN     NaN             NaN
+   114    通道3普通定时                  timer3 可下发可上报（rw）   raw                                                              NaN     NaN             NaN
+   117       信号放大     signal_boost_switch 可下发可上报（rw）  bool                                                              NaN     NaN             NaN
+   118       信号强度         signal_strength    只上报（ro） value 数值范围: -255-255,\n              间距: 1, 倍数: 0,\n              单位:      NaN             NaN
+   119    通道1工作状态            work_state_1    只上报（ro）  enum                                 枚举值: manual, timing, spray, idle     NaN             NaN
+   120    通道2工作状态            work_state_2    只上报（ro）  enum                                 枚举值: manual, timing, spray, idle     NaN             NaN
+   121    通道3工作状态            work_state_3    只上报（ro）  enum                                 枚举值: manual, timing, spray, idle     NaN             NaN
+   123       升级状态          upgrate_status    只上报（ro）  enum                             枚举值: upgrate_complete, upgrate_begin     NaN             NaN
+   131  通道1灌溉时长日志       irrigation_time_1    只上报（ro） value 数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位: s     NaN             NaN
+   132  通道2灌溉时长日志       irrigation_time_2    只上报（ro） value  数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位:      NaN             NaN
+   133  通道3灌溉时长日志       irrigation_time_3    只上报（ro） value  数值范围: 0-43200,\n              间距: 1, 倍数: 0,\n              单位:      NaN             NaN
+
+=== 产品高级功能 ===
+    高级功能名称  收费方式                     功能描述
+      离线提醒 按设备收费         APP上通过设备离线提醒推送信息
+智能天气（云端下发） 按设备收费      当检测到天气改变时云端主动下发天气dp
+      跳转网页 按设备收费 设置网页url跳转功能，可跳转商城、官网等网页。
+

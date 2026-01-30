@@ -2,35 +2,22 @@ import { Injectable, Inject, NotFoundException, BadRequestException } from '@nes
 import { InjectModel } from '@nestjs/mongoose'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Model } from 'mongoose'
-import { MqttBrokerService } from '@/core/mqtt/services/mqttBroker.service'
+import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
 import type { MqttUnifiedMessage } from '@/shared/constants/mqtt-topic.constants'
-import { MqttTopic, MqttMessageType, OperateAction, EntityType } from '@/shared/constants/mqtt-topic.constants'
+import { OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import { AppEvents } from '@/shared/constants/events.constants'
 import { Gateway, GatewayDocument } from './schema/HanqiGateway.schema'
 import { Timer, TimerDocument } from '@/modules/timer/schema/timer.schema'
-import { buildGatewayMessage, buildSubDeviceMessage } from './utils/gateway.utils'
 import type { GatewayStatusData } from './types/gateway.type'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import type { IGatewayServiceInterface } from './interfaces/gateway-service.interface'
-/**
- * Gateway模块的Service
- *
- * 职责：
- * 1. 提供网关业务逻辑（纯业务逻辑，不监听事件）
- * 2. 处理网关数据的增删改查
- * 3. 管理网关的用户绑定关系（配网）
- * 4. 提供通过网关控制子设备的能力
- * 5. 发布网关业务事件供其他模块监听
- *
- * 注意：事件监听已移至 gateway.events.ts
- */
 @Injectable()
 export class GatewayService implements IGatewayServiceInterface {
   constructor(
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
-    @Inject(MqttBrokerService) private readonly broker: MqttBrokerService,
+    @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
     private readonly logger: LoggerService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -41,7 +28,6 @@ export class GatewayService implements IGatewayServiceInterface {
    * 处理网关心跳
    * 更新在线状态，检测状态变化并发布事件
    * 返回心跳响应，携带绑定状态
-   *
    * 调用者：GatewayEventsHandler.handleGatewayMessage
    */
   async processHeartbeat(message: MqttUnifiedMessage) {
@@ -62,14 +48,8 @@ export class GatewayService implements IGatewayServiceInterface {
         },
       },
     )
-    const heartbeatAck = buildGatewayMessage(MqttMessageType.HEARTBEAT_ACK, deviceId, {
-      status: isBound ? 1 : 0,
-      userId: isBound ? gateway.userId?.toString() : null,
-    })
-    const clientId = `gateway_${deviceId}`
-    this.broker.publishToClient(clientId, MqttTopic.gatewayCommand(deviceId), JSON.stringify(heartbeatAck))
-    // 记录心跳响应日志
-    this.logger.debug(LogMessages.GATEWAY.HEARTBEAT_ACK_SENT(deviceId, isBound), LogContext.GATEWAY_SERVICE)
+    // 下发心跳响应给网关
+    this.commandSenderService.sendHeartbeatResponse(deviceId, isBound, gateway.userId.toString())
     // 如果从离线变为在线，发布网关上线事件
     if (wasOffline) {
       this.logger.info(LogMessages.GATEWAY.ONLINE(deviceId), LogContext.GATEWAY_SERVICE)
@@ -108,7 +88,6 @@ export class GatewayService implements IGatewayServiceInterface {
 
   /**
    * 处理网关生命周期消息（注册、重启、升级等）
-   *
    * 调用者：GatewayEventsHandler.handleGatewayMessage
    */
   async processGatewayLifecycle(message: MqttUnifiedMessage) {
@@ -136,10 +115,8 @@ export class GatewayService implements IGatewayServiceInterface {
    */
   private async handleGatewayRegister(gatewayId: string, data: any) {
     this.logger.info(LogMessages.GATEWAY.REGISTERED(gatewayId), LogContext.GATEWAY_SERVICE)
-
     // 检查网关是否已存在
     const existingGateway = await this.gatewayModel.findOne({ gatewayId })
-
     if (!existingGateway) {
       // 创建未绑定用户的网关记录
       await this.gatewayModel.create({
@@ -150,7 +127,6 @@ export class GatewayService implements IGatewayServiceInterface {
         createdAt: new Date(),
         last_seen: new Date(),
       })
-
       this.logger.info(`网关 ${gatewayId} 已注册，等待用户绑定`, LogContext.GATEWAY_SERVICE)
     } else {
       // 网关已存在，只更新在线状态
@@ -163,10 +139,8 @@ export class GatewayService implements IGatewayServiceInterface {
           },
         },
       )
-
       this.logger.info(`网关 ${gatewayId} 重新上线`, LogContext.GATEWAY_SERVICE)
     }
-
     // 发布网关注册事件(为以后统计分析模块、通知模块等做准备)
     await this.eventEmitter.emitAsync(AppEvents.GATEWAY_REGISTERED, {
       gatewayId,
@@ -230,33 +204,27 @@ export class GatewayService implements IGatewayServiceInterface {
         `You have already bound the gateway ${existingGateway.name} (${existingGateway.gatewayId}). Each user can only bind one gateway. Please unbind the current gateway before binding the new one.`,
       )
     }
-
     // 检查网关是否已注册（通过MQTT上线注册）
     const gateway = await this.gatewayModel.findOne({ gatewayId })
-
     if (!gateway) {
       // 网关不存在 = 从未连接过MQTT或ID错误
       this.logger.warn(`绑定失败: 网关 ${gatewayId} 未找到，用户: ${userId}`, LogContext.GATEWAY_SERVICE)
       throw new NotFoundException('Gateway not found. Please confirm that the device is online or check if the gateway ID is correct.')
     }
-
     //  检查网关是否在线
     const isOnline = gateway.is_connected === 1
     const isRecentlySeen = gateway.last_seen && Date.now() - gateway.last_seen.getTime() < 60000
-
     if (!isOnline || !isRecentlySeen) {
       this.logger.warn(`绑定失败: 网关 ${gatewayId} 离线，用户: ${userId}`, LogContext.GATEWAY_SERVICE)
       throw new BadRequestException(
         'The gateway is currently offline. Please ensure that the device is connected to the network and try again.',
       )
     }
-
     // 检查是否已被其他用户绑定
     if (gateway.userId && gateway.userId.toString() !== userId) {
       this.logger.warn(`绑定失败: 网关 ${gatewayId} 已被其他用户绑定，用户: ${userId}`, LogContext.GATEWAY_SERVICE)
       throw new BadRequestException('This gateway has been bound by other users.')
     }
-
     // 检查是否已绑定到当前用户（避免重复绑定）
     if (gateway.userId && gateway.userId.toString() === userId) {
       // 只更新名称
@@ -311,7 +279,6 @@ export class GatewayService implements IGatewayServiceInterface {
 
     if (!gateway.userId || gateway.userId.toString() !== userId)
       throw new BadRequestException('You have no right to view the status of this gateway.')
-
     return {
       gatewayId: gateway.gatewayId,
       name: gateway.name,
@@ -330,7 +297,6 @@ export class GatewayService implements IGatewayServiceInterface {
   async verifyGatewayOnline(gatewayId: string): Promise<boolean> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) return false
-
     // 检查是否在线且最后在线时间在 1 分钟内
     const isOnline = gateway.is_connected === 1
     const isRecent = gateway.last_seen && Date.now() - gateway.last_seen.getTime() < 60000
@@ -362,10 +328,7 @@ export class GatewayService implements IGatewayServiceInterface {
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
     if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this gateway.')
     // 发送MQTT命令让网关进入子设备配对模式
-    await this.sendGatewayCommand(gatewayId, MqttMessageType.OPERATE_DEVICE, {
-      entityType: EntityType.GATEWAY,
-      action: OperateAction.START_PAIRING,
-    })
+    this.commandSenderService.sendStartPairingCommand(gatewayId)
   }
   /**
    * 解绑网关
@@ -373,9 +336,7 @@ export class GatewayService implements IGatewayServiceInterface {
   async unbindGateway(userId: string, gatewayId: string) {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
-
     if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this gateway.')
-
     // 只解绑用户，保留网关和子设备
     await this.gatewayModel.updateOne({ gatewayId }, { $set: { userId: null } })
     this.logger.info(LogMessages.GATEWAY.UNBIND(gatewayId, userId), LogContext.GATEWAY_SERVICE)
@@ -390,10 +351,8 @@ export class GatewayService implements IGatewayServiceInterface {
   async getSubDevices(gatewayId: string, userId: string): Promise<TimerDocument[]> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('This gateway does not exist.')
-
     if (!gateway.userId || gateway.userId.toString() !== userId)
       throw new BadRequestException('You have no right to view the sub-devices under this gateway.')
-
     const timers = await this.timerModel.find({ gatewayId }).exec()
     return timers
   }
@@ -404,37 +363,7 @@ export class GatewayService implements IGatewayServiceInterface {
   async findGatewayBySubDeviceId(subDeviceId: string) {
     const timer = await this.timerModel.findOne({ timerId: subDeviceId })
     if (!timer) return null
-
     const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
     return gateway
-  }
-
-  /**
-   * 处理子设备删除（被GatewayEventsHandler调用）
-   */
-  async handleSubDeviceDeletion(gatewayId: string, timerId: string) {}
-  // ========== MQTT 命令发送 ==========
-
-  /**
-   * 向网关发送命令
-   */
-  async sendGatewayCommand(gatewayId: string, msgType: MqttMessageType | string, data: any): Promise<void> {
-    const message = buildGatewayMessage(msgType, gatewayId, data)
-    const topic = MqttTopic.gatewayCommand(gatewayId)
-    const clientId = `gateway_${gatewayId}`
-    this.broker.publishToClient(clientId, topic, JSON.stringify(message))
-    this.logger.debug(LogMessages.GATEWAY.COMMAND_SENT(gatewayId, msgType, message), LogContext.GATEWAY_SERVICE)
-  }
-
-  /**
-   * 通过网关向子设备发送命令
-   * 这是核心方法，其他Service通过此方法控制子设备
-   */
-  async sendSubDeviceCommand(gatewayId: string, subDeviceId: string, msgType: MqttMessageType | string, data: any): Promise<void> {
-    const message = buildSubDeviceMessage(msgType, gatewayId, data)
-    const topic = MqttTopic.gatewayCommand(gatewayId)
-    const clientId = `gateway_${gatewayId}`
-    this.broker.publishToClient(clientId, topic, JSON.stringify(message))
-    this.logger.debug(LogMessages.GATEWAY.SUBDEVICE_COMMAND_SENT(gatewayId, subDeviceId, msgType), LogContext.GATEWAY_SERVICE)
   }
 }

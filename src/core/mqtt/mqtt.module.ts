@@ -9,6 +9,7 @@ import { PskAuthStrategy } from './authentication/psk.strategy'
 import { TcpAuthStrategy } from './authentication/tcp.strategy'
 import { MqttClientManagerService } from './services/mqttClientManager.service'
 import { MqttPublishService } from './services/mqttPublish.service'
+import { CommandSenderService } from './services/commandSender.service'
 
 @Global()
 @Module({
@@ -28,7 +29,8 @@ import { MqttPublishService } from './services/mqttPublish.service'
     TcpAuthStrategy,
     MqttClientManagerService,
     MqttPublishService,
+    CommandSenderService,
   ],
-  exports: [MqttBrokerService, MqttScannerService, MqttDispatchService],
+  exports: [MqttBrokerService, MqttScannerService, MqttDispatchService, CommandSenderService],
 })
 export class MqttModule {}

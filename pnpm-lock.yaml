@@ -34,7 +34,7 @@ importers:
         version: 11.1.11(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)
       '@nestjs/serve-static':
         specifier: ^5.0.4
-        version: 5.0.4(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)
+        version: 5.0.4(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(express@5.2.1)
       '@nestjs/swagger':
         specifier: ^11.2.3
         version: 11.2.5(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)
@@ -68,9 +68,9 @@ importers:
       mqtt-packet:
         specifier: ^9.0.2
         version: 9.0.2
-      nest-knife4j:
-        specifier: ^1.0.1
-        version: 1.0.1(@types/express@5.0.6)
+      nestjs-knife4j-plus:
+        specifier: ^1.0.4
+        version: 1.0.4(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(express@5.2.1)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -79,7 +79,7 @@ importers:
         version: 7.8.2
       swagger-ui-express:
         specifier: ^5.0.1
-        version: 5.0.1
+        version: 5.0.1(express@5.2.1)
       winston:
         specifier: ^3.18.3
         version: 3.19.0
@@ -2724,11 +2724,18 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  nest-knife4j@1.0.1:
-    resolution: {integrity: sha512-TD1LmxzclBddOygIDIRjr3jIwj+C3dp69G4Sy+QwAiiuQQQAxwaGXioCB3ibr/SLQ9nuR8klYehzS3HjS32Nfw==}
+  nestjs-knife4j-plus@1.0.4:
+    resolution: {integrity: sha512-saRBVRljmnuPhTNC2TD/tWe/fQ2emAHsit6KY0Fc+vG6vOfxGzvnfPEfVi1OF6mAaPDrjRZHqUHq1kx83F7VUQ==}
     peerDependencies:
-      '@types/express': ^4.17.11
-      express: ^4.17.1
+      '@fastify/static': '*'
+      '@nestjs/common': '*'
+      express: '*'
+      fastify: '*'
+    peerDependenciesMeta:
+      '@fastify/static':
+        optional: true
+      fastify:
+        optional: true
 
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
@@ -3401,9 +3408,6 @@ packages:
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
-
-  user@0.0.0:
-    resolution: {integrity: sha512-eRNM5isOvr6aEFAGi1CqAkmLkYxW2NJ5ThhbD+6IJXYKM1mo7Gtxx4mQIveHz/5K3p/SVnlW9k17ETn+QAu8IQ==}
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -4411,11 +4415,13 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@nestjs/serve-static@5.0.4(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)':
+  '@nestjs/serve-static@5.0.4(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(express@5.2.1)':
     dependencies:
       '@nestjs/common': 11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.11(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.11)(@nestjs/platform-express@11.1.11)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       path-to-regexp: 8.3.0
+    optionalDependencies:
+      express: 5.2.1
 
   '@nestjs/swagger@11.2.5(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)':
     dependencies:
@@ -6536,10 +6542,10 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  nest-knife4j@1.0.1(@types/express@5.0.6):
+  nestjs-knife4j-plus@1.0.4(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(express@5.2.1):
     dependencies:
-      '@types/express': 5.0.6
-      user: 0.0.0
+      '@nestjs/common': 11.1.11(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      express: 5.2.1
 
   node-abort-controller@3.1.1: {}
 
@@ -7011,8 +7017,9 @@ snapshots:
     dependencies:
       '@scarf/scarf': 1.4.0
 
-  swagger-ui-express@5.0.1:
+  swagger-ui-express@5.0.1(express@5.2.1):
     dependencies:
+      express: 5.2.1
       swagger-ui-dist: 5.31.0
 
   symbol-observable@4.0.0: {}
@@ -7205,8 +7212,6 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
-
-  user@0.0.0: {}
 
   util-deprecate@1.0.2: {}
 

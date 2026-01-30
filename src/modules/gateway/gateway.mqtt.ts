@@ -41,6 +41,7 @@ export class GatewayMqttHandler {
   async handleGatewayReport(@MqttPayload() payload: Buffer) {
     // 解析MQTT消息
     const message = parseMqttMessage(payload)
+    console.log('收到MQTT消息:', message)
     if (!message) {
       this.logger.error(LogMessages.MQTT.PARSE_ERROR('payload parsed error'), LogContext.GATEWAY_SERVICE)
       return

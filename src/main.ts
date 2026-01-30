@@ -9,7 +9,7 @@ import { NestExpressApplication } from '@nestjs/platform-express'
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
   app.setGlobalPrefix('/api', {
-    exclude: ['logs', 'logs/*path'], // 排除日志查看器路径
+    exclude: ['logs', 'logs/*path', 'doc.html', 'api-json'],
   })
   app.enableCors() // 启用跨域
   buildSwagger(app)

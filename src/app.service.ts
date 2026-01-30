@@ -7,7 +7,7 @@ export class AppService {
       name: 'device-api',
       version: '1.0.0',
       status: 'ok',
-      docs: 'http://3.216.169.117:8018/docs.html',
+      docs: 'http://35.172.194.174:8018/docs.html',
     }
   }
 }

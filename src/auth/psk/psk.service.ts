@@ -30,9 +30,8 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
 
   async generatePsk(macAddress: string) {
     const existingPsk = await this.hanqiPskModel.findOne({ mac_address: macAddress })
-    if (existingPsk && existingPsk.status) {
-      throw new BadRequestException('该网关已经完成PSK烧录，不能重新生成')
-    }
+    // 如果旧PSK存在，直接删除缓存（因为要生成新key）
+    existingPsk && this.pskCacheMap.delete(existingPsk.identity)
     const identity = macAddress
     // 生成64字节的随机key（128位十六进制字符串）
     const key = randomBytes(64).toString('hex')
@@ -52,7 +51,7 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
         runValidators: true, // 触发 schema 校验
       },
     )
-    // 🔧 同步更新缓存，允许设备立即尝试连接
+    // 同步更新缓存，允许设备立即尝试连接
     this.pskCacheMap.set(identity, { key, status: 0 })
     this.loggerService.info(LogMessages.PSK.GENERATED(identity, key), LogContext.PSK)
     return { identity, key }

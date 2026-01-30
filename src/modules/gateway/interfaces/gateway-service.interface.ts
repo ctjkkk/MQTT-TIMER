@@ -79,23 +79,4 @@ export interface IGatewayServiceInterface {
    * @returns 所属网关信息
    */
   findGatewayBySubDeviceId(subDeviceId: string, userId: string): Promise<any>
-
-  // ============ MQTT 命令发送 ============
-
-  /**
-   * 向网关发送命令
-   * @param gatewayId 网关ID
-   * @param msgType 消息类型
-   * @param data 消息数据
-   */
-  sendGatewayCommand(gatewayId: string, msgType: MqttMessageType | string, data: any): Promise<void>
-
-  /**
-   * 通过网关向子设备发送命令
-   * @param gatewayId 网关ID
-   * @param subDeviceId 子设备ID
-   * @param msgType 消息类型
-   * @param data 消息数据
-   */
-  sendSubDeviceCommand(gatewayId: string, subDeviceId: string, msgType: MqttMessageType | string, data: any): Promise<void>
 }
