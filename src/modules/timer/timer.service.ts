@@ -96,8 +96,8 @@ export class TimerService {
         await this.addSubDevices(message.deviceId, message.data.subDevices)
         break
       case OperateAction.SUBDEVICE_DELETE:
-        // 子设备删除
-        await this.deleteSubDevice(message.data.subDeviceId)
+        // 子设备删除（MQTT消息使用uuid）
+        await this.deleteSubDevice(message.data.uuid)
         break
       case OperateAction.SUBDEVICE_UPDATE:
         // 子设备信息更新
@@ -132,9 +132,10 @@ export class TimerService {
    * 更新单个子设备状态
    */
   private async updateSubDeviceStatus(device: any, gatewayId: string, index: number): Promise<boolean> {
-    const { flashId, online, signal_strength, battery_level } = device
+    // MQTT消息使用uuid，内部逻辑使用flashId
+    const { uuid: flashId, online, signal_strength, battery_level } = device
     if (!flashId) {
-      this.logger.warn(LogMessages.TIMER.SUBDEVICE_FIELD_MISSING(gatewayId, index, 'flashId'), LogContext.TIMER_SERVICE)
+      this.logger.warn(LogMessages.TIMER.SUBDEVICE_FIELD_MISSING(gatewayId, index, 'uuid'), LogContext.TIMER_SERVICE)
       return false
     }
     if (online == null) {
@@ -163,6 +164,8 @@ export class TimerService {
   /**
    * 添加子设备（网关配对成功后调用）
    *
+   * 逻辑：存在则覆盖，不存在则创建（upsert模式）
+   *
    * @param gatewayId 网关ID
    * @param subDevices 子设备列表
    */
@@ -170,38 +173,57 @@ export class TimerService {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new Error('Gateway not found.')
     if (!gateway.userId) throw new Error('Gateway is not bound to any user.')
-    const addedDevices = []
-    const skippedDevices = []
+    const stats = { added: 0, updated: 0 }
     for (const device of subDevices) {
-      const { subDeviceId, deviceType, capabilities, productId, firmwareVersion, online, private: privateData } = device
-      const exists = await this.timerModel.findOne({ timerId: subDeviceId })
-      if (exists) {
-        skippedDevices.push(subDeviceId)
-        continue
-      }
+      // MQTT消息使用uuid，内部逻辑使用subDeviceId
+      const { uuid: subDeviceId, deviceType, capabilities, productId, firmwareVersion, online } = device
       // 判断水阀类型
       const valveType = this.determineValveType(deviceType, capabilities)
-      // 创建子设备记录
-      const timer = await this.timerModel.create({
-        timerId: subDeviceId,
-        gatewayId,
-        name: `水阀-${subDeviceId.slice(-4)}`,
-        type: valveType,
-        deviceType,
-        capabilities,
-        productId,
-        firmwareVersion,
-        online,
-        private: privateData,
-        battery: 100,
-        createdAt: new Date(),
-      })
-      addedDevices.push(timer)
-    }
-    addedDevices.length && this.loggerService.info(LogMessages.TIMER.ADDED_SUCCESS(addedDevices.length), LogContext.TIMER_SERVICE)
-    skippedDevices.length && this.loggerService.debug(`跳过的子设备: ${skippedDevices.join(', ')}`, LogContext.TIMER_SERVICE)
+      // 检查设备是否已存在
+      const exists = await this.timerModel.findOne({ timerId: subDeviceId })
 
-    if (addedDevices.length) {
+      if (exists) {
+        // 已存在：覆盖更新
+        await this.timerModel.updateOne(
+          { timerId: subDeviceId },
+          {
+            $set: {
+              gatewayId,
+              type: valveType,
+              deviceType,
+              capabilities,
+              productId,
+              firmwareVersion,
+              online,
+              last_seen: new Date(),
+            },
+          },
+        )
+        stats.updated++
+        this.loggerService.debug(`子设备已更新: ${subDeviceId}`, LogContext.TIMER_SERVICE)
+      } else {
+        // 不存在：创建新设备
+        await this.timerModel.create({
+          timerId: subDeviceId,
+          gatewayId,
+          name: `水阀-${subDeviceId.slice(-4)}`,
+          type: valveType,
+          deviceType,
+          capabilities,
+          productId,
+          firmwareVersion,
+          online,
+          battery: 100,
+          createdAt: new Date(),
+        })
+        stats.added++
+        this.loggerService.debug(`子设备已创建: ${subDeviceId}`, LogContext.TIMER_SERVICE)
+      }
+    }
+
+    this.loggerService.info(`批量添加子设备完成: 新增 ${stats.added} 个, 更新 ${stats.updated} 个`, LogContext.TIMER_SERVICE)
+    // 如果有设备处理（新增或更新），下发停止配对命令
+    if (stats.added || stats.updated) {
       this.commandSenderService.sendStopPairingCommand(gatewayId, 'success')
       this.loggerService.info(`配对成功，已下发关闭配对命令给网关: ${gatewayId}`, LogContext.TIMER_SERVICE)
     }
@@ -242,7 +264,8 @@ export class TimerService {
    * 更新子设备信息
    */
   async updateSubDevice(data: any) {
-    const { subDeviceId, ...updates } = data
+    // MQTT消息使用uuid，内部逻辑使用subDeviceId
+    const { uuid: subDeviceId, ...updates } = data
     await this.timerModel.updateOne({ timerId: subDeviceId }, { $set: updates })
     this.loggerService.info(`子设备信息已更新: ${subDeviceId}`, LogContext.TIMER_SERVICE)
   }

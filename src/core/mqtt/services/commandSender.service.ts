@@ -104,19 +104,19 @@ export class CommandSenderService {
   sendDeleteSubDeviceCommand(gatewayId: string, subDeviceId: string) {
     this.sendCommand(gatewayId, MqttMessageType.OPERATE_DEVICE, {
       action: OperateAction.SUBDEVICE_DELETE,
-      subDeviceId,
+      uuid: subDeviceId, // MQTT消息使用uuid
     })
   }
 
   /**
    * 发送控制子设备命令（DP点控制）
    * @param gatewayId 网关ID
-   * @param subDeviceId 子设备ID
+   * @param subDeviceId 子设备ID（内部参数名）
    * @param dps DP点数据对象 { dpId: dpValue }
    */
   sendControlSubDeviceCommand(gatewayId: string, subDeviceId: string, dps: Record<number, any>) {
     this.sendCommand(gatewayId, MqttMessageType.DP_COMMAND, {
-      subDeviceId,
+      uuid: subDeviceId, // MQTT消息使用uuid
       dps,
       timestamp: Date.now(),
     })
