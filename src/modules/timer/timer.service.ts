@@ -133,8 +133,8 @@ export class TimerService {
    */
   private async updateSubDeviceStatus(device: any, gatewayId: string, index: number): Promise<boolean> {
     // MQTT消息使用uuid，内部逻辑使用flashId
-    const { uuid: flashId, online, signal_strength, battery_level } = device
-    if (!flashId) {
+    const { uuid, online, signal_strength, battery_level } = device
+    if (!uuid) {
       this.logger.warn(LogMessages.TIMER.SUBDEVICE_FIELD_MISSING(gatewayId, index, 'uuid'), LogContext.TIMER_SERVICE)
       return false
     }
@@ -144,7 +144,7 @@ export class TimerService {
     }
     // 查找并更新
     const result = await this.timerModel.updateOne(
-      { timerId: flashId },
+      { timerId: uuid },
       {
         $set: {
           online,
@@ -156,7 +156,7 @@ export class TimerService {
     )
     // 检查是否更新成功
     if (!result.matchedCount) {
-      this.logger.warn(LogMessages.TIMER.SUBDEVICE_MISSING(flashId), LogContext.TIMER_SERVICE)
+      this.logger.warn(LogMessages.TIMER.SUBDEVICE_MISSING(uuid), LogContext.TIMER_SERVICE)
       return false
     }
     return true
