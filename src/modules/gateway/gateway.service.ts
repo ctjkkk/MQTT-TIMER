@@ -330,6 +330,16 @@ export class GatewayService implements IGatewayServiceInterface {
     // 发送MQTT命令让网关进入子设备配对模式
     this.commandSenderService.sendStartPairingCommand(gatewayId)
   }
+
+  /**
+   * 通知网关处理停止子设备配网请求
+   */
+  async stopSubDevicePairing(userId: string, gatewayId: string): Promise<void> {
+    const gateway = await this.gatewayModel.findOne({ gatewayId })
+    if (!gateway) throw new NotFoundException('The gateway does not exist.')
+    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this gateway.')
+    this.commandSenderService.sendStopPairingCommand(gatewayId, 'manual')
+  }
   /**
    * 解绑网关
    */

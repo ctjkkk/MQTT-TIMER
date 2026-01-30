@@ -117,6 +117,19 @@ export class GatewayController {
   async startSubDevicePairing(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId) {
     return await this.gatewayService.startSubDevicePairing(userId, gatewayId)
   }
+
+  /**
+   * 用户点击停止配对(扩展功能)
+   */
+  @Post(':gatewayId/pairing_stop')
+  @ApiResponseStandard({
+    summary: '停止配对子设备',
+    responseDescription: '网关关闭配对模式',
+    msg: '网关已关闭子设备配对模式',
+  })
+  async stopSubDevicePairing(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.stopSubDevicePairing(userId, gatewayId)
+  }
   /**
    * 获取网关下的子设备列表
    */

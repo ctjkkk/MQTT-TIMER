@@ -11,7 +11,6 @@ import { SUB_DEVICE_TYPES } from './constants/timerTypes.constants'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
 import { EventEmitter2 } from '@nestjs/event-emitter'
-import { MqttBrokerService } from '@/core/mqtt/services/mqttBroker.service'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
 /**
  * Timer设备模块的Service
@@ -19,18 +18,13 @@ import { CommandSenderService } from '@/core/mqtt/services/commandSender.service
  * 职责：
  * 1. 处理Timer设备的业务逻辑
  * 2. 解析DP点数据并更新数据库
- * 3. 提供Timer设备控制方法（通过GatewayService）
  *
- * 设计理念：
- * - 不监听事件，只提供纯业务方法
- * - 由TimerEventsHandler调用
  */
 @Injectable()
 export class TimerService {
   constructor(
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
-    @Inject(MqttBrokerService) private readonly broker: MqttBrokerService,
     @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
     private readonly gatewayService: GatewayService,
     private readonly outletService: OutletService,
@@ -115,6 +109,58 @@ export class TimerService {
   }
 
   /**
+   * 批量处理子设备状态上报
+   */
+  async handleDeviceStatus(message: MqttUnifiedMessage) {
+    const { deviceId: gatewayId } = message
+    const { subDevices } = message.data
+    if (!Array.isArray(subDevices) || !subDevices.length) {
+      this.logger.warn(LogMessages.TIMER.SUBDEVICE_EMPTY(gatewayId), LogContext.TIMER_SERVICE)
+      return
+    }
+    this.logger.info(LogMessages.TIMER.SUBDEVICE_STATUS_RECEIVED(subDevices.length), LogContext.TIMER_SERVICE)
+    const stats = { updated: 0, skipped: 0 }
+
+    for (const [index, device] of subDevices.entries()) {
+      const success = await this.updateSubDeviceStatus(device, gatewayId, index + 1)
+      success ? stats.updated++ : stats.skipped++
+    }
+    this.logger.info(LogMessages.TIMER.SUBDEVICE_STATUS_UPDATED_SUCCESS(stats.updated, stats.skipped), LogContext.TIMER_SERVICE)
+  }
+
+  /**
+   * 更新单个子设备状态
+   */
+  private async updateSubDeviceStatus(device: any, gatewayId: string, index: number): Promise<boolean> {
+    const { subDeviceId, online, signal_strength, battery_level } = device
+    if (!subDeviceId) {
+      this.logger.warn(LogMessages.TIMER.SUBDEVICE_FIELD_MISSING(gatewayId, index, 'subDeviceId'), LogContext.TIMER_SERVICE)
+      return false
+    }
+    if (online == null) {
+      this.logger.warn(LogMessages.TIMER.SUBDEVICE_FIELD_MISSING(gatewayId, index, 'online'), LogContext.TIMER_SERVICE)
+      return false
+    }
+    // 查找并更新
+    const result = await this.timerModel.updateOne(
+      { timerId: subDeviceId },
+      {
+        $set: {
+          online,
+          battery_level,
+          signal_strength,
+          last_seen: new Date(),
+        },
+      },
+    )
+    // 检查是否更新成功
+    if (!result.matchedCount) {
+      this.logger.warn(LogMessages.TIMER.SUBDEVICE_MISSING(subDeviceId), LogContext.TIMER_SERVICE)
+      return false
+    }
+    return true
+  }
+  /**
    * 添加子设备（网关配对成功后调用）
    *
    * @param gatewayId 网关ID
@@ -154,6 +200,11 @@ export class TimerService {
     }
     addedDevices.length && this.loggerService.info(LogMessages.TIMER.ADDED_SUCCESS(addedDevices.length), LogContext.TIMER_SERVICE)
     skippedDevices.length && this.loggerService.debug(`跳过的子设备: ${skippedDevices.join(', ')}`, LogContext.TIMER_SERVICE)
+
+    if (addedDevices.length) {
+      this.commandSenderService.sendStopPairingCommand(gatewayId, 'success')
+      this.loggerService.info(`配对成功，已下发关闭配对命令给网关: ${gatewayId}`, LogContext.TIMER_SERVICE)
+    }
   }
 
   /**

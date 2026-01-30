@@ -125,6 +125,13 @@ export const LogMessages = {
     ADDED_SUCCESS: (count: number) => `批量添加子设备完成: ${count} 个成功`,
     UNKONWN_DEVICE_TYPE: (deviceType: string) => `未知的子设备操作: ${deviceType}`,
     DELETED_SUCCESS: (timerId: string) => `子设备删除成功: ${timerId}`,
+    SUBDEVICE_FIELD_MISSING: (gatewayId: string, index: number, missingField: string) =>
+      `网关 ${gatewayId} 上报的子设备状态列表中第 ${index} 个子设备状态缺少 ${missingField}，跳过该子设备状态更新`,
+    SUBDEVICE_MISSING: (timerId: string) => `子设备不存在: ${timerId}，跳过更新`,
+    SUBDEVICE_EMPTY: (gatewayId: string) => `网关 ${gatewayId} 上报的子设备状态列表为空，跳过更新`,
+    SUBDEVICE_STATUS_UPDATED_SUCCESS: (updatedCount: number, skippedCount: number) =>
+      `子设备状态批量更新完成: 成功 ${updatedCount} 个, 跳过 ${skippedCount} 个`,
+    SUBDEVICE_STATUS_RECEIVED: (count: number) => `收到 ${count} 个子设备状态更新`,
   },
   SYNC: {
     SUBSCRIBED: (tableCount: number) => `已订阅 ${tableCount} 个表的同步消息`,

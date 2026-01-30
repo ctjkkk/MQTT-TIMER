@@ -68,9 +68,22 @@ export class CommandSenderService {
     this.sendCommand(gatewayId, MqttMessageType.OPERATE_DEVICE, {
       entityType: EntityType.GATEWAY,
       action: OperateAction.START_PAIRING,
+      timeout: 60, // 配对超时时间，单位秒
     })
   }
 
+  /**
+   * 发送停止配对子设备命令
+   * @param gatewayId 网关ID
+   * @param reason 停止原因, reason: 'timeout' | 'manual' | 'success'
+   */
+  sendStopPairingCommand(gatewayId: string, reason: string = 'success') {
+    this.sendCommand(gatewayId, MqttMessageType.OPERATE_DEVICE, {
+      entityType: EntityType.GATEWAY,
+      action: OperateAction.STOP_PAIRING,
+      reason: reason,
+    })
+  }
   /**
    * 发送网关重启命令
    * @param gatewayId 网关ID

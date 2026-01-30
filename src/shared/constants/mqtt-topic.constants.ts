@@ -1,12 +1,10 @@
 // Payload 传输格式
 export enum MqttMessageType {
-  // ========== 网关自身的消息 ==========
   DEVICE_STATUS = 'device_status',
 
   // 设备列表同步/添加/删除 (双向)
   OPERATE_DEVICE = 'operate_devices',
 
-  // ========== 子设备的消息（通过网关转发） ==========
   /** DP点数据上报 */
   DP_REPORT = 'dp_report',
 
@@ -55,6 +53,9 @@ export enum OperateAction {
 
   /** 网关开始配对子设备 */
   START_PAIRING = 'start_pairing',
+
+  /** 网关停止配对子设备 */
+  STOP_PAIRING = 'stop_pairing',
 
   // ========== 子设备操作 ==========
   /** 添加子设备 */

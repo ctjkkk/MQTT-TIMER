@@ -9,13 +9,7 @@ export class Timer {
   timerId: string
 
   @Prop({ type: String })
-  valve_id: string
-
-  @Prop({ type: String })
   product_id: string
-
-  @Prop({ type: String })
-  category: string
 
   @Prop({ type: Number })
   capability_bits: number
@@ -29,26 +23,20 @@ export class Timer {
   @Prop({ type: String, ref: 'Gateway', required: true })
   gatewayId: string
 
-  @Prop({ type: String, trim: true })
-  hanqi_device_id: string
-
-  @Prop({ type: Number, required: true, min: 1, max: 4, default: 2 })
+  @Prop({ type: Number, min: 1, max: 4, default: 2 })
   outlet_count: number
 
   @Prop({ type: Number, default: 0 })
   status: number
 
   @Prop({ type: Number, default: 0 })
-  is_connected: number
+  online: number
 
   @Prop({ type: Date, default: null })
   last_seen: Date
 
   @Prop({ type: String, default: '1.0.0', trim: true, comment: '固件版本' })
   firmware_version: string
-
-  @Prop({ type: String, trim: true, comment: 'MAC地址' })
-  mac_address: string
 
   @Prop({ type: Number, min: 0, max: 100, default: 100 })
   battery_level: number

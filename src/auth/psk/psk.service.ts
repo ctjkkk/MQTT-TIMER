@@ -70,7 +70,7 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
     // 更新status为1，表示烧录成功
     psk.status = 1
     await psk.save()
-    // 🔧 同步更新缓存状态
+    // 同步更新缓存状态
     this.pskCacheMap.set(psk.identity, { key: psk.key, status: 1 })
     this.loggerService.info(`PSK 已确认并激活: ${psk.identity}`, LogContext.PSK)
     return { tip: 'PSK烧录确认成功' }

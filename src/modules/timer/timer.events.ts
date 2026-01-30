@@ -28,7 +28,7 @@ export class TimerEventsHandler {
   ) {}
 
   /**
-   * 监听子设备MQTT消息事件
+   * 监听子设备MQTT上报消息事件
    * 根据消息类型分发到Service的对应方法
    */
   @OnEvent(AppEvents.MQTT_SUBDEVICE_MESSAGE)
@@ -41,12 +41,16 @@ export class TimerEventsHandler {
         await this.timerService.handleDpReport(message)
         break
       case MqttMessageType.HEARTBEAT:
-        // 心跳（子设备）
+        // 上报心跳（子设备）
         await this.timerService.handleHeartbeat(message)
         break
       case MqttMessageType.OPERATE_DEVICE:
-        // 子设备生命周期操作（添加、删除、更新）
+        // 上报子设备生命周期操作（添加、删除、更新）
         await this.timerService.handleOperateDevice(message)
+        break
+      case MqttMessageType.DEVICE_STATUS:
+        // 批量上报子设备状态
+        await this.timerService.handleDeviceStatus(message)
         break
       default:
         this.logger.warn(`未知的子设备消息类型: ${message.msgType}`, LogContext.TIMER_SERVICE)
