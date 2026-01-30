@@ -132,9 +132,9 @@ export class TimerService {
    * 更新单个子设备状态
    */
   private async updateSubDeviceStatus(device: any, gatewayId: string, index: number): Promise<boolean> {
-    const { subDeviceId, online, signal_strength, battery_level } = device
-    if (!subDeviceId) {
-      this.logger.warn(LogMessages.TIMER.SUBDEVICE_FIELD_MISSING(gatewayId, index, 'subDeviceId'), LogContext.TIMER_SERVICE)
+    const { flashId, online, signal_strength, battery_level } = device
+    if (!flashId) {
+      this.logger.warn(LogMessages.TIMER.SUBDEVICE_FIELD_MISSING(gatewayId, index, 'flashId'), LogContext.TIMER_SERVICE)
       return false
     }
     if (online == null) {
@@ -143,7 +143,7 @@ export class TimerService {
     }
     // 查找并更新
     const result = await this.timerModel.updateOne(
-      { timerId: subDeviceId },
+      { timerId: flashId },
       {
         $set: {
           online,
@@ -155,7 +155,7 @@ export class TimerService {
     )
     // 检查是否更新成功
     if (!result.matchedCount) {
-      this.logger.warn(LogMessages.TIMER.SUBDEVICE_MISSING(subDeviceId), LogContext.TIMER_SERVICE)
+      this.logger.warn(LogMessages.TIMER.SUBDEVICE_MISSING(flashId), LogContext.TIMER_SERVICE)
       return false
     }
     return true

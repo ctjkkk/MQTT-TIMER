@@ -6,7 +6,7 @@ export type TimerDocument = HydratedDocument<Timer>
 @Schema({ timestamps: true, collection: 'timers' })
 export class Timer {
   @Prop({ type: String, required: true, unique: true, trim: true })
-  timerId: string
+  flashId: string
 
   @Prop({ type: String })
   product_id: string
