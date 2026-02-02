@@ -1,41 +1,107 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common'
+import { Injectable, NotFoundException, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { randomBytes } from 'crypto'
 import { Psk, PskDocument } from './schema/psk.schema'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
+import { RedisService } from '@/core/database'
 import type { PskMeta } from './types/psk'
 import { IPskServiceInterface } from './interface/pskService.interface'
 
 /**
- * PSK认证服务
- * 处理网关PSK的生成和确认
+ * PSK认证服务（管理数据库 ↔ Redis 同步）
+ *
+ * 架构说明：
+ * - PskService：负责数据库 CRUD 和 Redis 同步
+ * - PskAuthStrategy：从 Redis 加载到内存缓存（用于 TLS 同步回调）
+ *
+ * 缓存策略：
+ * 1. 数据库（MongoDB）- 持久化存储
+ * 2. Redis - 分布式缓存（多实例共享，永不过期）
+ * 3. MQTT 模块内存缓存 - 用于 TLS pskCallback 同步查询
+ *
+ * 同步流程：
+ * - PSK 生成/确认 → 数据库 → Redis
+ * - 定期同步：每 5 分钟从数据库同步到 Redis
  */
 @Injectable()
-export class PskService implements OnModuleInit, IPskServiceInterface {
-  public pskCacheMap = new Map<string, PskMeta>()
-
+export class PskService implements OnModuleInit, OnModuleDestroy, IPskServiceInterface {
+  // Redis 键前缀
+  readonly REDIS_PREFIX = 'psk:'
+  // 定期同步定时器
+  private syncTimer: NodeJS.Timeout | null = null
   constructor(
     @InjectModel(Psk.name) private readonly hanqiPskModel: Model<PskDocument>,
+    private readonly redis: RedisService,
     private readonly loggerService: LoggerService,
   ) {}
 
   async onModuleInit() {
-    // 此时连接已 ready，可以安全查询
-    const activeList = await this.hanqiPskModel.find({ status: 1 }).lean()
-    activeList.forEach(d => this.pskCacheMap.set(d.identity, { key: d.key, status: d.status }))
-    this.loggerService.info(LogMessages.PSK.LOAD(this.pskCacheMap.size), LogContext.PSK)
+    // Redis 已由 DatabaseModule 确保连接就绪
+    await this.syncFromDatabase()
+    // 启动定期同步（每 5 分钟）
+    this.startSyncTask()
   }
 
+  onModuleDestroy() {
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer)
+      this.syncTimer = null
+    }
+  }
+
+  /**
+   * 启动定期同步任务
+   */
+  private startSyncTask() {
+    this.syncTimer = setInterval(
+      async () => {
+        await this.syncFromDatabase()
+      },
+      5 * 60 * 1000,
+    ) // 5 分钟
+  }
+
+  /**
+   * 从数据库同步到 Redis
+   */
+  private async syncFromDatabase() {
+    try {
+      const allPsks = await this.hanqiPskModel.find().lean()
+      const dbIdentities = new Set(allPsks.map(p => p.identity))
+      // 更新/新增到 Redis
+      for (const psk of allPsks) {
+        const meta: PskMeta = { key: psk.key, status: psk.status }
+        await this.redis.set(`${this.REDIS_PREFIX}${psk.identity}`, meta, 0)
+      }
+      // 删除 Redis 中不存在的
+      const redisKeys = await this.redis.getClient().keys(`${this.REDIS_PREFIX}*`)
+      for (const key of redisKeys) {
+        const identity = key.replace(this.REDIS_PREFIX, '')
+        if (!dbIdentities.has(identity)) {
+          await this.redis.del(key)
+          this.loggerService.warn(LogMessages.PSK.REDIS_REMOVED(identity), LogContext.PSK)
+        }
+      }
+      this.loggerService.info(LogMessages.PSK.SYNC_COMPLETE(allPsks.length), LogContext.PSK)
+    } catch (error) {
+      this.loggerService.error(LogMessages.PSK.SYNC_FAILED(error.message), error.stack, LogContext.PSK)
+    }
+  }
+
+  /**
+   * 生成 PSK（同时更新 Redis + 内存）
+   */
   async generatePsk(macAddress: string) {
     const existingPsk = await this.hanqiPskModel.findOne({ mac_address: macAddress })
-    // 如果旧PSK存在，直接删除缓存（因为要生成新key）
-    existingPsk && this.pskCacheMap.delete(existingPsk.identity)
+    // 删除旧的 Redis 缓存
+    if (existingPsk) {
+      await this.redis.del(`${this.REDIS_PREFIX}${existingPsk.identity}`)
+    }
     const identity = macAddress
-    // 生成64字节的随机key（128位十六进制字符串）
     const key = randomBytes(64).toString('hex')
-    // 有则覆盖，无则新增
+    // 更新数据库
     await this.hanqiPskModel.findOneAndUpdate(
       { mac_address: macAddress },
       {
@@ -46,20 +112,22 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
         },
       },
       {
-        upsert: true, // 没有就插入
-        new: true, // 返回更新后的文档
-        runValidators: true, // 触发 schema 校验
+        upsert: true,
+        new: true,
+        runValidators: true,
       },
     )
-    // 同步更新缓存，允许设备立即尝试连接
-    this.pskCacheMap.set(identity, { key, status: 0 })
+    const meta: PskMeta = { key, status: 0 }
+    // 同步到 Redis
+    await this.redis.set(`${this.REDIS_PREFIX}${identity}`, meta, 0)
     this.loggerService.info(LogMessages.PSK.GENERATED(identity, key), LogContext.PSK)
     return { identity, key }
   }
 
-  // 确认PSK烧录成功
+  /**
+   * 确认 PSK（更新数据库和 Redis）
+   */
   async confirmPsk(macAddress: string) {
-    // 查找待确认的PSK记录
     const psk = await this.hanqiPskModel.findOne({ mac_address: macAddress })
     if (!psk) {
       throw new NotFoundException('未找到该MAC地址的PSK记录，请先调用生成接口')
@@ -67,22 +135,41 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
     if (psk.status) {
       return { tip: 'PSK已经确认过' }
     }
-    // 更新status为1，表示烧录成功
+    // 更新数据库
     psk.status = 1
     await psk.save()
-    // 同步更新缓存状态
-    this.pskCacheMap.set(psk.identity, { key: psk.key, status: 1 })
-    this.loggerService.info(`PSK 已确认并激活: ${psk.identity}`, LogContext.PSK)
+
+    const meta: PskMeta = { key: psk.key, status: 1 }
+    // 同步到 Redis
+    await this.redis.set(`${this.REDIS_PREFIX}${psk.identity}`, meta, 0)
+
+    this.loggerService.info(LogMessages.PSK.CONFIRMED(psk.identity), LogContext.PSK)
     return { tip: 'PSK烧录确认成功' }
   }
 
-  public exists(identity: string): boolean {
-    const result = this.pskCacheMap.get(identity)
-    return result ? true : false
+  /**
+   * 获取 Redis 中的 PSK 数量
+   */
+  async getRedisCount(): Promise<number> {
+    const keys = await this.redis.getClient().keys(`${this.REDIS_PREFIX}*`)
+    return keys.length
   }
 
-  public isActive(identity: string): boolean {
-    const mate = this.pskCacheMap.get(identity)
-    return mate && mate.status ? true : false
+  /**
+   * 手动触发同步
+   */
+  async manualSync() {
+    await this.syncFromDatabase()
+    return {
+      redisCount: await this.getRedisCount(),
+    }
+  }
+
+  /**
+   * 清空所有 PSK 缓存
+   */
+  async clearAllCache() {
+    await this.redis.delByPattern(`${this.REDIS_PREFIX}*`)
+    this.loggerService.warn(LogMessages.PSK.CACHE_CLEARED(), LogContext.PSK)
   }
 }

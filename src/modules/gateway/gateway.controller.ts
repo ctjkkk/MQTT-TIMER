@@ -10,6 +10,7 @@ import {
   UnbindGatewayResponseDto,
 } from './dto/http-response.dto'
 import { CurrentUserId } from '@/common/decorators/paramExtractor.decorators'
+import { SubDeviceListResponseDto } from '../timer/dto/http-response.dto'
 
 /**
  * Gateway模块的HTTP Controller
@@ -57,32 +58,33 @@ export class GatewayController {
   }
 
   /**
-   * 验证网关是否在线（配网完成后轮询调用）
-   * 注意：此接口为公开接口，不需要身份验证（用于配网流程）
+   * 验证网关在线状态和绑定状态（配网流程专用）
+   * 用途：
+   * - 配网完成后轮询检查网关是否上线
+   * - 前端智能判断：检查网关是否已绑定，避免重复配网
+   * 返回：
+   * - isOnline: 网关是否在线
+   * - isBound: 网关是否已绑定用户
+   * - userId: 绑定的用户ID（如果已绑定）
    */
   @Post('/:gatewayId/verify')
   @ApiResponseStandard({
     summary: '验证配网状态',
-    responseDescription: '返回网关在线状态',
-    msg: '查询成功',
+    responseDescription: '返回网关在线状态和绑定状态',
+    msg: '验证成功',
     responseType: VerifyPairingResponseDto,
   })
-  async verifyPairing(@Param('gatewayId') gatewayId: string) {
-    const isOnline = await this.gatewayService.verifyGatewayOnline(gatewayId)
-    return {
-      gatewayId,
-      isOnline,
-      message: isOnline ? 'The gateway has been launched.' : 'The gateway is not online. Please try again later.',
-    }
+  async verifyGateway(@Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.verifyGatewayForPairing(gatewayId)
   }
 
   /**
-   * 获取网关状态
+   * 获取网关状态（需要用户权限）
    */
   @Get('/:gatewayId/status')
   @ApiResponseStandard({
-    summary: '获取网关状态',
-    responseDescription: '返回网关详细状态',
+    summary: '获取网关信息',
+    responseDescription: '返回网关详细信息',
     msg: '查询成功',
     responseType: GatewayStatusResponseDto,
   })
@@ -138,6 +140,7 @@ export class GatewayController {
     summary: '获取子设备列表',
     responseDescription: '返回子设备列表',
     msg: '查询成功',
+    responseType: [SubDeviceListResponseDto],
   })
   async getSubDevices(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.getSubDevices(gatewayId, userId)

@@ -12,6 +12,7 @@ import type { GatewayStatusData } from './types/gateway.type'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import type { IGatewayServiceInterface } from './interfaces/gateway-service.interface'
+import { SubDeviceListResponseDto } from '../timer/dto/http-response.dto'
 @Injectable()
 export class GatewayService implements IGatewayServiceInterface {
   constructor(
@@ -237,9 +238,7 @@ export class GatewayService implements IGatewayServiceInterface {
           },
         },
       )
-
       this.logger.info(LogMessages.GATEWAY.BIND_UPDATE(gatewayId, userId), LogContext.GATEWAY_SERVICE)
-
       return {
         gatewayId,
         name: gatewayName ?? gateway.name,
@@ -247,7 +246,6 @@ export class GatewayService implements IGatewayServiceInterface {
         message: 'Gateway information has been updated.',
       }
     }
-
     //  绑定到用户
     await this.gatewayModel.updateOne(
       { gatewayId },
@@ -259,9 +257,7 @@ export class GatewayService implements IGatewayServiceInterface {
         },
       },
     )
-
     this.logger.info(LogMessages.GATEWAY.BIND_SUCCESS(gatewayId, userId), LogContext.GATEWAY_SERVICE)
-
     return {
       gatewayId,
       name: gatewayName || `gateway-${gatewayId.slice(-6)}`,
@@ -283,6 +279,7 @@ export class GatewayService implements IGatewayServiceInterface {
       gatewayId: gateway.gatewayId,
       name: gateway.name,
       isOnline: gateway.is_connected === 1,
+      isBind: gateway.userId !== null && gateway.userId !== undefined,
       lastSeen: gateway.last_seen,
       wifiRssi: gateway.wifi_rssi,
       firmwareVersion: gateway.firmware_version,
@@ -304,20 +301,40 @@ export class GatewayService implements IGatewayServiceInterface {
   }
 
   /**
-   * 获取用户的所有网关列表
+   * 验证网关状态（配网流程专用）
+   *
+   * 用于前端智能判断：
+   * - 检查网关是否在线
+   * - 检查网关是否已绑定用户
+   * - 返回绑定的用户ID（如果已绑定）
+   *
+   * @param gatewayId 网关ID
+   * @returns 网关状态信息
    */
-  async getUserGateways(userId: string) {
-    const gateways = await this.gatewayModel.find({ userId }).sort({ createdAt: -1 }).lean().exec()
-    return gateways.map(gateway => ({
-      id: gateway._id,
-      gatewayId: gateway.gatewayId,
+  async verifyGatewayForPairing(gatewayId: string) {
+    const gateway = await this.gatewayModel.findOne({ gatewayId })
+    if (!gateway) {
+      // 网关不存在
+      return {
+        exists: false,
+        isOnline: false,
+        isBound: false,
+        userId: null,
+        name: null,
+      }
+    }
+    // 检查是否在线（连接标志为在线 && 最近1分钟内有心跳）
+    const isOnline = gateway.is_connected === 1
+    const isRecent = gateway.last_seen && Date.now() - gateway.last_seen.getTime() < 60000
+    // 检查是否已绑定用户
+    const isBound = gateway.userId !== null && gateway.userId !== undefined
+    return {
+      exists: true,
+      isOnline: isOnline && isRecent,
+      isBound: isBound,
+      userId: isBound ? gateway.userId.toString() : null,
       name: gateway.name,
-      isOnline: gateway.is_connected === 1,
-      lastSeen: gateway.last_seen,
-      wifiRssi: gateway.wifi_rssi,
-      firmwareVersion: gateway.firmware_version,
-      createdAt: (gateway as any).createdAt, // timestamps 自动生成的字段
-    }))
+    }
   }
 
   /**
@@ -353,27 +370,24 @@ export class GatewayService implements IGatewayServiceInterface {
     return { message: 'Gateway unbinding successful' }
   }
 
-  // ========== 子设备管理 ==========
-
   /**
    * 获取网关下的所有子设备
    */
-  async getSubDevices(gatewayId: string, userId: string): Promise<TimerDocument[]> {
+  async getSubDevices(gatewayId: string, userId: string): Promise<SubDeviceListResponseDto[]> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('This gateway does not exist.')
     if (!gateway.userId || gateway.userId.toString() !== userId)
       throw new BadRequestException('You have no right to view the sub-devices under this gateway.')
-    const timers = await this.timerModel.find({ gatewayId }).exec()
-    return timers
-  }
+    const timers = await this.timerModel.find({ gatewayId }).lean()
 
-  /**
-   * 根据子设备ID查找它所属的网关
-   */
-  async findGatewayBySubDeviceId(subDeviceId: string) {
-    const timer = await this.timerModel.findOne({ timerId: subDeviceId })
-    if (!timer) return null
-    const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
-    return gateway
+    return timers.map(timer => ({
+      userId: timer.userId?.toString(),
+      gatewayId: timer.gatewayId?.toString(),
+      timerId: timer.timerId?.toString(),
+      name: timer.name,
+      status: timer.status,
+      lastSeen: timer.last_seen,
+      online: timer.online,
+    }))
   }
 }

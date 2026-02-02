@@ -2,6 +2,7 @@ import type { MqttUnifiedMessage, MqttMessageType } from '@/shared/constants/mqt
 import type { GatewayStatusData } from '../types/gateway.type'
 import type { TimerDocument } from '@/modules/timer/schema/timer.schema'
 import { BindGatewayResponseDto, GatewayStatusResponseDto } from '../dto/http-response.dto'
+import { SubDeviceListResponseDto } from '@/modules/timer/dto/http-response.dto'
 
 export interface IGatewayServiceInterface {
   // ============ MQTT消息处理方法 ============
@@ -71,12 +72,5 @@ export interface IGatewayServiceInterface {
    * @param gatewayId 网关ID
    * @returns 子设备列表
    */
-  getSubDevices(gatewayId: string, userId: string): Promise<TimerDocument[]>
-
-  /**
-   * 根据子设备ID查找它所属的网关
-   * @param subDeviceId 子设备ID
-   * @returns 所属网关信息
-   */
-  findGatewayBySubDeviceId(subDeviceId: string, userId: string): Promise<any>
+  getSubDevices(gatewayId: string, userId: string): Promise<SubDeviceListResponseDto[]>
 }

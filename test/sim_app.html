@@ -254,7 +254,8 @@
         <p>无需真实硬件，完整测试配网流程</p>
         <p style="margin-top: 15px; padding: 10px; background: rgba(255, 255, 255, 0.2); border-radius: 8px; font-size: 13px">
           ⚠️ <strong>业务规则：一个用户只能绑定一个网关</strong><br />
-          如需更换网关，请先解绑当前网关
+          💡 网关绑定后会自动存储WiFi信息并自动上线<br />
+          💡 已绑定的网关会被自动识别，无需重复配网
         </p>
       </div>
 
@@ -279,6 +280,11 @@
             <label>网关ID（MAC地址）</label>
             <input type="text" id="gatewayId" disabled placeholder="等待读取..." />
           </div>
+          <div class="input-group">
+            <label>JWT Token（用于验证网关绑定状态）</label>
+            <input type="text" id="jwtTokenEarly" placeholder="粘贴JWT token（可选）" />
+            <small style="color: #666; margin-top: 5px; display: block">💡 提前输入Token可检查网关是否已绑定，避免重复配网</small>
+          </div>
           <button type="button" onclick="readGatewayId()" id="btnReadId" disabled>读取网关ID</button>
         </div>
 
@@ -287,6 +293,9 @@
           <div class="step-title">
             <span class="step-number">3</span>
             <span>配置WiFi</span>
+          </div>
+          <div class="status info" style="margin-bottom: 15px">
+            💡 <strong>智能判断</strong>：如果网关已绑定用户，将自动跳过此步骤（网关会自动上线）
           </div>
           <div class="input-group">
             <label>WiFi名称（SSID）</label>
@@ -305,11 +314,14 @@
             <span class="step-number">4</span>
             <span>等待网关上线</span>
           </div>
+          <div class="status info" style="margin-bottom: 15px">
+            💡 <strong>智能提示</strong>：如步骤2已检测到网关已绑定，此步骤将自动完成
+          </div>
           <div class="config-section">
             <div class="input-group">
               <label>JWT Token（用于验证网关状态）</label>
               <input type="text" id="jwtToken" placeholder="粘贴JWT token" disabled />
-              <small style="color: #666; margin-top: 5px; display: block">💡 Token会在步骤3完成后自动启用</small>
+              <small style="color: #666; margin-top: 5px; display: block">💡 Token已在步骤2输入，或在步骤3完成后启用</small>
             </div>
           </div>
           <button type="button" onclick="waitForOnline()" id="btnWaitOnline" disabled>开始检测</button>
@@ -320,16 +332,34 @@
         <div class="step" id="step5">
           <div class="step-title">
             <span class="step-number">5</span>
-            <span>绑定网关</span>
+            <span>绑定网关到用户</span>
+          </div>
+          <div class="status warning" style="margin-bottom: 15px">
+            ⚠️ <strong>业务规则</strong>：一个用户只能绑定一个网关，网关绑定后会自动通过已存储的WiFi信息上线
           </div>
           <div class="config-section">
             <div class="input-group">
               <label>网关名称</label>
-              <input type="text" id="gatewayName" placeholder="客厅网关" disabled />
-              <small style="color: #666; margin-top: 5px; display: block">💡 Token已在步骤4输入</small>
+              <input type="text" id="gatewayName" placeholder="例如：客厅网关" disabled />
+              <small style="color: #666; margin-top: 5px; display: block">💡 Token已在步骤2输入</small>
             </div>
           </div>
           <button type="button" onclick="bindGateway()" id="btnBind" disabled>绑定网关</button>
+        </div>
+
+        <!-- 🆕 步骤6：添加子设备 -->
+        <div class="step" id="step6">
+          <div class="step-title">
+            <span class="step-number">6</span>
+            <span>添加子设备（水阀）</span>
+          </div>
+          <div class="status info" style="margin-bottom: 15px">
+            💡 <strong>前置条件</strong>：网关必须已绑定用户且在线
+          </div>
+          <button type="button" onclick="startPairing()" id="btnStartPairing" disabled>开始配对子设备</button>
+          <button type="button" onclick="stopPairing()" id="btnStopPairing" disabled style="margin-top: 10px">停止配对</button>
+          <div id="pairingStatus"></div>
+          <div id="subDeviceList" style="margin-top: 15px"></div>
         </div>
 
         <!-- 日志 -->
@@ -365,6 +395,7 @@
 
       let currentGatewayId = ''
       let pollingInterval = null
+      let pairingPollingInterval = null // 🆕 配对轮询定时器
 
       // ========== 工具函数 ==========
 
@@ -535,13 +566,123 @@
 
         log(`✅ 网关ID: ${currentGatewayId}`)
         showStatus('step2', '读取成功', 'success')
+        completeStep(2)
 
-        // 启用WiFi配置
+        // 🆕 智能判断：检查网关是否已在线
+        log('🔍 检查网关是否已配网并在线...')
+        await checkGatewayOnlineStatus()
+      }
+
+      /**
+       * 🆕 检查网关绑定状态（智能判断是否需要配网）
+       */
+      async function checkGatewayOnlineStatus() {
+        // 优先从步骤2的token输入框读取，如果没有则从步骤4读取
+        let token = document.getElementById('jwtTokenEarly').value
+        if (!token) {
+          token = document.getElementById('jwtToken').value
+        }
+
+        // 同步两个token输入框
+        if (token) {
+          document.getElementById('jwtToken').value = token
+          document.getElementById('jwtTokenEarly').value = token
+        }
+
+        if (!token) {
+          log('⚠️  未输入Token，无法检查网关绑定状态', 'warning')
+          log('💡 默认进入配网流程（步骤3）', 'info')
+          // 启用WiFi配置
+          enableWiFiConfig()
+          return
+        }
+
+        try {
+          // 调用 verify 接口检查网关是否已绑定（无需权限）
+          log('🔍 正在检查网关绑定状态...')
+          const response = await fetch(`${API_BASE}/gateway/${currentGatewayId}/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              authorization: `Bearer ${token}`,
+            },
+          })
+
+          const data = await response.json()
+
+          if (response.ok && data.code === 200 && data.data) {
+            const { exists, isOnline, isBound, userId, name } = data.data
+
+            if (!exists) {
+              // 网关不存在 → 需要配网
+              log('📡 网关未注册，需要配置WiFi', 'info')
+              enableWiFiConfig()
+              return
+            }
+
+            if (isBound && userId) {
+              // 网关已绑定 → 无需任何操作
+              log('✅ 检测到网关已绑定用户！', 'success')
+              log(`📝 网关名称: ${name || '未命名'}`, 'info')
+              log(`👤 绑定用户ID: ${userId}`, 'info')
+              log(`🌐 在线状态: ${isOnline ? '在线' : '离线'}`, 'info')
+              log('💡 网关已完成配网和绑定，无需重复操作', 'success')
+              log('💡 网关会自动通过已存储的WiFi信息上线', 'info')
+
+              // 标记所有步骤为已完成
+              showStatus('step3', '✅ 网关已绑定，无需配网', 'success')
+              document.getElementById('step3').classList.add('completed')
+
+              showStatus('step4', '✅ 网关已绑定，自动上线', 'success')
+              document.getElementById('step4').classList.add('completed')
+
+              showStatus('step5', '✅ 网关已绑定到用户', 'success')
+              document.getElementById('step5').classList.add('completed')
+              completeStep(5)
+
+              // 禁用所有后续操作
+              document.getElementById('wifiSsid').disabled = true
+              document.getElementById('wifiPassword').disabled = true
+              document.getElementById('btnConfigWiFi').disabled = true
+              document.getElementById('jwtToken').disabled = true
+              document.getElementById('btnWaitOnline').disabled = true
+              document.getElementById('gatewayName').disabled = true
+              document.getElementById('btnBind').disabled = true
+
+              // 🆕 启用步骤6（添加子设备）- 网关已绑定且在线可以立即添加子设备
+              if (isOnline) {
+                document.getElementById('btnStartPairing').disabled = false
+                document.getElementById('step6').classList.add('active')
+                log('✅ 网关在线，可以添加子设备（步骤6）', 'success')
+              } else {
+                log('⚠️  网关离线，请等待网关上线后再添加子设备', 'warning')
+              }
+            } else {
+              // 网关未绑定 → 需要配网
+              log('📡 网关已注册但未绑定用户，需要配置WiFi', 'info')
+              enableWiFiConfig()
+            }
+          } else {
+            // 查询失败 → 默认进入配网流程
+            log('⚠️  查询网关状态失败，默认进入配网流程', 'warning')
+            enableWiFiConfig()
+          }
+        } catch (error) {
+          console.error('检查网关绑定状态错误:', error)
+          log('⚠️  无法验证网关绑定状态，默认进入配网流程', 'warning')
+          // 出错时默认进入配网流程
+          enableWiFiConfig()
+        }
+      }
+
+      /**
+       * 🆕 启用WiFi配置步骤
+       */
+      function enableWiFiConfig() {
         document.getElementById('wifiSsid').disabled = false
         document.getElementById('wifiPassword').disabled = false
         document.getElementById('btnConfigWiFi').disabled = false
-
-        completeStep(2)
+        log('💡 请配置WiFi信息（步骤3）', 'info')
       }
 
       // ========== 步骤3：配置WiFi ==========
@@ -751,6 +892,10 @@
 
             showStatus('step5', '绑定成功！配网流程完成 🎉', 'success')
             completeStep(5)
+
+            // 🆕 启用步骤6（添加子设备）
+            document.getElementById('btnStartPairing').disabled = false
+            log('💡 现在可以添加子设备了（步骤6）', 'success')
           } else {
             log(`❌ 绑定失败: ${data.message || '未知错误'}`, 'error')
             showStatus('step5', `绑定失败: ${data.message || '服务器错误'}`, 'error')
@@ -762,18 +907,253 @@
         }
       }
 
+      // ========== 🆕 步骤6：添加子设备 ==========
+
+      /**
+       * 开始配对子设备
+       */
+      async function startPairing() {
+        const token = document.getElementById('jwtToken').value
+
+        if (!token) {
+          showStatus('step6', '请先输入Token', 'error')
+          log('❌ 缺少JWT Token', 'error')
+          return
+        }
+
+        if (!currentGatewayId) {
+          showStatus('step6', '网关ID丢失，请重新扫描', 'error')
+          log('❌ 网关ID丢失', 'error')
+          return
+        }
+
+        log('🔍 正在检查网关状态...')
+        showStatus('step6', '正在检查网关状态...', 'info')
+
+        try {
+          // 先验证网关是否已绑定且在线
+          const verifyResponse = await fetch(`${API_BASE}/gateway/${currentGatewayId}/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              authorization: `Bearer ${token}`,
+            },
+          })
+
+          const verifyData = await verifyResponse.json()
+
+          if (!verifyResponse.ok || !verifyData.data) {
+            throw new Error('无法验证网关状态')
+          }
+
+          const { exists, isOnline, isBound } = verifyData.data
+
+          // 检查网关是否存在
+          if (!exists) {
+            log('❌ 网关不存在', 'error')
+            showStatus('step6', '网关不存在，请先完成配网', 'error')
+            return
+          }
+
+          // 检查网关是否已绑定
+          if (!isBound) {
+            log('❌ 网关未绑定用户', 'error')
+            showStatus('step6', '网关未绑定用户，请先完成步骤5', 'error')
+            return
+          }
+
+          // 检查网关是否在线
+          if (!isOnline) {
+            log('❌ 网关离线，无法添加子设备', 'error')
+            showStatus('step6', '网关离线，请确保网关已连接', 'error')
+            return
+          }
+
+          log('✅ 网关状态正常，可以添加子设备')
+          log('🔄 正在向网关发送配对命令...')
+
+          // 调用API开始配对
+          const response = await fetch(`${API_BASE}/gateway/${currentGatewayId}/pairing_start`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              authorization: `Bearer ${token}`,
+            },
+          })
+
+          const data = await response.json()
+
+          if (response.ok && data.code === 200) {
+            log('✅ 配对命令已发送！')
+            log('💡 网关已进入配对模式')
+            log('🔍 网关正在扫描周围的子设备（约15秒）...')
+            log('💡 扫描完成后将一次性上报所有发现的子设备')
+            log('💡 观察网关模拟器窗口，查看扫描进度')
+            log('💡 也可以手动输入 "pair" 添加子设备，输入 "finish" 立即完成扫描')
+
+            showStatus('step6', '🔍 网关正在扫描子设备（约15秒），请等待...', 'success')
+
+            // 启用停止配对按钮
+            document.getElementById('btnStopPairing').disabled = false
+            document.getElementById('btnStartPairing').disabled = true
+
+            // 开始轮询查询子设备列表
+            startPollingSubDevices()
+          } else {
+            log(`❌ 启动配对失败: ${data.message}`, 'error')
+            showStatus('step6', `启动配对失败: ${data.message}`, 'error')
+          }
+        } catch (error) {
+          console.error('启动配对错误:', error)
+          log(`❌ 启动配对失败: ${error.message}`, 'error')
+          showStatus('step6', `启动配对失败: ${error.message}`, 'error')
+        }
+      }
+
+      /**
+       * 停止配对子设备
+       */
+      async function stopPairing() {
+        const token = document.getElementById('jwtToken').value
+
+        if (!token) {
+          return
+        }
+
+        log('🛑 正在停止配对...')
+
+        try {
+          const response = await fetch(`${API_BASE}/gateway/${currentGatewayId}/pairing_stop`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              authorization: `Bearer ${token}`,
+            },
+          })
+
+          const data = await response.json()
+
+          if (response.ok && data.code === 200) {
+            log('✅ 已停止配对')
+            showStatus('step6', '已停止配对', 'success')
+
+            // 停止轮询
+            stopPollingSubDevices()
+
+            // 恢复按钮状态
+            document.getElementById('btnStartPairing').disabled = false
+            document.getElementById('btnStopPairing').disabled = true
+          } else {
+            log(`❌ 停止配对失败: ${data.message}`, 'error')
+          }
+        } catch (error) {
+          console.error('停止配对错误:', error)
+          log(`❌ 停止配对失败: ${error.message}`, 'error')
+        }
+      }
+
+      /**
+       * 开始轮询子设备列表
+       */
+      function startPollingSubDevices() {
+        const token = document.getElementById('jwtToken').value
+
+        // 清除之前的轮询
+        if (pairingPollingInterval) {
+          clearInterval(pairingPollingInterval)
+        }
+
+        let lastCount = 0
+
+        pairingPollingInterval = setInterval(async () => {
+          try {
+            const response = await fetch(`${API_BASE}/gateway/${currentGatewayId}/devices`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                authorization: `Bearer ${token}`,
+              },
+            })
+
+            const data = await response.json()
+
+            if (response.ok && data.code === 200 && Array.isArray(data.data)) {
+              const devices = data.data
+
+              // 如果子设备数量有变化，更新显示
+              if (devices.length !== lastCount) {
+                lastCount = devices.length
+                log(`📋 当前已配对 ${devices.length} 个子设备`)
+
+                // 显示子设备列表
+                displaySubDevices(devices)
+              }
+            }
+          } catch (error) {
+            console.error('查询子设备列表错误:', error)
+          }
+        }, 2000) // 每2秒查询一次
+      }
+
+      /**
+       * 停止轮询子设备列表
+       */
+      function stopPollingSubDevices() {
+        if (pairingPollingInterval) {
+          clearInterval(pairingPollingInterval)
+          pairingPollingInterval = null
+        }
+      }
+
+      /**
+       * 显示子设备列表
+       */
+      function displaySubDevices(devices) {
+        const container = document.getElementById('subDeviceList')
+
+        if (devices.length === 0) {
+          container.innerHTML = '<div class="status info">暂无子设备</div>'
+          return
+        }
+
+        let html = '<div class="status success">已配对的子设备：</div>'
+        html += '<div style="margin-top: 10px">'
+
+        devices.forEach((device, index) => {
+          html += `
+            <div style="padding: 10px; background: #f5f5f5; border-radius: 5px; margin-bottom: 10px">
+              <strong>${index + 1}. ${device.name || device.timerId}</strong><br>
+              <small>ID: ${device.timerId}</small><br>
+              <small>类型: ${device.type || 'valve_single'}</small><br>
+              <small>状态: ${device.online ? '🟢 在线' : '🔴 离线'}</small>
+            </div>
+          `
+        })
+
+        html += '</div>'
+        container.innerHTML = html
+      }
+
       // ========== 初始化 ==========
 
       window.onload = function () {
         log('✅ 前端模拟器已就绪')
 
-        // 自动填充真实Token（如果配置了）
+        // 自动填充真实Token（如果配置了）- 同时填充两个输入框
         if (REAL_TOKEN) {
-          const tokenInput = document.getElementById('jwtToken')
-          tokenInput.value = REAL_TOKEN
+          document.getElementById('jwtToken').value = REAL_TOKEN
+          document.getElementById('jwtTokenEarly').value = REAL_TOKEN
           log('🔑 已自动填充真实用户Token (qumeng039@126.com)', 'success')
           log('   Token: ' + REAL_TOKEN.substring(0, 50) + '...', 'info')
         }
+
+        // 监听Token输入框变化，保持同步
+        document.getElementById('jwtTokenEarly').addEventListener('input', function () {
+          document.getElementById('jwtToken').value = this.value
+        })
+        document.getElementById('jwtToken').addEventListener('input', function () {
+          document.getElementById('jwtTokenEarly').value = this.value
+        })
 
         // 阻止所有输入框的Enter键提交表单（防止页面刷新）
         document.querySelectorAll('input').forEach(input => {
@@ -785,12 +1165,18 @@
           })
         })
 
-        log('📌 请按步骤操作：')
-        log('   1. 点击"开始扫描蓝牙设备"')
-        log('   2. 选择一个网关')
-        log('   3. 配置WiFi')
-        log('   4. 输入Token并检测网关上线')
-        log('   5. 绑定网关')
+        log('📌 智能配网流程：')
+        log('   ✅ 首次配网：完整走完5步（扫描 → 读取 → 配网 → 上线 → 绑定）')
+        log('   ✅ 已绑定网关：自动识别并提示（无需重复配网和绑定）')
+        log('')
+        log('📋 操作步骤：')
+        log('   1. 扫描蓝牙设备')
+        log('   2. 读取网关ID（输入Token可检查绑定状态）')
+        log('   3. 配置WiFi（如网关已绑定将自动跳过）')
+        log('   4. 检测网关上线')
+        log('   5. 绑定网关到用户')
+        log('')
+        log('💡 提示：网关绑定后会自动通过已存储的WiFi信息上线')
       }
 
       // 清理

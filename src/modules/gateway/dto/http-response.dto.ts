@@ -21,14 +21,20 @@ export class BindGatewayResponseDto {
  * 验证配网响应 DTO
  */
 export class VerifyPairingResponseDto {
-  @ApiProperty({ description: '网关ID', example: 'gateway_12345678' })
-  gatewayId: string
+  @ApiProperty({ description: '网关是否存在', example: true })
+  exists: boolean
 
   @ApiProperty({ description: '是否在线', example: true })
-  isOnline: boolean
+  isOnline: string
 
-  @ApiProperty({ description: '提示消息', example: '网关已上线' })
-  message: string
+  @ApiProperty({ description: '是否绑定用户', example: true })
+  isBound: boolean
+
+  @ApiProperty({ description: '该网关绑定的用户id', example: '68ec5cd4cdeec7e3e926ae25' })
+  userId: string
+
+  @ApiProperty({ description: '网关名称', example: '客厅网关' })
+  name: string
 }
 
 /**

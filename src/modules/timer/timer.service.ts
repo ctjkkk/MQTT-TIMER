@@ -1,7 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
-import { GatewayService } from '../gateway/gateway.service'
 import { OutletService } from '../outlet/outlet.service'
 import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/mqtt-topic.constants'
 import { OperateAction } from '@/shared/constants/mqtt-topic.constants'
@@ -12,13 +11,12 @@ import { LoggerService } from '@/core/logger/logger.service'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
+import { SubDeviceListResponseDto } from './dto/http-response.dto'
 /**
  * Timer设备模块的Service
- *
  * 职责：
  * 1. 处理Timer设备的业务逻辑
  * 2. 解析DP点数据并更新数据库
- *
  */
 @Injectable()
 export class TimerService {
@@ -26,7 +24,6 @@ export class TimerService {
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
     @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
-    private readonly gatewayService: GatewayService,
     private readonly outletService: OutletService,
     private readonly loggerService: LoggerService,
     private readonly eventEmitter: EventEmitter2,
@@ -42,19 +39,14 @@ export class TimerService {
   async handleDpReport(message: MqttUnifiedMessage<DpReportData>) {
     const { deviceId } = message
     const { dps } = message.data
-
-    console.log(`[TimerService] 处理DP点上报: ${deviceId}`)
-
     // 查找Timer设备
     const timer = await this.timerModel.findOne({ timerId: deviceId })
     if (!timer) {
       console.warn(`[TimerService] Timer不存在: ${deviceId}`)
       return
     }
-
     // 更新Timer基础信息
     const updates: any = {}
-
     // DP点映射（基础功能 1-20）
     if (dps['1'] !== undefined) updates.status = dps['1'] ? 1 : 0 // 设备开关
     if (dps['4'] !== undefined) updates.battery_level = dps['4'] // 电池电量
@@ -67,12 +59,8 @@ export class TimerService {
       updates.dp_data = dps
       updates.last_dp_update = new Date()
       updates.last_seen = new Date()
-
       await this.timerModel.updateOne({ _id: timer._id }, { $set: updates })
-
-      console.log(`[TimerService] Timer基础信息已更新: ${deviceId}`)
     }
-
     // 调用OutletService更新出水口数据
     await this.outletService.updateOutletsByDp(timer._id, dps)
   }
@@ -163,9 +151,7 @@ export class TimerService {
   }
   /**
    * 添加子设备（网关配对成功后调用）
-   *
    * 逻辑：存在则覆盖，不存在则创建（upsert模式）
-   *
    * @param gatewayId 网关ID
    * @param subDevices 子设备列表
    */
@@ -177,19 +163,16 @@ export class TimerService {
     for (const device of subDevices) {
       // MQTT消息使用uuid，内部逻辑使用subDeviceId
       const { uuid: subDeviceId, deviceType, capabilities, productId, firmwareVersion, online } = device
-      // 判断水阀类型
-      const valveType = this.determineValveType(deviceType, capabilities)
       // 检查设备是否已存在
       const exists = await this.timerModel.findOne({ timerId: subDeviceId })
-
       if (exists) {
         // 已存在：覆盖更新
         await this.timerModel.updateOne(
           { timerId: subDeviceId },
           {
             $set: {
+              userId: gateway.userId,
               gatewayId,
-              type: valveType,
               deviceType,
               capabilities,
               productId,
@@ -205,9 +188,9 @@ export class TimerService {
         // 不存在：创建新设备
         await this.timerModel.create({
           timerId: subDeviceId,
+          userId: gateway.userId,
           gatewayId,
           name: `水阀-${subDeviceId.slice(-4)}`,
-          type: valveType,
           deviceType,
           capabilities,
           productId,
@@ -220,37 +203,12 @@ export class TimerService {
         this.loggerService.debug(`子设备已创建: ${subDeviceId}`, LogContext.TIMER_SERVICE)
       }
     }
-
     this.loggerService.info(`批量添加子设备完成: 新增 ${stats.added} 个, 更新 ${stats.updated} 个`, LogContext.TIMER_SERVICE)
     // 如果有设备处理（新增或更新），下发停止配对命令
     if (stats.added || stats.updated) {
       this.commandSenderService.sendStopPairingCommand(gatewayId, 'success')
       this.loggerService.info(`配对成功，已下发关闭配对命令给网关: ${gatewayId}`, LogContext.TIMER_SERVICE)
     }
-  }
-
-  /**
-   * 根据 deviceType 和 capabilities 确定水阀类型
-   */
-  private determineValveType(deviceType: number, capabilities: number): string {
-    if (deviceType === 1) {
-      // capabilities 低2位表示出水口数量
-      const outletCount = (capabilities & 0x03) + 1 // 0->1, 1->2, 2->3, 3->4
-      switch (outletCount) {
-        case 1:
-          return 'valve_single'
-        case 2:
-          return 'valve_dual'
-        case 3:
-          return 'valve_triple'
-        case 4:
-          return 'valve_quad'
-        default:
-          return 'valve_single'
-      }
-    }
-
-    return 'valve_single' // 默认单路
   }
 
   /**
@@ -264,56 +222,24 @@ export class TimerService {
    * 更新子设备信息
    */
   async updateSubDevice(data: any) {
-    // MQTT消息使用uuid，内部逻辑使用subDeviceId
     const { uuid: subDeviceId, ...updates } = data
     await this.timerModel.updateOne({ timerId: subDeviceId }, { $set: updates })
     this.loggerService.info(`子设备信息已更新: ${subDeviceId}`, LogContext.TIMER_SERVICE)
   }
 
-  // ========== Timer设备控制方法 ==========
-
   /**
-   * 控制出水口开关
-   * 通过GatewayService发送命令
-   *
-   * @param timerId Timer设备ID
-   * @param outletNumber 出水口编号（1-4）
-   * @param switchOn 开关状态
-   * @param duration 运行时长
+   * 根据子设备ID查找它所属的网关
    */
-  async controlOutlet(timerId: string, outletNumber: number, switchOn: boolean, duration?: number): Promise<void> {
-    // 查找Timer所属的网关
-    const gateway = await this.gatewayService.findGatewayBySubDeviceId(timerId)
-    if (!gateway) throw new Error(`未找到Timer所属的网关: ${timerId}`)
-
-    // 计算DP点ID
-    const baseDpId = [0, 21, 41, 61, 81][outletNumber]
-    if (!baseDpId) throw new Error(`出水口编号无效: ${outletNumber}`)
-
-    // 构建DP命令
-    const dps: Record<string, any> = {
-      [baseDpId]: switchOn, // 开关
-    }
-
-    // 如果指定了时长
-    if (duration !== undefined) {
-      dps[baseDpId + 2] = duration // 手动运行时长
-    }
-
-    // 发送命令给网关
+  async findGatewayBySubDeviceId(subDeviceId: string) {
+    const timer = await this.timerModel.findOne({ timerId: subDeviceId })
+    if (!timer) return null
+    const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
+    return gateway
   }
 
   // 获取所有水阀的类型(一个出水口的，多个出水口的等)
   async getSubDeviceTypes() {
     return SUB_DEVICE_TYPES
-  }
-
-  //获取该用户指定网关下的所有子设备列表
-  async getSubDevicesListByGatewayId(userId: string, gatewayId: string) {
-    const gateway = await this.gatewayModel.findOne({ gatewayId })
-    if (!gateway) throw new NotFoundException('The gateway does not exist.')
-    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this Timer.')
-    return this.timerModel.find({ gatewayId })
   }
 
   //通过ID删除指定子设备
@@ -327,5 +253,25 @@ export class TimerService {
     //下发删除命令给网关
     this.commandSenderService.sendDeleteSubDeviceCommand(gateway.gatewayId, timerId)
     this.loggerService.info(LogMessages.TIMER.DELETED_SUCCESS(timerId), LogContext.TIMER_SERVICE)
+  }
+
+  //通过ID修改指定子设备名称
+  async renameSubDeviceById(userId: string, timerId: string, newName: string): Promise<SubDeviceListResponseDto> {
+    const timer = await this.timerModel.findOne({ timerId }).lean()
+    if (!timer) throw new NotFoundException('The Timer device does not exist.')
+    const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
+    if (!gateway) throw new NotFoundException('The gateway associated with this Timer does not exist.')
+    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to rename this Timer.')
+    await this.timerModel.updateOne({ timerId }, { $set: { name: newName } })
+    this.loggerService.info(LogMessages.TIMER.RENAMED_SUCCESS(timerId, newName), LogContext.TIMER_SERVICE)
+    return {
+      userId: timer.userId?.toString(),
+      gatewayId: timer.gatewayId?.toString(),
+      timerId: timer.timerId?.toString(),
+      name: newName,
+      status: timer.status,
+      lastSeen: timer.last_seen,
+      online: timer.online,
+    }
   }
 }

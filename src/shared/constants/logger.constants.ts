@@ -26,8 +26,12 @@ export const LogContext = {
   PSK: 'PSK',
 
   // ==================== 基础设施 ====================
-  /** 数据库操作 */
+  /** 数据库操作（通用） */
+  DATABASE: 'Database',
+  /** MongoDB 操作 */
   MONGODB: 'MongoDB',
+  /** Redis 操作 */
+  REDIS: 'Redis',
   /** HTTP 请求 */
   HTTP: 'HTTP',
   /** 数据同步 */
@@ -132,6 +136,7 @@ export const LogMessages = {
     SUBDEVICE_STATUS_UPDATED_SUCCESS: (updatedCount: number, skippedCount: number) =>
       `子设备状态批量更新完成: 成功 ${updatedCount} 个, 跳过 ${skippedCount} 个`,
     SUBDEVICE_STATUS_RECEIVED: (count: number) => `收到 ${count} 个子设备状态更新`,
+    RENAMED_SUCCESS: (timerId: string, newName: string) => `子设备重命名成功: ${timerId} 新名称: ${newName}`,
   },
   SYNC: {
     SUBSCRIBED: (tableCount: number) => `已订阅 ${tableCount} 个表的同步消息`,
@@ -145,9 +150,26 @@ export const LogMessages = {
   DEVICE: {
     UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,
   },
+  REDIS: {
+    CONNECT_SUCCESS: () => 'Redis 连接成功',
+    CONNECT_ERROR: (error: string) => `Redis 连接错误: ${error}`,
+    CONNECT_CLOSED: () => 'Redis 连接已关闭',
+    RECONNECTING: () => 'Redis 正在重连...',
+    INIT_FAILED: (error: string) => `Redis 初始化失败: ${error}`,
+    DISCONNECT: () => 'Redis 连接已断开',
+  },
   PSK: {
     LOAD: (size: number) => `[PskService] 缓存预热完成，已加载 ${size} 条已确认 PSK`,
+    SYNC_COMPLETE: (count: number) => `PSK 同步完成，Redis 中共 ${count} 条`,
+    SYNC_FAILED: (error: string) => `PSK 同步失败: ${error}`,
+    SYNC_FROM_DATABASE: (count: number) => `从数据库加载 ${count} 条 PSK 并同步到 Redis`,
+    REDIS_REMOVED: (identity: string) => `PSK 已从 Redis 移除: ${identity}`,
     GENERATED: (identity: string, key: string) => `PSK identity: ${identity}, key: ${key} 已生成并写入数据库，状态: 待确认`,
+    CONFIRMED: (identity: string) => `PSK 已确认并激活: ${identity}`,
+    CACHE_CLEARED: () => '所有 PSK 缓存已从 Redis 清空',
+    AUTH_STRATEGY_INIT: (count: number) => `PSK 认证策略初始化完成，缓存 ${count} 条`,
+    LOAD_FROM_REDIS: (count: number) => `从 Redis 加载 ${count} 条 PSK 到内存缓存`,
+    LOAD_FROM_REDIS_FAILED: (error: string) => `从 Redis 加载 PSK 失败: ${error}`,
     AUTH_FAILED_DETAIL: (clientId: string, identity: string, exists: boolean, isActive: boolean, cacheSize: number) =>
       `PSK认证失败 - ClientID: ${clientId}, Identity: ${identity}, 存在: ${exists}, 已激活: ${isActive}, 缓存数量: ${cacheSize}`,
     KEY_NOT_FOUND: (identity: string, cacheSize: number, cacheKeys: string) =>
