@@ -37,12 +37,12 @@ export class TimerService {
    * 由TimerEventsHandler调用
    */
   async handleDpReport(message: MqttUnifiedMessage<DpReportData>) {
-    const { deviceId } = message
+    const { uuid } = message
     const { dps } = message.data
     // 查找Timer设备
-    const timer = await this.timerModel.findOne({ timerId: deviceId })
+    const timer = await this.timerModel.findOne({ timerId: uuid })
     if (!timer) {
-      console.warn(`[TimerService] Timer不存在: ${deviceId}`)
+      console.warn(`[TimerService] Timer不存在: ${uuid}`)
       return
     }
     // 更新Timer基础信息
@@ -69,7 +69,7 @@ export class TimerService {
    * 处理子设备心跳
    */
   async handleHeartbeat(message: MqttUnifiedMessage) {
-    await this.timerModel.updateOne({ timerId: message.deviceId }, { $set: { last_seen: new Date() } })
+    await this.timerModel.updateOne({ timerId: message.uuid }, { $set: { last_seen: new Date() } })
   }
 
   /**
@@ -81,11 +81,11 @@ export class TimerService {
     switch (action) {
       case OperateAction.SUBDEVICE_ADD:
         // 网关配对到新的子设备
-        await this.addSubDevices(message.deviceId, message.data.subDevices)
+        await this.addSubDevices(message.uuid, message.data.subDevices)
         break
       case OperateAction.SUBDEVICE_DELETE:
         // 子设备删除（MQTT消息使用uuid）
-        await this.deleteSubDevice(message.data.uuid)
+        await this.deleteSubDeviceByGateway(message.uuid, message.data.uuid)
         break
       case OperateAction.SUBDEVICE_UPDATE:
         // 子设备信息更新
@@ -100,7 +100,7 @@ export class TimerService {
    * 批量处理子设备状态上报
    */
   async handleDeviceStatus(message: MqttUnifiedMessage) {
-    const { deviceId: gatewayId } = message
+    const { uuid: gatewayId } = message
     const { subDevices } = message.data
     if (!Array.isArray(subDevices) || !subDevices.length) {
       this.logger.warn(LogMessages.TIMER.SUBDEVICE_EMPTY(gatewayId), LogContext.TIMER_SERVICE)
@@ -212,10 +212,41 @@ export class TimerService {
   }
 
   /**
-   * 用户长按设备删除子设备
+   * 删除子设备（网关主动上报删除）
+   * 场景：用户长按设备触发删除，网关物理删除后通知云端同步
+   * @param gatewayId 网关ID（来自MQTT消息的uuid字段）
+   * @param subDeviceId 子设备ID（来自data.uuid字段）
    */
-  async deleteSubDevice(subDeviceId: string) {
+  async deleteSubDeviceByGateway(gatewayId: string, subDeviceId: string) {
+    //  验证子设备是否存在
+    const timer = await this.timerModel.findOne({ timerId: subDeviceId })
+    if (!timer) {
+      this.loggerService.warn(
+        `网关上报删除失败：子设备不存在 (gatewayId: ${gatewayId}, subDeviceId: ${subDeviceId})`,
+        LogContext.TIMER_SERVICE,
+      )
+      return
+    }
+    // 验证网关是否存在
+    const gateway = await this.gatewayModel.findOne({ gatewayId })
+    if (!gateway) {
+      this.loggerService.warn(
+        `网关上报删除失败：网关不存在 (gatewayId: ${gatewayId}, subDeviceId: ${subDeviceId})`,
+        LogContext.TIMER_SERVICE,
+      )
+      return
+    }
+    // 验证子设备是否属于该网关（防止越权删除）
+    if (timer.gatewayId !== gatewayId) {
+      this.loggerService.error(
+        `网关越权删除子设备！网关 ${gatewayId} 尝试删除不属于自己的子设备 ${subDeviceId} (实际属于网关: ${timer.gatewayId})`,
+        LogContext.TIMER_SERVICE,
+      )
+      return
+    }
+    // 删除子设备记录
     await this.timerModel.deleteOne({ timerId: subDeviceId })
+    this.loggerService.info(`网关上报删除子设备成功: 网关=${gatewayId}, 子设备=${subDeviceId}`, LogContext.TIMER_SERVICE)
   }
 
   /**

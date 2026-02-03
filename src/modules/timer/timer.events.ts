@@ -33,7 +33,7 @@ export class TimerEventsHandler {
    */
   @OnEvent(AppEvents.MQTT_SUBDEVICE_MESSAGE)
   async handleSubDeviceMessage(message: MqttUnifiedMessage) {
-    this.logger.debug(`收到子设备MQTT消息: ${message.deviceId}, 类型: ${message.msgType}`, LogContext.TIMER_SERVICE)
+    this.logger.debug(`收到子设备MQTT消息: ${message.uuid}, 类型: ${message.msgType}`, LogContext.TIMER_SERVICE)
     console.log('分发到了子设备MQTT消息:', message)
     switch (message.msgType) {
       case MqttMessageType.DP_REPORT:

@@ -46,7 +46,7 @@ export class GatewayMqttHandler {
       this.logger.error(LogMessages.MQTT.PARSE_ERROR('payload parsed error'), LogContext.GATEWAY_SERVICE)
       return
     }
-    this.logger.debug(`收到MQTT消息: ${message.deviceId}, 类型: ${message.msgType}`, LogContext.GATEWAY_SERVICE)
+    this.logger.debug(`收到MQTT消息: ${message.uuid}, 类型: ${message.msgType}`, LogContext.GATEWAY_SERVICE)
     // 根据消息类型发布不同的事件
     isGatewayMessage(message) && (await this.eventEmitter.emitAsync(AppEvents.MQTT_GATEWAY_MESSAGE, message))
     isSubDeviceMessage(message) && (await this.eventEmitter.emitAsync(AppEvents.MQTT_SUBDEVICE_MESSAGE, message))

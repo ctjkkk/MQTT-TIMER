@@ -33,7 +33,7 @@ export class GatewayEventsHandler {
    */
   @OnEvent(AppEvents.MQTT_GATEWAY_MESSAGE)
   async handleGatewayMessage(message: MqttUnifiedMessage) {
-    this.logger.debug(`收到网关MQTT消息: ${message.deviceId}, 类型: ${message.msgType}`, LogContext.GATEWAY_SERVICE)
+    this.logger.debug(`收到网关MQTT消息: ${message.uuid}, 类型: ${message.msgType}`, LogContext.GATEWAY_SERVICE)
     switch (message.msgType) {
       case MqttMessageType.HEARTBEAT:
         await this.gatewayService.processHeartbeat(message)

@@ -7,7 +7,7 @@ export function buildGatewayMessage<T = any>(msgType: MqttMessageType | string, 
   return {
     msgType,
     msgId: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-    deviceId: gatewayId,
+    uuid: gatewayId,
     timestamp: Math.floor(Date.now() / 1000),
     data,
   }

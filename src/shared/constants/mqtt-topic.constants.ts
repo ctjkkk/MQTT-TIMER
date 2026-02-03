@@ -77,8 +77,8 @@ export interface MqttUnifiedMessage<T = any> {
   /** 消息ID（可选，用于请求响应匹配） */
   msgId?: string
 
-  /** 设备ID（网关ID） */
-  deviceId: string
+  /** 设备唯一识别码（网关ID或子设备ID） */
+  uuid: string
 
   /** 可选，若是操作子设备则添加该字段 */
   subDeviceId?: string
