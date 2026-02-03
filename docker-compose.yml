@@ -35,6 +35,24 @@ services:
     depends_on:
       - redis
 
+  # Dozzle - Docker 日志查看器
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: timer-mqtt-dozzle
+    restart: unless-stopped
+    ports:
+      - '9999:8080'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOZZLE_LEVEL: info
+      DOZZLE_TAILSIZE: 300
+      DOZZLE_FILTER: "name=timer-mqtt"
+      DOZZLE_USERNAME: admin
+      DOZZLE_PASSWORD: Timer@2026
+    networks:
+      - app-network
+
   # 主应用
   timer-mqtt:
     build:

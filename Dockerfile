@@ -1,10 +1,16 @@
 # 构建阶段
-FROM node:20-alpine AS builder
+FROM docker.m.daocloud.io/library/node:20-alpine AS builder
 
 WORKDIR /app
 
+# 配置国内镜像源加速
+RUN npm config set registry https://registry.npmmirror.com
+
 # 安装 pnpm
 RUN npm install -g pnpm
+
+# 配置 pnpm 使用国内镜像
+RUN pnpm config set registry https://registry.npmmirror.com
 
 # 复制依赖配置文件
 COPY package.json pnpm-lock.yaml ./
@@ -19,12 +25,18 @@ COPY . .
 RUN pnpm run build
 
 # 生产阶段
-FROM node:20-alpine
+FROM docker.m.daocloud.io/library/node:20-alpine
 
 WORKDIR /app
 
+# 配置国内镜像源加速
+RUN npm config set registry https://registry.npmmirror.com
+
 # 安装 pnpm
 RUN npm install -g pnpm
+
+# 配置 pnpm 使用国内镜像
+RUN pnpm config set registry https://registry.npmmirror.com
 
 # 复制依赖配置文件
 COPY package.json pnpm-lock.yaml ./
