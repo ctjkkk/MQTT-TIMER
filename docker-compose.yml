@@ -45,7 +45,7 @@ services:
     ports:
       - '8018:8018' # HTTP API 端口
       - '1885:1885' # MQTT 端口
-      - '8445:8445' # MQTT PSK 端口
+      - '8883:8883' # MQTT PSK 端口（TLS）
     environment:
       - NODE_ENV=production
     volumes:
