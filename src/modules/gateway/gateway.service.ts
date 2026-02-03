@@ -32,16 +32,16 @@ export class GatewayService implements IGatewayServiceInterface {
    * 调用者：GatewayEventsHandler.handleGatewayMessage
    */
   async processHeartbeat(message: MqttUnifiedMessage) {
-    const { deviceId } = message
-    const gateway = await this.gatewayModel.findOne({ gatewayId: deviceId })
+    const { uuid } = message
+    const gateway = await this.gatewayModel.findOne({ gatewayId: uuid })
     if (!gateway) {
-      this.logger.warn(LogMessages.GATEWAY.HEARTBEAT_UNKNOWN(deviceId), LogContext.GATEWAY_SERVICE)
+      this.logger.warn(LogMessages.GATEWAY.HEARTBEAT_UNKNOWN(uuid), LogContext.GATEWAY_SERVICE)
       return
     }
     const wasOffline = gateway.is_connected === 0
     const isBound = gateway.userId !== null && gateway.userId !== undefined
     await this.gatewayModel.updateOne(
-      { gatewayId: deviceId },
+      { gatewayId: uuid },
       {
         $set: {
           last_seen: new Date(),
@@ -50,17 +50,17 @@ export class GatewayService implements IGatewayServiceInterface {
       },
     )
     // 下发心跳响应给网关
-    this.commandSenderService.sendHeartbeatResponse(deviceId, isBound, gateway.userId.toString())
+    this.commandSenderService.sendHeartbeatResponse(uuid, isBound, gateway.userId.toString())
     // 如果从离线变为在线，发布网关上线事件
     if (wasOffline) {
-      this.logger.info(LogMessages.GATEWAY.ONLINE(deviceId), LogContext.GATEWAY_SERVICE)
+      this.logger.info(LogMessages.GATEWAY.ONLINE(uuid), LogContext.GATEWAY_SERVICE)
       await this.eventEmitter.emitAsync(AppEvents.GATEWAY_ONLINE, {
-        gatewayId: deviceId,
+        gatewayId: uuid,
         timestamp: new Date(),
       })
       // 如果上线时发现未绑定，额外记录警告日志
       if (!isBound) {
-        this.logger.warn(LogMessages.GATEWAY.ONLINE_UNBOUND(deviceId), LogContext.GATEWAY_SERVICE)
+        this.logger.warn(LogMessages.GATEWAY.ONLINE_UNBOUND(uuid), LogContext.GATEWAY_SERVICE)
       }
     }
   }
@@ -69,11 +69,11 @@ export class GatewayService implements IGatewayServiceInterface {
    * 处理网关状态上报（WiFi信号、固件版本等）
    */
   async handleGatewayStatus(message: MqttUnifiedMessage<GatewayStatusData>) {
-    const { deviceId } = message
+    const { uuid } = message
     const { online, wifi_rssi, firmware, memory_usage, cpu_usage } = message.data
 
     await this.gatewayModel.updateOne(
-      { gatewayId: deviceId },
+      { gatewayId: uuid },
       {
         $set: {
           is_connected: online ? 1 : 0,
@@ -84,7 +84,7 @@ export class GatewayService implements IGatewayServiceInterface {
       },
     )
 
-    this.logger.debug(LogMessages.GATEWAY.STATUS_UPDATED(deviceId, online), LogContext.GATEWAY_SERVICE)
+    this.logger.debug(LogMessages.GATEWAY.STATUS_UPDATED(uuid, online), LogContext.GATEWAY_SERVICE)
   }
 
   /**
@@ -92,7 +92,7 @@ export class GatewayService implements IGatewayServiceInterface {
    * 调用者：GatewayEventsHandler.handleGatewayMessage
    */
   async processGatewayLifecycle(message: MqttUnifiedMessage) {
-    const { data, deviceId: gatewayId } = message
+    const { data, uuid: gatewayId } = message
     const { action } = data
     // 使用 Map 实现策略模式
     const actionHandlers = new Map<OperateAction, () => Promise<void>>([
