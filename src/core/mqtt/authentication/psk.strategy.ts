@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
 import { IAuthStrategy } from '../types/mqtt.type'
 import { PskService } from '@/auth/psk/psk.service'
 import { LoggerService } from '@/core/logger/logger.service'
@@ -21,6 +21,8 @@ import type { PskMeta } from '@/auth/psk/types/psk'
  */
 @Injectable()
 export class PskAuthStrategy implements IAuthStrategy, OnModuleInit, OnModuleDestroy {
+  // NestJS 系统日志（用于启动和同步日志）
+  private readonly systemLogger = new Logger(PskAuthStrategy.name)
   // 内存缓存（用于 TLS pskCallback 同步查询）
   private localCache = new Map<string, PskMeta>()
   // 定期同步定时器
@@ -29,14 +31,15 @@ export class PskAuthStrategy implements IAuthStrategy, OnModuleInit, OnModuleDes
   constructor(
     private psk: PskService,
     private redis: RedisService,
-    private logger: LoggerService,
+    private logger: LoggerService, // 业务日志（认证失败等）
   ) {}
 
   async onModuleInit() {
     await this.loadFromRedis()
     // 启动定期同步（每 5 分钟）
     this.startSyncTask()
-    this.logger.info(LogMessages.PSK.AUTH_STRATEGY_INIT(this.localCache.size), LogContext.MQTT_AUTH)
+    // 使用系统日志（开发日志，只输出到控制台）
+    this.systemLogger.log(`PSK authentication strategy initialized, cached ${this.localCache.size} record(s)`)
   }
 
   onModuleDestroy() {
@@ -62,8 +65,10 @@ export class PskAuthStrategy implements IAuthStrategy, OnModuleInit, OnModuleDes
         }
       }
 
-      this.logger.info(LogMessages.PSK.LOAD_FROM_REDIS(this.localCache.size), LogContext.MQTT_AUTH)
+      // 使用系统日志（开发日志，只输出到控制台）
+      this.systemLogger.log(`Loaded ${this.localCache.size} PSK(s) from Redis to memory cache`)
     } catch (error) {
+      // 错误日志仍使用业务日志（需要持久化追踪）
       this.logger.error(LogMessages.PSK.LOAD_FROM_REDIS_FAILED(error.message), error.stack, LogContext.MQTT_AUTH)
     }
   }

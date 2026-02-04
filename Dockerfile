@@ -48,7 +48,7 @@ RUN pnpm install --prod --frozen-lockfile
 COPY --from=builder /app/dist ./dist
 COPY .env.production .env.production
 
-EXPOSE 8018 1885 8445
+EXPOSE 8018 1885 8883
 
 ENV NODE_ENV=production
 

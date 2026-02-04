@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { randomBytes } from 'crypto'
@@ -27,6 +27,8 @@ import { IPskServiceInterface } from './interface/pskService.interface'
  */
 @Injectable()
 export class PskService implements OnModuleInit, OnModuleDestroy, IPskServiceInterface {
+  // NestJS 系统日志（用于同步日志）
+  private readonly systemLogger = new Logger(PskService.name)
   // Redis 键前缀
   readonly REDIS_PREFIX = 'psk:'
   // 定期同步定时器
@@ -34,7 +36,7 @@ export class PskService implements OnModuleInit, OnModuleDestroy, IPskServiceInt
   constructor(
     @InjectModel(Psk.name) private readonly hanqiPskModel: Model<PskDocument>,
     private readonly redis: RedisService,
-    private readonly loggerService: LoggerService,
+    private readonly loggerService: LoggerService, // 业务日志（生成、确认等）
   ) {}
 
   async onModuleInit() {
@@ -84,8 +86,10 @@ export class PskService implements OnModuleInit, OnModuleDestroy, IPskServiceInt
           this.loggerService.warn(LogMessages.PSK.REDIS_REMOVED(identity), LogContext.PSK)
         }
       }
-      this.loggerService.info(LogMessages.PSK.SYNC_COMPLETE(allPsks.length), LogContext.PSK)
+      // 使用系统日志（开发日志，只输出到控制台）
+      this.systemLogger.log(`PSK sync complete, ${allPsks.length} record(s) in Redis`)
     } catch (error) {
+      // 错误日志仍使用业务日志（需要持久化追踪）
       this.loggerService.error(LogMessages.PSK.SYNC_FAILED(error.message), error.stack, LogContext.PSK)
     }
   }

@@ -43,13 +43,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         // 连接成功（ready 表示可以执行命令了）
         this.client.on('ready', () => {
           this.isConnected = true
-          this.logger.log(LogMessages.REDIS.CONNECT_SUCCESS(), LogContext.REDIS)
+          // 使用 NestJS 系统日志（开发日志）
+          this.logger.log('Redis connected successfully')
           resolve()
         })
 
         this.client.on('error', err => {
           this.isConnected = false
-          this.logger.error(LogMessages.REDIS.CONNECT_ERROR(err.message), err.stack, LogContext.REDIS)
+          // 错误日志（开发调试用）
+          this.logger.error(`Redis connection error: ${err.message}`, err.stack)
           // 首次连接失败时 reject
           if (!this.isConnected) {
             reject(err)
@@ -58,11 +60,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
         this.client.on('close', () => {
           this.isConnected = false
-          this.logger.warn(LogMessages.REDIS.CONNECT_CLOSED(), LogContext.REDIS)
+          // 断开连接警告（开发调试用）
+          this.logger.warn('Redis 连接已关闭')
         })
 
         this.client.on('reconnecting', () => {
-          this.logger.log(LogMessages.REDIS.RECONNECTING(), LogContext.REDIS)
+          // 重连日志（开发调试用）
+          this.logger.log('Redis 正在重连...')
         })
       } catch (error) {
         this.logger.error(LogMessages.REDIS.INIT_FAILED(error.message), error.stack, LogContext.REDIS)

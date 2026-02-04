@@ -5,6 +5,7 @@ import { TimerController } from './timer.controller'
 import { TimerEventsHandler } from './timer.events'
 import { GatewayModule } from '../gateway/gateway.module'
 import { OutletModule } from '../outlet/outlet.module'
+import { ProductModule } from '../product/product.module' // ← 新增：导入产品模块
 import { Timer, TimerSchema } from './schema/timer.schema'
 import { Gateway, GatewaySchema } from '../gateway/schema/HanqiGateway.schema'
 import { ConfigModule, ConfigService } from '@nestjs/config'
@@ -26,6 +27,7 @@ import { JwtModule } from '@nestjs/jwt'
       inject: [ConfigService],
     }),
     OutletModule,
+    ProductModule, // ← 新增：导入产品模块，以便 TimerService 可以使用 ProductService
   ],
   controllers: [TimerController],
   providers: [

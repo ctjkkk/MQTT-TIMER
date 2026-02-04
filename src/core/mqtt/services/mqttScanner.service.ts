@@ -44,7 +44,7 @@ export class MqttScannerService implements OnApplicationBootstrap {
             for (const topic of topicList) {
               this.dispatchService.subscribe(topic, { instance, methodName })
               handlerCount++
-              this.logger.debug(LogMessages.MQTT.REGISTER_PROCESSOR(topic, instance.constructor.name, methodName))
+              this.logger.log(LogMessages.MQTT.REGISTER_PROCESSOR(topic, instance.constructor.name, methodName))
             }
           }
         } catch (e) {}

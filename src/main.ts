@@ -16,7 +16,7 @@ async function bootstrap() {
   buildSwagger(app)
 
   const port = process.env.APP_PORT ?? 8018
-  const host = '0.0.0.0' // Docker 容器必须监听 0.0.0.0
+  const host = '127.0.0.1' // Docker 容器必须监听 0.0.0.0 才能接受外部连接
 
   // 在编译后的代码中，静态资源路径应该是 dist/core/logger/loggerViewer
   app.useStaticAssets(join(__dirname, './core/logger/', 'loggerViewer'), { prefix: '/logs' })
@@ -26,6 +26,7 @@ async function bootstrap() {
   logger.log(LogMessages.SERVER.LOCAL_SERVER(Number(port)))
   logger.log(`Application is running on: http://${host}:${port}`)
   logger.log(`Knife4j API Docs: http://${host}:${port}/doc.html`)
-  logger.log(`Logs Viewer: http://${host}:${port}/logs`)
+  logger.log(`Logs Viewer: http://${host}:${port}/logs/index.html`)
+  logger.log(`RabbitMQ Viewer: http://${host}:15672`)
 }
 bootstrap()

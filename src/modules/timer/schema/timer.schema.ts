@@ -9,7 +9,7 @@ export class Timer {
   timerId: string
 
   @Prop({ type: String })
-  product_id: string
+  productId: string
 
   @Prop({ type: Number })
   capability_bits: number

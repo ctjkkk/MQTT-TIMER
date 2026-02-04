@@ -103,8 +103,8 @@ export interface SubDeviceInfo {
   /** 0为正常功耗，1为低功耗 */
   capabilities: number
 
-  /** 电池电量 */
-  productId: number
+  /** 产品ID（涂鸦云平台生成的产品标识符） */
+  productId: string
 
   /** 固件版本: ota流程需要 */
   firmwareVersion: string

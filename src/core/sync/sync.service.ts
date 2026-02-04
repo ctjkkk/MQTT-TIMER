@@ -6,12 +6,12 @@ import { deserialize } from '@/common/utils/transform'
 import { filterFields } from '@/common/utils/dataFilters'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
-import { MqttDispatchService } from '../mqtt/services/mqttDispatch.service'
+import { RabbitmqService } from '../rabbitmq/rabbitmq.service'
+
 /**
  * 表同步服务（TIMER-MQTT 端）
- *
  * 职责：
- * 1. 订阅 MQTT 同步消息
+ * 1. 订阅 RabbitMQ 同步消息
  * 2. 更新本地缓存数据
  */
 @Injectable()
@@ -19,35 +19,32 @@ export class SyncService implements OnModuleInit {
   private readonly logger = new Logger(SyncService.name)
   constructor(
     @InjectConnection() private connection: Connection,
-    private readonly dispatchService: MqttDispatchService,
+    private readonly rabbitmqService: RabbitmqService,
     private readonly loggerService: LoggerService,
   ) {}
 
-  // 模块初始化时订阅所有表
+  // 模块初始化时订阅 RabbitMQ 消息
   async onModuleInit() {
-    for (const config of SYNC_TABLES) {
-      this.subscribeTable(config)
-    }
-    this.logger.log(LogMessages.SYNC.SUBSCRIBED(SYNC_TABLES.length))
-  }
+    await this.rabbitmqService.consume(async (routingKey, content) => {
+      const config = SYNC_TABLES.find(c => c.topic === routingKey)
+      if (!config) return
 
-  // 订阅指定表的同步消息
-  private subscribeTable(config: SyncTableConfig) {
-    this.dispatchService.subscribe(config.topic, async (payload: Buffer) => {
       try {
-        const message = deserialize(JSON.parse(payload.toString()))
+        // 解析消息，还原 ObjectId、Date 等 MongoDB 类型
+        const message = deserialize(JSON.parse(content.toString()))
+        // 执行具体的数据库操作
         await this.handleSync(config, message)
       } catch (error) {
-        this.loggerService.error(LogMessages.SYNC.SYNC_FAILED(config.localCollection, error.message), LogContext.SYNC)
+        this.loggerService.error(LogMessages.SYNC.SYNC_FAILED(routingKey, error.message), LogContext.SYNC)
       }
     })
+    this.logger.log(`Subscribed to RabbitMQ sync queue for ${SYNC_TABLES.length} tables`)
   }
 
   // 处理同步消息
   private async handleSync(config: SyncTableConfig, payload: any) {
     const collection = this.connection.collection(config.localCollection)
     const keyField = config.keyField || '_id'
-
     switch (payload.operation) {
       case 'insert': {
         const { _id, ...data } = filterFields(payload.data, config)
@@ -112,7 +109,6 @@ export class SyncService implements OnModuleInit {
 
       case 'delete':
         await collection.deleteOne({ [keyField]: payload.key })
-
         // 记录详细日志
         this.loggerService.info(LogMessages.SYNC.DELETE_SUCCESS(config.localCollection, payload.key), LogContext.SYNC, {
           operation: 'delete',

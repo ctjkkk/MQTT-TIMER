@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { OutletService } from '../outlet/outlet.service'
+import { ProductService } from '../product/product.service' // ← 新增
 import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/mqtt-topic.constants'
 import { OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import { Timer, TimerDocument } from './schema/timer.schema'
@@ -25,6 +26,7 @@ export class TimerService {
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
     @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
     private readonly outletService: OutletService,
+    private readonly productService: ProductService, // ← 新增：注入产品服务
     private readonly loggerService: LoggerService,
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: LoggerService,
@@ -152,32 +154,47 @@ export class TimerService {
   /**
    * 添加子设备（网关配对成功后调用）
    * 逻辑：存在则覆盖，不存在则创建（upsert模式）
+   * - 网关只上报 uuid 和 productId
+   * - 所有其他字段从产品配置表获取
    * @param gatewayId 网关ID
-   * @param subDevices 子设备列表
+   * @param subDevices 子设备列表，每个设备只包含 { uuid, productId }
    */
   async addSubDevices(gatewayId: string, subDevices: any[]) {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new Error('Gateway not found.')
     if (!gateway.userId) throw new Error('Gateway is not bound to any user.')
-    const stats = { added: 0, updated: 0 }
+    const stats = { added: 0, updated: 0, failed: 0 }
     for (const device of subDevices) {
-      // MQTT消息使用uuid，内部逻辑使用subDeviceId
-      const { uuid: subDeviceId, deviceType, capabilities, productId, firmwareVersion, online } = device
+      const { uuid: subDeviceId, productId } = device
+      if (!subDeviceId || !productId) {
+        this.loggerService.warn(`子设备添加失败：缺少必填字段 (uuid: ${subDeviceId}, productId: ${productId})`, LogContext.TIMER_SERVICE)
+        stats.failed++
+        continue
+      }
+      // 查询产品配置（所有产品信息从这里获取）
+      const productConfig = await this.productService.getProductConfig(productId)
+      if (!productConfig) {
+        this.loggerService.warn(
+          `子设备添加失败：产品配置不存在 (productId: ${productId}, subDeviceId: ${subDeviceId})`,
+          LogContext.TIMER_SERVICE,
+        )
+        stats.failed++
+        continue
+      }
+      //从产品配置获取所有属性
+      const { name: productName, deviceType, defaultFirmwareVersion, defaultBatteryLevel } = productConfig
       // 检查设备是否已存在
       const exists = await this.timerModel.findOne({ timerId: subDeviceId })
       if (exists) {
-        // 已存在：覆盖更新
+        // 已存在：更新
         await this.timerModel.updateOne(
           { timerId: subDeviceId },
           {
             $set: {
               userId: gateway.userId,
               gatewayId,
-              deviceType,
-              capabilities,
               productId,
-              firmwareVersion,
-              online,
+              deviceType, // ← 从产品配置获取
               last_seen: new Date(),
             },
           },
@@ -185,26 +202,27 @@ export class TimerService {
         stats.updated++
         this.loggerService.debug(`子设备已更新: ${subDeviceId}`, LogContext.TIMER_SERVICE)
       } else {
-        // 不存在：创建新设备
+        // 不存在：创建
         await this.timerModel.create({
           timerId: subDeviceId,
           userId: gateway.userId,
           gatewayId,
-          name: `水阀-${subDeviceId.slice(-4)}`,
-          deviceType,
-          capabilities,
+          name: productName, // 从产品配置获取
           productId,
-          firmwareVersion,
-          online,
-          battery: 100,
+          deviceType, // 从产品配置获取
+          firmware_version: defaultFirmwareVersion, // 从产品配置获取
+          online: true, // 默认在线
+          battery_level: defaultBatteryLevel, // 从产品配置获取
           createdAt: new Date(),
         })
         stats.added++
-        this.loggerService.debug(`子设备已创建: ${subDeviceId}`, LogContext.TIMER_SERVICE)
+        this.loggerService.debug(`子设备已创建: ${subDeviceId}, 产品: ${productName}`, LogContext.TIMER_SERVICE)
       }
     }
-    this.loggerService.info(`批量添加子设备完成: 新增 ${stats.added} 个, 更新 ${stats.updated} 个`, LogContext.TIMER_SERVICE)
-    // 如果有设备处理（新增或更新），下发停止配对命令
+    this.loggerService.info(
+      `批量添加子设备完成: 新增 ${stats.added} 个, 更新 ${stats.updated} 个, 失败 ${stats.failed} 个`,
+      LogContext.TIMER_SERVICE,
+    )
     if (stats.added || stats.updated) {
       this.commandSenderService.sendStopPairingCommand(gatewayId, 'success')
       this.loggerService.info(`配对成功，已下发关闭配对命令给网关: ${gatewayId}`, LogContext.TIMER_SERVICE)
