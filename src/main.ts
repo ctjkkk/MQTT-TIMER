@@ -16,7 +16,7 @@ async function bootstrap() {
   buildSwagger(app)
 
   const port = process.env.APP_PORT ?? 8018
-  const host = '127.0.0.1' // Docker 容器必须监听 0.0.0.0 才能接受外部连接
+  const host = process.env.APP_HOST ?? '0.0.0.0' // Docker 容器必须监听 0.0.0.0 才能接受外部连接
 
   // 在编译后的代码中，静态资源路径应该是 dist/core/logger/loggerViewer
   app.useStaticAssets(join(__dirname, './core/logger/', 'loggerViewer'), { prefix: '/logs' })
