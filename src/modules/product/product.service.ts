@@ -26,7 +26,7 @@ export class ProductService implements IProductService, OnModuleInit {
 
   constructor(
     @InjectModel(Product.name)
-    private readonly productConfigModel: Model<ProductDocument>,
+    private readonly productModel: Model<ProductDocument>,
     private readonly logger: LoggerService,
   ) {}
 
@@ -53,18 +53,16 @@ export class ProductService implements IProductService, OnModuleInit {
    * - 不存在则插入，存在则跳过
    */
   private async initPredefinedProducts() {
-    const stats = { created: 0, existed: 0 }
+    const stats = { created: 0, updated: 0, unchanged: 0 }
     for (const product of PREDEFINED_PRODUCTS) {
-      const exists = await this.productConfigModel.findOne({ productId: product.productId })
-      if (!exists) {
-        await this.productConfigModel.create(product)
-        this.systemLogger.log(LogMessages.PRODUCT.INIT_SINGLE(product.name, product.productId))
-        stats.created++
-      } else {
-        stats.existed++
-      }
+      const result = await this.productModel.updateOne({ productId: product.productId }, { $set: product }, { upsert: true })
+      const { upsertedCount, modifiedCount } = result
+      const status = upsertedCount ? 'created' : modifiedCount ? 'updated' : 'unchanged'
+      stats[status]++
+      upsertedCount && this.systemLogger.log(LogMessages.PRODUCT.INIT_SINGLE(product.name, product.productId))
+      modifiedCount && this.systemLogger.log(LogMessages.PRODUCT.UPDATED(product.name, product.productId))
     }
-    this.systemLogger.log(LogMessages.PRODUCT.INIT_COMPLETE(stats.created, stats.existed))
+    this.systemLogger.log(LogMessages.PRODUCT.INIT_COMPLETE(stats.created, stats.updated, stats.unchanged))
   }
 
   /**
@@ -80,7 +78,7 @@ export class ProductService implements IProductService, OnModuleInit {
    * @returns 产品配置对象，如果不存在或已禁用返回 null
    */
   async getProductConfig(productId: string): Promise<ProductDocument | null> {
-    const config = await this.productConfigModel.findOne({ productId, enabled: true }).lean()
+    const config = await this.productModel.findOne({ productId, enabled: true }).lean()
     return config as ProductDocument | null
   }
 
@@ -91,7 +89,7 @@ export class ProductService implements IProductService, OnModuleInit {
    * - 已添加的设备仍可正常使用
    */
   async forbiddenProductById(productId: string): Promise<void> {
-    await this.productConfigModel.updateOne({ productId }, { $set: { enabled: 0 } })
+    await this.productModel.updateOne({ productId }, { $set: { enabled: 0 } })
     this.logger.info(LogMessages.PRODUCT.DISABLED(productId), LogContext.PRODUCT_SERVICE)
   }
 
@@ -100,7 +98,7 @@ export class ProductService implements IProductService, OnModuleInit {
    * 使用场景：App 或管理后台获取产品列表
    */
   async findAllProducts(): Promise<ProductHttpResponse[]> {
-    return (await this.productConfigModel.find({ enabled: true }).lean()).map(item => ({
+    return (await this.productModel.find({ enabled: true }).lean()).map(item => ({
       productId: item.productId,
       name: item.name,
       description: item.description,
@@ -117,7 +115,7 @@ export class ProductService implements IProductService, OnModuleInit {
    * @param productId 产品ID
    */
   async findByProductPID(productId: string): Promise<SingleProductHttpResponse> {
-    return await this.productConfigModel
+    return await this.productModel
       .findOne({ productId })
       .select({
         productId: 1,
@@ -129,7 +127,6 @@ export class ProductService implements IProductService, OnModuleInit {
         defaultFirmwareVersion: 1,
         defaultBatteryLevel: 1,
         _id: 0,
-        __v: 0,
       })
       .lean()
   }
@@ -141,7 +138,7 @@ export class ProductService implements IProductService, OnModuleInit {
    * - 不需要修改代码和重启服务
    */
   async createProduct(data: CreateProductDto): Promise<ProductDocument> {
-    const product = await this.productConfigModel.create(data)
+    const product = await this.productModel.create(data)
     this.logger.info(LogMessages.PRODUCT.CREATED(data.name, data.productId), LogContext.PRODUCT_SERVICE)
     return product
   }

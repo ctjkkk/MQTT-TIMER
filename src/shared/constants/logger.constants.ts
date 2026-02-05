@@ -184,9 +184,10 @@ export const LogMessages = {
   },
   PRODUCT: {
     INIT_SINGLE: (name: string, productId: string) => `初始化产品配置: ${name} (productId: ${productId})`,
-    INIT_COMPLETE: (created: number, existed: number) => `Product configuration initialized: ${created} created, ${existed} existed`,
+    INIT_COMPLETE: (created: number, updated: number, unchanged: number) =>
+      `Product configuration synced: ${created} created, ${updated} updated, ${unchanged} unchanged`,
     CREATED: (name: string, productId: string) => `创建新产品配置: ${name} (productId: ${productId})`,
-    UPDATED: (name: string, productId: string) => `更新产品配置: ${name} (productId: ${productId})`,
+    UPDATED: (name: string, productId: string) => `Update product configuration: ${name} (product ID: ${productId})`,
     DISABLED: (productId: string) => `禁用产品配置: productId=${productId}`,
   },
   COMMON: {

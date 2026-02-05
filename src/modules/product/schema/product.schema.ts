@@ -72,26 +72,26 @@ export const ProductSchema = SchemaFactory.createForClass(Product)
  * - 单路和双路水阀的 productId 待汉奇工程师提供
  */
 export const PREDEFINED_PRODUCTS: Partial<Product>[] = [
-  // TODO: 待汉奇提供单路水阀的真实 productId（涂鸦云平台生成）
   {
-    productId: 'temp_single_outlet', // 临时 ID，等汉奇提供真实 productId
-    name: 'HQ2026-单路智能水阀',
+    productId: 'rgnmfjInx6hzagwe', //真实 productId
+    name: 'HQ2026-1路433水阀',
     deviceType: 1,
     outletCount: 1, // 1个出水口
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
     description: '支持1个出水口的433智能水阀，适用于小型花园',
+    imageUrl: '',
     enabled: 1,
   },
-  // TODO: 待汉奇提供双路水阀的真实 productId（涂鸦云平台生成）
   {
-    productId: 'temp_dual_outlet', // 临时 ID，等汉奇提供真实 productId
-    name: 'HQ2026-双路智能水阀',
+    productId: '9zkur06p7ggbwvbl', //真实 productId
+    name: 'HQ2026-2路433水阀',
     deviceType: 1,
     outletCount: 2, // 2个出水口
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
     description: '支持2个出水口的433智能水阀，适用于中型花园',
+    imageUrl: '',
     enabled: 1,
   },
   // 真实 productId（来自 docs/HQ2026-3路433水阀(fdekfvdlkmqyslqr)_01_28.txt）

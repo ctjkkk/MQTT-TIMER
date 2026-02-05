@@ -17,6 +17,7 @@ import { LoggerMiddleware } from '@/core/logger/logger.middleware'
 import { SyncModule } from '@/core/sync/sync.module'
 import { UserModule } from './modules/user/user.module'
 import { ProductModule } from './modules/product/product.module'
+import { DpModule } from './modules/dp/dp.module'
 
 @Module({
   imports: [
@@ -40,6 +41,9 @@ import { ProductModule } from './modules/product/product.module'
 
     // 数据库模块（包含 MongoDB 和 Redis）
     DatabaseModule,
+
+    // DP 模块（全局）- 管理涂鸦 DP 点配置
+    DpModule,
 
     // 事件驱动模块（全局）
     EventEmitterModule.forRoot({
