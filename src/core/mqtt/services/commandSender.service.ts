@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { MqttBrokerService } from './mqttBroker.service'
 import { buildGatewayMessage } from '@/modules/gateway/utils/gateway.utils'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
-import { MqttMessageType, MqttTopic, OperateAction, EntityType } from '@/shared/constants/mqtt-topic.constants'
+import { MqttMessageType, MqttTopic, OperateAction, EntityType } from '@/shared/constants/topic.constants'
 import { LoggerService } from '@/core/logger/logger.service'
 
 /**

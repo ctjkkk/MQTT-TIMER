@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
-import { MqttUnifiedMessage } from '@/shared/constants/mqtt-topic.constants'
+import { MqttUnifiedMessage } from '@/shared/constants/topic.constants'
 import { Outlet, OutletDocument } from './schema/outlet.schema'
 
 /**

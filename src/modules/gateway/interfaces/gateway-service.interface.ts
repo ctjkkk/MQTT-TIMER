@@ -1,4 +1,4 @@
-import type { MqttUnifiedMessage, MqttMessageType } from '@/shared/constants/mqtt-topic.constants'
+import type { MqttUnifiedMessage, MqttMessageType } from '@/shared/constants/topic.constants'
 import type { GatewayStatusData } from '../types/gateway.type'
 import type { TimerDocument } from '@/modules/timer/schema/timer.schema'
 import { BindGatewayResponseDto, GatewayStatusResponseDto } from '../dto/http-response.dto'

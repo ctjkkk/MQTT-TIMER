@@ -1,4 +1,4 @@
-import { MqttMessageType, MqttUnifiedMessage, EntityType } from '@/shared/constants/mqtt-topic.constants'
+import { MqttMessageType, MqttUnifiedMessage, EntityType } from '@/shared/constants/topic.constants'
 
 /**
  * 构建网关自身的MQTT消息
