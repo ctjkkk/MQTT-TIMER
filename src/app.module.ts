@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 import { EventEmitterModule } from '@nestjs/event-emitter'
+import { JwtModule } from '@nestjs/jwt'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { GatewayModule } from './modules/gateway/gateway.module'
@@ -15,6 +16,7 @@ import mqttConfig from '@/core/config/mqtt.config'
 import { LoggerMiddleware } from '@/core/logger/logger.middleware'
 import { SyncModule } from '@/core/sync/sync.module'
 import { UserModule } from './modules/user/user.module'
+import { ProductModule } from './modules/product/product.module'
 
 @Module({
   imports: [
@@ -23,6 +25,17 @@ import { UserModule } from './modules/user/user.module'
       isGlobal: true,
       load: [mongodbConfig, redisConfig, mqttConfig],
       envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`],
+    }),
+
+    // JWT 认证模块（全局）
+    JwtModule.registerAsync({
+      global: true, // 设置为全局模块，所有模块都可以使用 JwtService
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: { expiresIn: '365d' },
+      }),
+      inject: [ConfigService],
     }),
 
     // 数据库模块（包含 MongoDB 和 Redis）
@@ -45,6 +58,7 @@ import { UserModule } from './modules/user/user.module'
     PskModule,
     SyncModule,
     UserModule,
+    ProductModule,
   ],
   controllers: [AppController],
   providers: [AppService],

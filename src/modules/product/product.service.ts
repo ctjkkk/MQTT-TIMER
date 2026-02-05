@@ -3,7 +3,10 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { Product, ProductDocument, PREDEFINED_PRODUCTS } from './schema/product.schema'
 import { LoggerService } from '@/core/logger/logger.service'
-import { LogContext } from '@/shared/constants/logger.constants'
+import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
+import { ProductHttpResponse, SingleProductHttpResponse } from './dto/product.response'
+import { CreateProductDto } from './dto/create-product.dto'
+import { IProductService } from './interfaces/product.service.interface'
 
 /**
  * 产品配置服务
@@ -17,7 +20,7 @@ import { LogContext } from '@/shared/constants/logger.constants'
  * - 产品信息集中管理，新产品上线不需要改代码
  */
 @Injectable()
-export class ProductService implements OnModuleInit {
+export class ProductService implements IProductService, OnModuleInit {
   // NestJS 自带的系统日志（只输出到控制台，不写入文件）
   private readonly systemLogger = new Logger(ProductService.name)
 
@@ -55,13 +58,13 @@ export class ProductService implements OnModuleInit {
       const exists = await this.productConfigModel.findOne({ productId: product.productId })
       if (!exists) {
         await this.productConfigModel.create(product)
-        this.systemLogger.log(`初始化产品配置: ${product.name} (productId: ${product.productId})`)
+        this.systemLogger.log(LogMessages.PRODUCT.INIT_SINGLE(product.name, product.productId))
         stats.created++
       } else {
         stats.existed++
       }
     }
-    this.systemLogger.log(`Product configuration initialized: ${stats.created} created, ${stats.existed} existed`)
+    this.systemLogger.log(LogMessages.PRODUCT.INIT_COMPLETE(stats.created, stats.existed))
   }
 
   /**
@@ -82,13 +85,53 @@ export class ProductService implements OnModuleInit {
   }
 
   /**
-   * 获取所有启用的产品配置
+   * 禁用产品（软删除）
    * 使用场景：
-   * - App 显示"选择产品型号"页面（用户手动添加设备时）
-   * - 管理后台显示产品列表
+   * - 某个型号停产，不再支持新设备添加
+   * - 已添加的设备仍可正常使用
    */
-  async getAllProducts(): Promise<ProductDocument[]> {
-    return this.productConfigModel.find({ enabled: true }).sort({ productId: 1 }).lean()
+  async forbiddenProductById(productId: string): Promise<void> {
+    await this.productConfigModel.updateOne({ productId }, { $set: { enabled: 0 } })
+    this.logger.info(LogMessages.PRODUCT.DISABLED(productId), LogContext.PRODUCT_SERVICE)
+  }
+
+  /**
+   * 查询所有启用的产品配置列表（HTTP 响应格式）
+   * 使用场景：App 或管理后台获取产品列表
+   */
+  async findAllProducts(): Promise<ProductHttpResponse[]> {
+    return (await this.productConfigModel.find({ enabled: true }).lean()).map(item => ({
+      productId: item.productId,
+      name: item.name,
+      description: item.description,
+      imageUrl: item.imageUrl,
+      outletCount: item.outletCount,
+      defaultFirmwareVersion: item.defaultFirmwareVersion,
+      defaultBatteryLevel: item.defaultBatteryLevel,
+    }))
+  }
+
+  /**
+   * 根据 productId 查询单个产品配置（HTTP 响应格式）
+   * 使用场景：App 或管理后台获取产品详情
+   * @param productId 产品ID
+   */
+  async findByProductPID(productId: string): Promise<SingleProductHttpResponse> {
+    return await this.productConfigModel
+      .findOne({ productId })
+      .select({
+        productId: 1,
+        name: 1,
+        description: 1,
+        imageUrl: 1,
+        outletCount: 1,
+        enabled: 1,
+        defaultFirmwareVersion: 1,
+        defaultBatteryLevel: 1,
+        _id: 0,
+        __v: 0,
+      })
+      .lean()
   }
 
   /**
@@ -97,34 +140,9 @@ export class ProductService implements OnModuleInit {
    * - 汉奇推出新型号水阀时，通过管理后台添加
    * - 不需要修改代码和重启服务
    */
-  async createProduct(data: Partial<Product>): Promise<ProductDocument> {
+  async createProduct(data: CreateProductDto): Promise<ProductDocument> {
     const product = await this.productConfigModel.create(data)
-    this.logger.info(`创建新产品配置: ${data.name} (productId: ${data.productId})`, LogContext.TIMER_SERVICE)
+    this.logger.info(LogMessages.PRODUCT.CREATED(data.name, data.productId), LogContext.PRODUCT_SERVICE)
     return product
-  }
-
-  /**
-   * 更新产品配置
-   * 使用场景：
-   * - 修改产品名称、描述、图片等
-   * - 甚至可以修改出水口数量（如果硬件升级了）
-   */
-  async updateProduct(productId: string, updates: Partial<Product>): Promise<ProductDocument | null> {
-    const product = await this.productConfigModel.findOneAndUpdate({ productId }, { $set: updates }, { new: true })
-    if (product) {
-      this.logger.info(`更新产品配置: ${product.name} (productId: ${productId})`, LogContext.TIMER_SERVICE)
-    }
-    return product
-  }
-
-  /**
-   * 禁用产品（软删除）
-   * 使用场景：
-   * - 某个型号停产，不再支持新设备添加
-   * - 已添加的设备仍可正常使用
-   */
-  async disableProduct(productId: string): Promise<void> {
-    await this.productConfigModel.updateOne({ productId }, { $set: { enabled: false } })
-    this.logger.info(`禁用产品配置: productId=${productId}`, LogContext.TIMER_SERVICE)
   }
 }

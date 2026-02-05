@@ -12,7 +12,7 @@ import type { GatewayStatusData } from './types/gateway.type'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import type { IGatewayServiceInterface } from './interfaces/gateway-service.interface'
-import { SubDeviceListResponseDto } from '../timer/dto/http-response.dto'
+import { SubDeviceListResponseDto } from '../timer/dto/timer.response.dto'
 @Injectable()
 export class GatewayService implements IGatewayServiceInterface {
   constructor(

@@ -7,12 +7,11 @@ import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/mqtt-t
 import { OperateAction } from '@/shared/constants/mqtt-topic.constants'
 import { Timer, TimerDocument } from './schema/timer.schema'
 import { Gateway, GatewayDocument } from '@/modules/gateway/schema/HanqiGateway.schema'
-import { SUB_DEVICE_TYPES } from './constants/timerTypes.constants'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
-import { SubDeviceListResponseDto } from './dto/http-response.dto'
+import { SubDeviceListResponseDto } from './dto/timer.response.dto'
 /**
  * Timer设备模块的Service
  * 职责：
@@ -284,11 +283,6 @@ export class TimerService {
     if (!timer) return null
     const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
     return gateway
-  }
-
-  // 获取所有水阀的类型(一个出水口的，多个出水口的等)
-  async getSubDeviceTypes() {
-    return SUB_DEVICE_TYPES
   }
 
   //通过ID删除指定子设备

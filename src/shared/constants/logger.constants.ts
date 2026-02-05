@@ -52,6 +52,10 @@ export const LogContext = {
   SCHEDULE: 'Schedule',
   /** 消息分发服务 */
   DISPATCH_SERVICE: 'DispatchService',
+  /** 产品配置模块 */
+  PRODUCT: 'Product',
+  /** 产品配置服务 */
+  PRODUCT_SERVICE: 'ProductService',
 
   // ==================== 通用 ====================
   /** 应用程序通用日志 */
@@ -177,6 +181,13 @@ export const LogMessages = {
     KEY_EMPTY: (identity: string) => `PSK密钥为空 - Identity: ${identity}`,
     KEY_FOUND: (identity: string) => `PSK密钥查找成功 - Identity: ${identity}`,
     KEY_ERROR: (identity: string, error: string) => `PSK密钥查找异常 - Identity: ${identity}, Error: ${error}`,
+  },
+  PRODUCT: {
+    INIT_SINGLE: (name: string, productId: string) => `初始化产品配置: ${name} (productId: ${productId})`,
+    INIT_COMPLETE: (created: number, existed: number) => `Product configuration initialized: ${created} created, ${existed} existed`,
+    CREATED: (name: string, productId: string) => `创建新产品配置: ${name} (productId: ${productId})`,
+    UPDATED: (name: string, productId: string) => `更新产品配置: ${name} (productId: ${productId})`,
+    DISABLED: (productId: string) => `禁用产品配置: productId=${productId}`,
   },
   COMMON: {
     ERROR: (context: string, error: string) => `❌ ${context} 错误: ${error}`,

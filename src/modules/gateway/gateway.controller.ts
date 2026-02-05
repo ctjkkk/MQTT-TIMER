@@ -10,7 +10,7 @@ import {
   UnbindGatewayResponseDto,
 } from './dto/http-response.dto'
 import { CurrentUserId } from '@/common/decorators/paramExtractor.decorators'
-import { SubDeviceListResponseDto } from '../timer/dto/http-response.dto'
+import { SubDeviceListResponseDto } from '../timer/dto/timer.response.dto'
 
 /**
  * Gateway模块的HTTP Controller
@@ -19,7 +19,6 @@ import { SubDeviceListResponseDto } from '../timer/dto/http-response.dto'
  * - 提供网关配网和管理的 HTTP REST API
  * - 处理用户的网关绑定、查询、解绑等操作
  * - 调用 Service 执行业务逻辑
- *
  * 注意：
  * - MQTT消息处理已移至 gateway.mqtt.ts
  * - 事件监听已移至 gateway.events.ts

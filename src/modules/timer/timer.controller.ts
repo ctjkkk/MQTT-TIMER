@@ -1,23 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common'
 import { TimerService } from './timer.service'
 import { ApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
-import { SubDeviceListResponseDto, SubDeviceTypeResponseDto } from './dto/http-response.dto'
+import { SubDeviceListResponseDto } from './dto/timer.response.dto'
 import { CurrentUserId } from '@/common/decorators/paramExtractor.decorators'
 import { RenameSubDeviceDto } from './dto/update-subdevice.dto'
 @Controller('timer')
 export class TimerController {
   constructor(private readonly timerService: TimerService) {}
-
-  @Get('/get_timer_types')
-  @ApiResponseStandard({
-    summary: '获取子设备类型列表',
-    responseDescription: '返回可用的子设备类型',
-    msg: '查询成功',
-    responseType: SubDeviceTypeResponseDto,
-  })
-  getSubDeviceTypes() {
-    return this.timerService.getSubDeviceTypes()
-  }
 
   //用户在App删除指定子设备
   @Delete('/:timerId')
