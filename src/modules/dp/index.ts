@@ -6,11 +6,11 @@
 export { DpModule } from './dp.module'
 
 // Service
-export { DpConfigService } from './dp.service'
+export { DpService } from './dp.service'
 
 // Pipe
 export { ParseDpReportPipe } from './pipes/parse-dp-report.pipe'
-export type { ParsedDpReport } from './pipes/parse-dp-report.pipe'
+export type { ParsedDpReport } from './types/dp.types'
 
 // DTO
 export * from './dto/dp-report.dto'

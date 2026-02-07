@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
-import { OutletService } from '../outlet/channel.service'
+import { ChannelService } from '../channel/channel.service'
 import { ProductService } from '../product/product.service' // ← 新增
 import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/topic.constants'
 import { OperateAction } from '@/shared/constants/topic.constants'
@@ -24,7 +24,7 @@ export class TimerService {
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
     @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
-    private readonly outletService: OutletService,
+    private readonly channelService: ChannelService,
     private readonly productService: ProductService, // ← 新增：注入产品服务
     private readonly loggerService: LoggerService,
     private readonly eventEmitter: EventEmitter2,
@@ -63,7 +63,7 @@ export class TimerService {
       await this.timerModel.updateOne({ _id: timer._id }, { $set: updates })
     }
     // 调用OutletService更新出水口数据
-    await this.outletService.updateOutletsByDp(timer._id, dps)
+    await this.channelService.updateOutletsByDp(timer._id, dps)
   }
 
   /**

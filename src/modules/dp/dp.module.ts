@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common'
-import { DpConfigService } from './dp.service'
+import { DpService } from './dp.service'
 import { ParseDpReportPipe } from './pipes/parse-dp-report.pipe'
 
 /**
@@ -18,12 +18,9 @@ import { ParseDpReportPipe } from './pipes/parse-dp-report.pipe'
 @Global()
 @Module({
   providers: [
-    DpConfigService,      // DP 配置 + 命令构建
-    ParseDpReportPipe,    // 上报解析
+    DpService, // DP 配置 + 命令构建
+    ParseDpReportPipe, // 上报解析
   ],
-  exports: [
-    DpConfigService,
-    ParseDpReportPipe,
-  ],
+  exports: [DpService, ParseDpReportPipe],
 })
 export class DpModule {}
