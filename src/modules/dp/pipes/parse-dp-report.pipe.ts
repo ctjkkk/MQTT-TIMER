@@ -2,28 +2,8 @@ import { PipeTransform, Injectable, ArgumentMetadata, BadRequestException, Logge
 import { plainToClass } from 'class-transformer'
 import { validate } from 'class-validator'
 import { DpReportDto } from '../dto/dp-report.dto'
-import { DpConfigService } from '../dp.service'
-import { DpDataType } from '../types/dp.types'
-
-/**
- * 解析后的 DP 数据结构
- */
-export interface ParsedDpReport {
-  dps: Array<{
-    dpId: number // DP ID
-    code: string // DP 标识符（如：'switch_1'）
-    name: string // DP 名称（如：'区域 A'）
-    value: any // DP 值
-    formattedValue: string // 格式化后的值（用于显示）
-    valid: boolean // 验证是否通过
-    errors?: string[] // 验证错误信息
-  }>
-  validCount: number // 有效 DP 数量
-  invalidCount: number // 无效 DP 数量
-  deviceId: string
-  productId: string
-  timestamp: number
-}
+import { DpService } from '../dp.service'
+import { DpDataType, ParsedDpReport } from '../types/dp.types'
 
 /**
  * DP 上报解析管道
@@ -43,10 +23,7 @@ export interface ParsedDpReport {
  */
 @Injectable()
 export class ParseDpReportPipe implements PipeTransform<Buffer | string, Promise<ParsedDpReport>> {
-  private readonly logger = new Logger(ParseDpReportPipe.name)
-
-  constructor(private readonly dpConfigService: DpConfigService) {}
-
+  constructor(private readonly dpService: DpService) {}
   /**
    * 管道转换方法
    * @param value - MQTT 消息（Buffer 或 String）
@@ -97,7 +74,7 @@ export class ParseDpReportPipe implements PipeTransform<Buffer | string, Promise
   }
 
   /**
-   * 提取 dps 数组（私有方法）
+   * 提取 dps 数组
    * 支持两种格式：
    * 1. 对象格式: { "1": true, "17": 300 }
    * 2. 数组格式: [{ dpId: 1, value: true }]
@@ -120,7 +97,7 @@ export class ParseDpReportPipe implements PipeTransform<Buffer | string, Promise
    */
   private validateDp(productId: string, dpId: number, value: any) {
     // 获取 DP 定义
-    const dpDef = this.dpConfigService.getDpDefinition(productId, dpId)
+    const dpDef = this.dpService.getDpDefinition(productId, dpId)
     // DP 不存在
     if (!dpDef) {
       return {
@@ -136,7 +113,6 @@ export class ParseDpReportPipe implements PipeTransform<Buffer | string, Promise
 
     // 验证值的类型和范围
     const errors = this.validateValue(dpDef, value)
-
     return {
       dpId,
       code: dpDef.code,

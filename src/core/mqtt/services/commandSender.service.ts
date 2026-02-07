@@ -4,21 +4,18 @@ import { buildGatewayMessage } from '@/modules/gateway/utils/gateway.utils'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
 import { MqttMessageType, MqttTopic, OperateAction, EntityType } from '@/shared/constants/topic.constants'
 import { LoggerService } from '@/core/logger/logger.service'
+import { DpService } from '@/modules/dp/dp.service'
 
 /**
  * 命令发送服务
  * 封装所有 MQTT 命令发送逻辑，统一管理设备命令下发
- *
- * 设计说明：
- * - 所有命令都是发给网关的，网关会根据消息内容判断是给自己还是转发给子设备
- * - 统一使用 buildGatewayMessage 构建消息（buildSubDeviceMessage 实现完全相同）
- * - 统一日志格式
  */
 @Injectable()
 export class CommandSenderService {
   constructor(
     private readonly logger: LoggerService,
     private readonly broker: MqttBrokerService,
+    private readonly dpService: DpService,
   ) {}
 
   /**
@@ -34,8 +31,6 @@ export class CommandSenderService {
     this.broker.publishToClient(clientId, topic, JSON.stringify(message))
     this.logger.debug(LogMessages.GATEWAY.COMMAND_SENT(gatewayId, msgType, message), LogContext.GATEWAY_SERVICE)
   }
-
-  // ========== 网关级别命令 ==========
 
   /**
    * 发送网关命令（公共通用方法）
@@ -95,7 +90,6 @@ export class CommandSenderService {
     })
   }
 
-  // ========== 子设备级别命令 ==========
   /**
    * 发送删除子设备命令
    * @param gatewayId 网关ID
@@ -109,16 +103,30 @@ export class CommandSenderService {
   }
 
   /**
-   * 发送控制子设备命令（DP点控制）
+   * 发送 DP 控制命令给子设备
    * @param gatewayId 网关ID
-   * @param subDeviceId 子设备ID（内部参数名）
+   * @param subDeviceId 子设备ID
+   * @param productId 产品ID（用于DP验证）
    * @param dps DP点数据对象 { dpId: dpValue }
+   * @throws {Error} 如果DP验证失败
    */
-  sendControlSubDeviceCommand(gatewayId: string, subDeviceId: string, dps: Record<number, any>) {
+  async sendDpCommand(gatewayId: string, subDeviceId: string, productId: string, dps: Record<number, any>) {
+    // DP 验证：确保下发的命令合法
+    try {
+      this.dpService.validateDpCommand(productId, dps)
+    } catch (error) {
+      this.logger.error(
+        LogMessages.GATEWAY.DP_COMMAND_VALIDATION_FAILED(gatewayId, subDeviceId, productId, error.message),
+        LogContext.GATEWAY_SERVICE,
+      )
+      throw error
+    }
+    // 构建并发送 DP 命令
     this.sendCommand(gatewayId, MqttMessageType.DP_COMMAND, {
-      uuid: subDeviceId, // MQTT消息使用uuid
+      entityType: EntityType.SUBDEVICE,
+      uuid: subDeviceId,
       dps,
-      timestamp: Date.now(),
     })
+    this.logger.info(LogMessages.GATEWAY.DP_COMMAND_SENT(gatewayId, subDeviceId), LogContext.GATEWAY_SERVICE)
   }
 }

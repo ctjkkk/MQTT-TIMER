@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
-import { OutletService } from '../outlet/outlet.service'
+import { OutletService } from '../outlet/channel.service'
 import { ProductService } from '../product/product.service' // ← 新增
 import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/topic.constants'
 import { OperateAction } from '@/shared/constants/topic.constants'

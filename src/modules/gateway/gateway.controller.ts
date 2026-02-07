@@ -115,7 +115,7 @@ export class GatewayController {
     responseDescription: '网关进入配对模式',
     msg: '网关已进入子设备配对模式，等待子设备连接',
   })
-  async startSubDevicePairing(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId) {
+  async startSubDevicePairing(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.startSubDevicePairing(userId, gatewayId)
   }
 

@@ -4,7 +4,7 @@ import { TimerService } from './timer.service'
 import { TimerController } from './timer.controller'
 import { TimerEventsHandler } from './timer.events'
 import { GatewayModule } from '../gateway/gateway.module'
-import { OutletModule } from '../outlet/outlet.module'
+import { ChannelModule } from '../channel/channel.module'
 import { ProductModule } from '../product/product.module'
 import { Timer, TimerSchema } from './schema/timer.schema'
 import { Gateway, GatewaySchema } from '../gateway/schema/HanqiGateway.schema'
@@ -16,14 +16,11 @@ import { Gateway, GatewaySchema } from '../gateway/schema/HanqiGateway.schema'
       { name: Gateway.name, schema: GatewaySchema },
     ]),
     forwardRef(() => GatewayModule),
-    OutletModule,
+    ChannelModule,
     ProductModule,
   ],
   controllers: [TimerController],
-  providers: [
-    TimerService,
-    TimerEventsHandler,
-  ],
+  providers: [TimerService, TimerEventsHandler],
   exports: [TimerService],
 })
 export class TimerModule {}

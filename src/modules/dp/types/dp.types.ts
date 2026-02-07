@@ -1,6 +1,5 @@
 /**
  * 涂鸦 DP 点类型定义
- * 参考文档：docs/HQ2026-*路433水阀(xxx).txt
  */
 
 /**
@@ -72,7 +71,7 @@ export interface ProductDpSchema {
   productName: string
 
   /** 出水口数量 */
-  outletCount: number
+  channelCount: number
 
   /** 支持的所有 DP 点 */
   dps: DpDefinition[]
@@ -82,3 +81,23 @@ export interface ProductDpSchema {
  * 所有产品的 DP Schema 映射表
  */
 export type ProductDpSchemaMap = Record<string, ProductDpSchema>
+
+/**
+ * 解析后的 DP 数据结构
+ */
+export interface ParsedDpReport {
+  dps: Array<{
+    dpId: number // DP ID
+    code: string // DP 标识符（如：'switch_1'）
+    name: string // DP 名称（如：'区域 A'）
+    value: any // DP 值
+    formattedValue: string // 格式化后的值（用于显示）
+    valid: boolean // 验证是否通过
+    errors?: string[] // 验证错误信息
+  }>
+  validCount: number // 有效 DP 数量
+  invalidCount: number // 无效 DP 数量
+  deviceId: string
+  productId: string
+  timestamp: number
+}

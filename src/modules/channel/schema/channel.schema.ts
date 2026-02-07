@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { HydratedDocument, Schema as MongooseSchema } from 'mongoose'
 
-export type OutletDocument = HydratedDocument<Outlet>
+export type ChannelDocument = HydratedDocument<Channel>
 
-@Schema({ timestamps: true, collection: 'outlets' })
-export class Outlet {
+@Schema({ timestamps: true, collection: 'channels' })
+export class Channel {
   @Prop({ type: String, required: true, unique: true, trim: true, comment: '出水口唯一标识' })
-  outletId: string
+  channelId: string
 
   @Prop({ type: String, required: true, trim: true, default: '出水口', comment: '出水口名称' })
   name: string
@@ -18,7 +18,7 @@ export class Outlet {
   userId: MongooseSchema.Types.ObjectId
 
   @Prop({ type: Number, required: true, min: 1, max: 4, comment: '出水口编号（1-4）' })
-  outlet_number: number
+  channel_number: number
 
   @Prop({ type: String, trim: true, default: '', comment: '区域名称（对应现实中的灌溉区域）' })
   zone_name: string
@@ -48,12 +48,12 @@ export class Outlet {
   last_dp_update: Date
 }
 
-export const OutletSchema = SchemaFactory.createForClass(Outlet)
+export const ChannelSchema = SchemaFactory.createForClass(Channel)
 
 // 添加索引
-OutletSchema.index({ timerId: 1 })
-OutletSchema.index({ userId: 1 })
-OutletSchema.index({ outletId: 1 }, { unique: true })
-OutletSchema.index({ timerId: 1, outlet_number: 1 }, { unique: true })
-OutletSchema.index({ current_status: 1 })
-OutletSchema.index({ is_enabled: 1 })
+ChannelSchema.index({ timerId: 1 })
+ChannelSchema.index({ userId: 1 })
+ChannelSchema.index({ channelId: 1 }, { unique: true })
+ChannelSchema.index({ timerId: 1, channel_number: 1 }, { unique: true })
+ChannelSchema.index({ current_status: 1 })
+ChannelSchema.index({ is_enabled: 1 })

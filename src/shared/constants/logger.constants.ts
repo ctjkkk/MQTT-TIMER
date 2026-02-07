@@ -128,6 +128,10 @@ export const LogMessages = {
       `发送网关命令: ${gatewayId}, 类型: ${msgType}, 消息: ${JSON.stringify(message)}`,
     SUBDEVICE_COMMAND_SENT: (gatewayId: string, subDeviceId: string, msgType: string) =>
       `📤 发送子设备命令: 网关=${gatewayId}, 设备=${subDeviceId}, 类型=${msgType}`,
+    DP_COMMAND_VALIDATION_FAILED: (gatewayId: string, subDeviceId: string, productId: string, error: string) =>
+      `DP验证失败 - 网关: ${gatewayId}, 子设备: ${subDeviceId}, 产品: ${productId}, 错误: ${error}`,
+    DP_COMMAND_SENT: (gatewayId: string, subDeviceId: string) =>
+      `DP命令已发送 - 网关: ${gatewayId}, 子设备: ${subDeviceId}`,
   },
   TIMER: {
     ADDED_SUCCESS: (count: number) => `批量添加子设备完成: ${count} 个成功`,

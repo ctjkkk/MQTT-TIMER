@@ -10,13 +10,9 @@
 
 import { DpAccessMode, DpDataType, ProductDpSchema, ProductDpSchemaMap } from '../types/dp.types'
 
-/**
- * 通用 DP 点（所有产品都有）
- */
+// 通用 DP 点（所有产品都有）
 const COMMON_DPS = [
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 天气相关（所有产品共享）
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   {
     id: 42,
     code: 'remaining_weather_delay',
@@ -50,9 +46,7 @@ const COMMON_DPS = [
     description: '1-7表示延时天数，cancel表示取消延时',
   },
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 系统状态（所有产品共享）
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   {
     id: 47,
     code: 'battery_state',
@@ -94,9 +88,7 @@ const COMMON_DPS = [
     enumValues: ['upgrade_complete', 'upgrade_begin'],
   },
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // 喷雾定时（所有产品共享）
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   {
     id: 39,
     code: 'cycle_timing',
@@ -107,9 +99,7 @@ const COMMON_DPS = [
   },
 ]
 
-/**
- * 生成单个通道的 DP 点（工厂函数）
- */
+// 生成单个通道的 DP 点（工厂函数）
 function createChannelDps(channelNum: number) {
   return [
     {
@@ -168,9 +158,7 @@ function createChannelDps(channelNum: number) {
   ]
 }
 
-/**
- * 生成普通定时 DP（通道2-4独有）
- */
+// 生成普通定时 DP（通道2-4独有）
 function createTimerDp(channelNum: number) {
   return {
     id: 111 + channelNum, // DP113-115
@@ -182,13 +170,11 @@ function createTimerDp(channelNum: number) {
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 1路水阀 DP Schema
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const PRODUCT_1_CHANNEL: ProductDpSchema = {
   productId: 'rgnmfjlnx6hzagwe',
   productName: 'HQ2026-1路433水阀',
-  outletCount: 1,
+  channelCount: 1,
   dps: [
     ...createChannelDps(1),
     {
@@ -203,23 +189,19 @@ const PRODUCT_1_CHANNEL: ProductDpSchema = {
   ],
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 2路水阀 DP Schema
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const PRODUCT_2_CHANNEL: ProductDpSchema = {
   productId: '9zkur06p7ggbwvbl',
   productName: 'HQ2026-2路433水阀',
-  outletCount: 2,
+  channelCount: 2,
   dps: [...createChannelDps(1), ...createChannelDps(2), createTimerDp(1), createTimerDp(2), ...COMMON_DPS],
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 3路水阀 DP Schema
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const PRODUCT_3_CHANNEL: ProductDpSchema = {
   productId: 'fdekfvdlkmqyslqr',
   productName: 'HQ2026-3路433水阀',
-  outletCount: 3,
+  channelCount: 3,
   dps: [
     ...createChannelDps(1),
     ...createChannelDps(2),
@@ -231,13 +213,11 @@ const PRODUCT_3_CHANNEL: ProductDpSchema = {
   ],
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 4路水阀 DP Schema
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const PRODUCT_4_CHANNEL: ProductDpSchema = {
   productId: 'ui9sxthml2sayg6a',
   productName: 'HQ2026-4路433水阀',
-  outletCount: 4,
+  channelCount: 4,
   dps: [
     ...createChannelDps(1),
     ...createChannelDps(2),
@@ -262,7 +242,5 @@ export const PRODUCT_DP_SCHEMAS: ProductDpSchemaMap = {
   [PRODUCT_4_CHANNEL.productId]: PRODUCT_4_CHANNEL,
 }
 
-/**
- * 导出单个产品的 Schema（供测试使用）
- */
+// 导出单个产品的 Schema
 export { PRODUCT_1_CHANNEL, PRODUCT_2_CHANNEL, PRODUCT_3_CHANNEL, PRODUCT_4_CHANNEL }

@@ -6,7 +6,7 @@ import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { GatewayModule } from './modules/gateway/gateway.module'
 import { TimerModule } from './modules/timer/timer.module'
-import { OutletModule } from './modules/outlet/outlet.module'
+import { ChannelModule } from './modules/channel/channel.module'
 import { ScheduleModule } from './modules/schedule/schedule.module'
 import { MqttModule } from './core/mqtt/mqtt.module'
 import { DatabaseModule } from './core/database/database.module'
@@ -57,7 +57,7 @@ import { DpModule } from './modules/dp/dp.module'
     MqttModule,
     GatewayModule,
     TimerModule,
-    OutletModule,
+    ChannelModule,
     ScheduleModule,
     PskModule,
     SyncModule,

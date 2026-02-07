@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
 import { MqttUnifiedMessage } from '@/shared/constants/topic.constants'
-import { Outlet, OutletDocument } from './schema/outlet.schema'
+import { Channel, ChannelDocument } from './schema/channel.schema'
 
 /**
  * Outlet模块的Service
@@ -14,8 +14,8 @@ import { Outlet, OutletDocument } from './schema/outlet.schema'
  * 4. 提供用水统计功能
  */
 @Injectable()
-export class OutletService {
-  constructor(@InjectModel(Outlet.name) private readonly outletModel: Model<OutletDocument>) {}
+export class ChannelService {
+  constructor(@InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>) {}
 
   // ========== MQTT消息处理 ==========
 
@@ -25,11 +25,11 @@ export class OutletService {
    */
   async updateOutletsByDp(timerId: Types.ObjectId, dps: Record<string, any>): Promise<void> {
     // 查找该Timer的所有出水口
-    const outlets = await this.outletModel.find({ timerId })
+    const channels = await this.channelModel.find({ timerId })
 
-    for (const outlet of outlets) {
-      const outletNumber = outlet.outlet_number
-      const baseDpId = [0, 21, 41, 61, 81][outletNumber]
+    for (const channel of channels) {
+      const channelNumber = channel.channel_number
+      const baseDpId = [0, 21, 41, 61, 81][channelNumber]
 
       if (!baseDpId) continue
 
@@ -78,9 +78,9 @@ export class OutletService {
         updates.dp_data = dps
         updates.last_dp_update = new Date()
 
-        await this.outletModel.updateOne({ _id: outlet._id }, { $set: updates })
+        await this.channelModel.updateOne({ _id: channel._id }, { $set: updates })
 
-        console.log(`[OutletService] 出水口${outletNumber}数据已更新`)
+        console.log(`[OutletService] 出水口${channelNumber}数据已更新`)
       }
     }
   }
@@ -91,14 +91,14 @@ export class OutletService {
    * 根据Timer ID查询出水口列表
    */
   async findOutletsByTimerId(timerId: Types.ObjectId) {
-    return await this.outletModel.find({ timerId }).sort({ outlet_number: 1 })
+    return await this.channelModel.find({ timerId }).sort({ channel_number: 1 })
   }
 
   /**
    * 查询出水口详情
    */
   async findOutletById(outletId: string) {
-    return await this.outletModel.findById(outletId)
+    return await this.channelModel.findById(outletId)
   }
 
   // TODO: 添加用水统计方法
