@@ -26,13 +26,12 @@ import { IPskServiceInterface } from './interface/pskService.interface'
  * - 定期同步：每 5 分钟从数据库同步到 Redis
  */
 @Injectable()
-export class PskService implements OnModuleInit, OnModuleDestroy, IPskServiceInterface {
+export class PskService implements OnModuleInit, IPskServiceInterface {
   // NestJS 系统日志（用于同步日志）
   private readonly systemLogger = new Logger(PskService.name)
   // Redis 键前缀
   readonly REDIS_PREFIX = 'psk:'
-  // 定期同步定时器
-  private syncTimer: NodeJS.Timeout | null = null
+
   constructor(
     @InjectModel(Psk.name) private readonly hanqiPskModel: Model<PskDocument>,
     private readonly redis: RedisService,
@@ -42,27 +41,6 @@ export class PskService implements OnModuleInit, OnModuleDestroy, IPskServiceInt
   async onModuleInit() {
     // Redis 已由 DatabaseModule 确保连接就绪
     await this.syncFromDatabase()
-    // 启动定期同步（每 5 分钟）
-    this.startSyncTask()
-  }
-
-  onModuleDestroy() {
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer)
-      this.syncTimer = null
-    }
-  }
-
-  /**
-   * 启动定期同步任务
-   */
-  private startSyncTask() {
-    this.syncTimer = setInterval(
-      async () => {
-        await this.syncFromDatabase()
-      },
-      5 * 60 * 1000,
-    ) // 5 分钟
   }
 
   /**

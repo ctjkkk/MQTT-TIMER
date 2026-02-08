@@ -78,7 +78,7 @@ export class ProductService implements IProductService, OnModuleInit {
    * @returns 产品配置对象，如果不存在或已禁用返回 null
    */
   async getProductConfig(productId: string): Promise<ProductDocument | null> {
-    const config = await this.productModel.findOne({ productId, enabled: true }).lean()
+    const config = await this.productModel.findOne({ productId, enabled: 1 }).lean()
     return config as ProductDocument | null
   }
 
@@ -98,7 +98,7 @@ export class ProductService implements IProductService, OnModuleInit {
    * 使用场景：App 或管理后台获取产品列表
    */
   async findAllProducts(): Promise<ProductHttpResponse[]> {
-    return (await this.productModel.find({ enabled: true }).lean()).map(item => ({
+    return (await this.productModel.find({ enabled: 1 }).lean()).map(item => ({
       productId: item.productId,
       name: item.name,
       description: item.description,

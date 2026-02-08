@@ -14,19 +14,14 @@ import type { PskMeta } from '@/auth/psk/types/psk'
  * - TLS 的 pskCallback 必须是同步函数，不能使用 async/await
  * - Redis 查询是异步的，无法在 pskCallback 中使用
  * - 因此需要从 Redis 加载到内存 Map，提供同步查询
- *
  * 同步策略：
  * - 启动时：从 Redis 加载到内存
  * - 定期同步：每 5 分钟从 Redis 同步（与 PskService 同步频率一致）
  */
 @Injectable()
-export class PskAuthStrategy implements IAuthStrategy, OnModuleInit, OnModuleDestroy {
-  // NestJS 系统日志（用于启动和同步日志）
-  private readonly systemLogger = new Logger(PskAuthStrategy.name)
+export class PskAuthStrategy implements IAuthStrategy, OnModuleInit {
   // 内存缓存（用于 TLS pskCallback 同步查询）
   private localCache = new Map<string, PskMeta>()
-  // 定期同步定时器
-  private syncTimer: NodeJS.Timeout | null = null
 
   constructor(
     private psk: PskService,
@@ -35,18 +30,7 @@ export class PskAuthStrategy implements IAuthStrategy, OnModuleInit, OnModuleDes
   ) {}
 
   async onModuleInit() {
-    await this.loadFromRedis()
-    // 启动定期同步（每 5 分钟）
-    this.startSyncTask()
-    // 使用系统日志（开发日志，只输出到控制台）
-    this.systemLogger.log(`PSK authentication strategy initialized, cached ${this.localCache.size} record(s)`)
-  }
-
-  onModuleDestroy() {
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer)
-      this.syncTimer = null
-    }
+    await this.loadFromRedis() // 标记为初始加载
   }
 
   /**
@@ -56,7 +40,6 @@ export class PskAuthStrategy implements IAuthStrategy, OnModuleInit, OnModuleDes
     try {
       const keys = await this.redis.getClient().keys(`${this.psk.REDIS_PREFIX}*`)
       this.localCache.clear()
-
       for (const key of keys) {
         const identity = key.replace(this.psk.REDIS_PREFIX, '')
         const meta = await this.redis.get<PskMeta>(key)
@@ -64,30 +47,14 @@ export class PskAuthStrategy implements IAuthStrategy, OnModuleInit, OnModuleDes
           this.localCache.set(identity, meta)
         }
       }
-
-      // 使用系统日志（开发日志，只输出到控制台）
-      this.systemLogger.log(`Loaded ${this.localCache.size} PSK(s) from Redis to memory cache`)
     } catch (error) {
       // 错误日志仍使用业务日志（需要持久化追踪）
       this.logger.error(LogMessages.PSK.LOAD_FROM_REDIS_FAILED(error.message), error.stack, LogContext.MQTT_AUTH)
     }
   }
 
-  /**
-   * 启动定期同步任务
-   */
-  private startSyncTask() {
-    this.syncTimer = setInterval(
-      async () => {
-        await this.loadFromRedis()
-      },
-      5 * 60 * 1000,
-    ) // 5 分钟
-  }
-
   async validate(client: MqttClient): Promise<boolean> {
     const id = client.pskIdentity!
-
     // 从内存缓存检查 PSK 是否存在且已激活（同步）
     const meta = this.localCache.get(id)
     const exists = !!meta

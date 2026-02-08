@@ -1,10 +1,11 @@
-import { Injectable, NestMiddleware } from '@nestjs/common'
+import { Injectable, Logger, NestMiddleware } from '@nestjs/common'
 import { Request, Response, NextFunction } from 'express'
 import { LoggerService } from './logger.service'
 import { randomUUID } from 'crypto'
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
+  systemLogger = new Logger('HTTP')
   constructor(private readonly logger: LoggerService) {}
 
   use(req: Request, res: Response, next: NextFunction) {
@@ -25,11 +26,15 @@ export class LoggerMiddleware implements NestMiddleware {
       const { statusCode } = res
       const duration = Date.now() - start
 
-      // 排除日志查看器自身的 API 请求，避免日志噪音
-      if (originalUrl.startsWith('/logs/api/') || originalUrl === '/logs') {
+      // 排除不需要记录到日志文件的日志（只输出到控制台）
+      const excludePath = ['/logs/api/', '/logs', '/health', '/api/health']
+      if (excludePath.includes(originalUrl)) {
+        // 只在开发环境输出到控制台，生产环境完全静默
+        if (process.env.NODE_ENV !== 'production') {
+          this.systemLogger.log(`${method} ${originalUrl} ${statusCode} ${duration}ms`)
+        }
         return
       }
-
       // 记录 HTTP 请求日志
       this.logger.httpRequest(method, originalUrl, statusCode, duration, ip, userAgent, requestId)
     })
