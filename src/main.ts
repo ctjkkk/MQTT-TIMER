@@ -28,5 +28,6 @@ async function bootstrap() {
   logger.log(`Knife4j API Docs: http://${host}:${port}/doc.html`)
   logger.log(`Logs Viewer: http://${host}:${port}/logs/index.html`)
   logger.log(`RabbitMQ Viewer: http://${host}:15672`)
+  logger.log(`Dozzle Monitoring: http://${host}:9999`)
 }
 bootstrap()
