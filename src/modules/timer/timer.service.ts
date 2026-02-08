@@ -2,16 +2,17 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { ChannelService } from '../channel/channel.service'
-import { ProductService } from '../product/product.service' // ← 新增
+import { ProductService } from '../product/product.service'
 import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/topic.constants'
 import { OperateAction } from '@/shared/constants/topic.constants'
 import { Timer, TimerDocument } from './schema/timer.schema'
 import { Gateway, GatewayDocument } from '@/modules/gateway/schema/HanqiGateway.schema'
+import { Channel, ChannelDocument } from '@/modules/channel/schema/channel.schema'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
-import { SubDeviceListResponseDto } from './dto/timer.response.dto'
+import { SubDeviceInfoResponseDto, SubDeviceListResponseDto } from './dto/timer.response.dto'
 /**
  * Timer设备模块的Service
  * 职责：
@@ -23,9 +24,10 @@ export class TimerService {
   constructor(
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
+    @InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>,
     @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
     private readonly channelService: ChannelService,
-    private readonly productService: ProductService, // ← 新增：注入产品服务
+    private readonly productService: ProductService,
     private readonly loggerService: LoggerService,
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: LoggerService,
@@ -62,8 +64,8 @@ export class TimerService {
       updates.last_seen = new Date()
       await this.timerModel.updateOne({ _id: timer._id }, { $set: updates })
     }
-    // 调用OutletService更新出水口数据
-    await this.channelService.updateOutletsByDp(timer._id, dps)
+    // 调用ChannelService更新通道数据
+    await this.channelService.updateChannelsByDp(timer.timerId, dps)
   }
 
   /**
@@ -97,9 +99,7 @@ export class TimerService {
     }
   }
 
-  /**
-   * 批量处理子设备状态上报
-   */
+  // 批量处理子设备状态上报
   async handleDeviceStatus(message: MqttUnifiedMessage) {
     const { uuid: gatewayId } = message
     const { subDevices } = message.data
@@ -117,9 +117,7 @@ export class TimerService {
     this.logger.info(LogMessages.TIMER.SUBDEVICE_STATUS_UPDATED_SUCCESS(stats.updated, stats.skipped), LogContext.TIMER_SERVICE)
   }
 
-  /**
-   * 更新单个子设备状态
-   */
+  // 更新单个子设备状态
   private async updateSubDeviceStatus(device: any, gatewayId: string, index: number): Promise<boolean> {
     // MQTT消息使用uuid，内部逻辑使用flashId
     const { uuid, online, signal_strength, battery_level } = device
@@ -181,7 +179,7 @@ export class TimerService {
         continue
       }
       //从产品配置获取所有属性
-      const { name: productName, deviceType, defaultFirmwareVersion, defaultBatteryLevel } = productConfig
+      const { name: productName, deviceType, defaultFirmwareVersion, defaultBatteryLevel, channelCount } = productConfig
       // 检查设备是否已存在
       const exists = await this.timerModel.findOne({ timerId: subDeviceId })
       if (exists) {
@@ -210,12 +208,14 @@ export class TimerService {
           productId,
           deviceType, // 从产品配置获取
           firmware_version: defaultFirmwareVersion, // 从产品配置获取
-          online: true, // 默认在线
+          online: 1, // 默认在线
           battery_level: defaultBatteryLevel, // 从产品配置获取
           createdAt: new Date(),
         })
         stats.added++
         this.loggerService.debug(`子设备已创建: ${subDeviceId}, 产品: ${productName}`, LogContext.TIMER_SERVICE)
+        // 创建通道（根据出水口数量）
+        await this.channelService.createChannelsForTimer(subDeviceId, gateway.userId.toString(), channelCount)
       }
     }
     this.loggerService.info(
@@ -261,8 +261,14 @@ export class TimerService {
       )
       return
     }
-    // 删除子设备记录
-    await this.timerModel.deleteOne({ timerId: subDeviceId })
+    const session = await this.timerModel.db.startSession()
+    await session.withTransaction(async () => {
+      // 删除该Timer记录
+      await this.timerModel.deleteOne({ timerId: subDeviceId }).session(session)
+      // 删除该Timer的所有通道
+      await this.channelModel.deleteMany({ timerId: subDeviceId }).session(session)
+    })
+    session.endSession()
     this.loggerService.info(`网关上报删除子设备成功: 网关=${gatewayId}, 子设备=${subDeviceId}`, LogContext.TIMER_SERVICE)
   }
 
@@ -292,7 +298,14 @@ export class TimerService {
     const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
     if (!gateway) throw new NotFoundException('The gateway associated with this Timer does not exist.')
     if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to delete this Timer.')
-    await this.timerModel.deleteOne({ timerId })
+    const session = await this.timerModel.db.startSession()
+    await session.withTransaction(async () => {
+      // 删除该Timer记录
+      await this.timerModel.deleteOne({ timerId })
+      // 删除该Timer的所有通道
+      await this.channelModel.deleteMany({ timerId })
+    })
+    session.endSession()
     //下发删除命令给网关
     this.commandSenderService.sendDeleteSubDeviceCommand(gateway.gatewayId, timerId)
     this.loggerService.info(LogMessages.TIMER.DELETED_SUCCESS(timerId), LogContext.TIMER_SERVICE)
@@ -313,8 +326,48 @@ export class TimerService {
       timerId: timer.timerId?.toString(),
       name: newName,
       status: timer.status,
-      lastSeen: timer.last_seen,
+      last_seen: timer.last_seen,
       online: timer.online,
+    }
+  }
+
+  //通过子设备id查询该子设备的所有信息，包含通道详情列表
+  async getSubDeviceInfoByTimerId(userId: string, timerId: string): Promise<SubDeviceInfoResponseDto> {
+    const timer = await this.timerModel.findOne({ timerId, status: 1 }).lean()
+    if (!timer) {
+      throw new NotFoundException('This Timer device does not exist or be disabled.')
+    }
+    const gateway = await this.gatewayModel.findOne({ gatewayId: timer!.gatewayId })
+    if (!gateway) {
+      throw new NotFoundException('The gateway associated with this Timer does not exist.')
+    }
+    if (gateway.userId.toString() !== userId) {
+      throw new NotFoundException('You have no right to view the information of this Timer device.')
+    }
+    const channels = await this.channelModel.find({ timerId }).lean()
+    return {
+      name: timer.name,
+      userId: timer.userId?.toString(),
+      gatewayId: timer.gatewayId?.toString(),
+      timerId: timer.timerId?.toString(),
+      status: timer.status,
+      online: timer.online,
+      channel_count: timer.channel_count,
+      firmware_version: timer.firmware_version,
+      battery_level: timer.battery_level,
+      signal_strength: timer.signal_strength,
+      last_seen: timer.last_seen,
+      last_dp_update: timer.last_dp_update,
+      channels: channels.map(channel => ({
+        zone_name: channel.zone_name,
+        is_running: channel.is_running,
+        work_state: channel.work_state,
+        remaining_countdown: channel.remaining_countdown,
+        irrigation_duration: channel.irrigation_duration,
+        next_run_time: channel.next_run_time,
+        timer_config: channel.timer_config,
+        weather_skip_enabled: channel.weather_skip_enabled,
+      })),
     }
   }
 }

@@ -103,7 +103,7 @@ export class ProductService implements IProductService, OnModuleInit {
       name: item.name,
       description: item.description,
       imageUrl: item.imageUrl,
-      outletCount: item.outletCount,
+      channelCount: item.channelCount,
       defaultFirmwareVersion: item.defaultFirmwareVersion,
       defaultBatteryLevel: item.defaultBatteryLevel,
     }))
@@ -122,7 +122,7 @@ export class ProductService implements IProductService, OnModuleInit {
         name: 1,
         description: 1,
         imageUrl: 1,
-        outletCount: 1,
+        channelCount: 1,
         enabled: 1,
         defaultFirmwareVersion: 1,
         defaultBatteryLevel: 1,

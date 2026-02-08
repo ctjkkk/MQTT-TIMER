@@ -8,12 +8,14 @@ import { ChannelModule } from '../channel/channel.module'
 import { ProductModule } from '../product/product.module'
 import { Timer, TimerSchema } from './schema/timer.schema'
 import { Gateway, GatewaySchema } from '../gateway/schema/HanqiGateway.schema'
+import { Channel, ChannelSchema } from '../channel/schema/channel.schema'
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Timer.name, schema: TimerSchema },
       { name: Gateway.name, schema: GatewaySchema },
+      { name: Channel.name, schema: ChannelSchema },
     ]),
     forwardRef(() => GatewayModule),
     ChannelModule,

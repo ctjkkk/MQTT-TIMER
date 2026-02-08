@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common'
 import { TimerService } from './timer.service'
 import { ApiResponseStandard } from '@/common/decorators/apiResponse.decorator'
-import { SubDeviceListResponseDto } from './dto/timer.response.dto'
+import { SubDeviceInfoResponseDto, SubDeviceListResponseDto } from './dto/timer.response.dto'
 import { CurrentUserId } from '@/common/decorators/paramExtractor.decorators'
 import { RenameSubDeviceDto } from './dto/update-subdevice.dto'
 @Controller('timer')
@@ -19,14 +19,17 @@ export class TimerController {
     return this.timerService.deleteSubDeviceById(userId, timerId)
   }
 
-  //获取指定子设备信息
+  //获取指定子设备信息(包含该子设备下所有通道详情信息)
   @Get('/:timerId')
   @ApiResponseStandard({
     summary: '获取单个子设备详情',
     responseDescription: '返回子设备详情信息',
     msg: '查询成功',
+    responseType: SubDeviceInfoResponseDto,
   })
-  getSubDeviceInfo(@CurrentUserId() userId: string, @Param('timerId') timerId: string) {}
+  getSubDeviceInfo(@CurrentUserId() userId: string, @Param('timerId') timerId: string) {
+    return this.timerService.getSubDeviceInfoByTimerId(userId, timerId)
+  }
 
   // 修改指定子设备名称
   @Post('/rename')

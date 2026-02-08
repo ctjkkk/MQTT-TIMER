@@ -48,6 +48,10 @@ export const LogContext = {
   TIMER_SERVICE: 'TimerService',
   /** 出水口模块 */
   OUTLET: 'Outlet',
+  /** 通道模块 */
+  CHANNEL: 'Channel',
+  /** 通道服务 */
+  CHANNEL_SERVICE: 'ChannelService',
   /** 调度模块 */
   SCHEDULE: 'Schedule',
   /** 消息分发服务 */
@@ -193,6 +197,15 @@ export const LogMessages = {
     CREATED: (name: string, productId: string) => `创建新产品配置: ${name} (productId: ${productId})`,
     UPDATED: (name: string, productId: string) => `Update product configuration: ${name} (product ID: ${productId})`,
     DISABLED: (productId: string) => `禁用产品配置: productId=${productId}`,
+  },
+  CHANNEL: {
+    BATCH_CREATED: (timerId: string, count: number) => `批量创建通道: Timer=${timerId}, 数量=${count}`,
+    DP_UPDATED: (timerId: string, channelNumber: number, updatedFields: string) =>
+      `通道DP更新: Timer=${timerId}, 编号=${channelNumber}, 字段=[${updatedFields}]`,
+    NOT_FOUND: (channelId: string) => `通道未找到: ${channelId}`,
+    ZONE_NAME_UPDATED: (channelId: string, zoneName: string) => `通道区域名称已更新: ${channelId}, 名称="${zoneName}"`,
+    WEATHER_SKIP_UPDATED: (channelId: string, enabled: number) =>
+      `通道天气跳过已更新: ${channelId}, 启用=${enabled === 1 ? '是' : '否'}`,
   },
   COMMON: {
     ERROR: (context: string, error: string) => `❌ ${context} 错误: ${error}`,

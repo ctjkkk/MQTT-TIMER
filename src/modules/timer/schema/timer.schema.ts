@@ -24,9 +24,9 @@ export class Timer {
   gatewayId: string
 
   @Prop({ type: Number, min: 1, max: 4, default: 2 })
-  outlet_count: number
+  channel_count: number
 
-  @Prop({ type: Number, default: 0 })
+  @Prop({ type: Number, default: 0, enum: [0, 1] })
   status: number
 
   @Prop({ type: Number, default: 0 })
@@ -43,9 +43,6 @@ export class Timer {
 
   @Prop({ type: Number, min: 0, max: 100, default: 100, comment: '信号强度' })
   signal_strength: number
-
-  @Prop({ type: Map, of: MongooseSchema.Types.Mixed, default: {}, comment: 'DP点数据存储（键为dpId，值为dp值）' })
-  dp_data: Map<string, any>
 
   @Prop({ type: Date, default: null, comment: '最后一次DP点更新时间' })
   last_dp_update: Date

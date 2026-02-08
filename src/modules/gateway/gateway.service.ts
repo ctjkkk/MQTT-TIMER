@@ -386,7 +386,7 @@ export class GatewayService implements IGatewayServiceInterface {
       timerId: timer.timerId?.toString(),
       name: timer.name,
       status: timer.status,
-      lastSeen: timer.last_seen,
+      last_seen: timer.last_seen,
       online: timer.online,
     }))
   }

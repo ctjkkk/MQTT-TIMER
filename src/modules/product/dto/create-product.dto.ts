@@ -20,6 +20,6 @@ export class CreateProductDto {
   description: string
 
   @ApiProperty({ description: '出水口数量', example: 3 })
-  @IsNumber({}, { message: 'The outletCount must be a number.' })
-  outletCount: number
+  @IsNumber({}, { message: 'The channelCount must be a number.' })
+  channelCount: number
 }

@@ -29,5 +29,6 @@ async function bootstrap() {
   logger.log(`Logs Viewer: http://${host}:${port}/logs/index.html`)
   logger.log(`RabbitMQ Viewer: http://${host}:15672`)
   logger.log(`Dozzle Monitoring: http://${host}:9999`)
+  logger.log(`Redis Insight: http://${host}:5540`)
 }
 bootstrap()

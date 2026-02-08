@@ -1,106 +1,151 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
-import { MqttUnifiedMessage } from '@/shared/constants/topic.constants'
 import { Channel, ChannelDocument } from './schema/channel.schema'
+import { LoggerService } from '@/core/logger/logger.service'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 
 /**
- * Outlet模块的Service
+ * Channel模块的Service
  *
  * 职责：
- * 1. 处理出水口相关的业务逻辑
- * 2. 根据DP点更新出水口状态
- * 3. 处理灌溉记录
- * 4. 提供用水统计功能
+ * 1. 在Timer添加时自动创建通道（根据outlet_count）
+ * 2. 根据DP点更新通道状态
+ * 3. 提供通道查询和更新功能
+ * 4. 通道不能单独删除，只能随Timer一起删除
  */
 @Injectable()
 export class ChannelService {
-  constructor(@InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>) {}
-
-  // ========== MQTT消息处理 ==========
+  constructor(
+    @InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>,
+    private readonly logger: LoggerService,
+  ) {}
+  /**
+   * 为Timer批量创建通道
+   * @param timerId Timer设备ID
+   * @param userId 用户ID
+   * @param outletCount 出水口数量（1-4）
+   */
+  async createChannelsForTimer(timerId: string, userId: string, channelCount: number): Promise<void> {
+    const existingChannels = await this.channelModel.find({ timerId })
+    if (existingChannels.length) {
+      return
+    }
+    // 批量创建通道
+    const channels = []
+    for (let i = 1; i <= channelCount; i++) {
+      channels.push({
+        timerId,
+        userId,
+        channel_number: i,
+        zone_name: '',
+        is_running: 0,
+        work_state: 'idle',
+        remaining_countdown: 0,
+        irrigation_duration: 0,
+        next_run_time: null,
+        timer_config: '',
+        weather_skip_enabled: 0,
+        total_irrigation_time: 0,
+        last_run_time: null,
+        last_dp_update: null,
+      })
+    }
+    await this.channelModel.insertMany(channels)
+    this.logger.info(LogMessages.CHANNEL.BATCH_CREATED(timerId, channelCount), LogContext.CHANNEL_SERVICE)
+  }
 
   /**
-   * 根据DP点数据更新出水口状态
-   * 由TimerService调用
+   * 根据DP点数据更新通道状态
+   * @param timerId Timer设备ID
+   * @param dps DP点数据
    */
-  async updateOutletsByDp(timerId: Types.ObjectId, dps: Record<string, any>): Promise<void> {
-    // 查找该Timer的所有出水口
+  async updateChannelsByDp(timerId: string, dps: Record<string, any>): Promise<void> {
     const channels = await this.channelModel.find({ timerId })
-
     for (const channel of channels) {
       const channelNumber = channel.channel_number
-      const baseDpId = [0, 21, 41, 61, 81][channelNumber]
-
-      if (!baseDpId) continue
-
       const updates: any = {}
+      const updatedFields: string[] = []
 
-      // DP点映射
-      // baseDpId+0: 开关
-      // baseDpId+1: 状态
-      // baseDpId+3: 剩余时间
-      // baseDpId+4: 流速
-      // baseDpId+5: 水压
-      // baseDpId+6: 累计用水量
-      // baseDpId+7: 区域名称
-
-      if (dps[String(baseDpId)] !== undefined) {
-        // 开关
-        updates.current_status = dps[String(baseDpId)] ? 1 : 0
-      }
-      if (dps[String(baseDpId + 1)] !== undefined) {
-        // 状态
-        updates.current_status = dps[String(baseDpId + 1)]
-      }
-      if (dps[String(baseDpId + 3)] !== undefined) {
-        // 剩余时间
-        updates.remaining_time = dps[String(baseDpId + 3)]
-      }
-      if (dps[String(baseDpId + 4)] !== undefined) {
-        // 流速
-        updates.flow_rate = dps[String(baseDpId + 4)]
-      }
-      if (dps[String(baseDpId + 5)] !== undefined) {
-        // 水压（转换回bar）
-        updates.pressure = dps[String(baseDpId + 5)] / 10
-      }
-      if (dps[String(baseDpId + 6)] !== undefined) {
-        // 累计用水量
-        updates.total_water_used = dps[String(baseDpId + 6)]
-      }
-      if (dps[String(baseDpId + 7)] !== undefined) {
-        // 区域名称
-        updates.zone_name = dps[String(baseDpId + 7)]
+      // DP1-4: 开关状态
+      const switchDp = dps[String(channelNumber)]
+      if (switchDp !== undefined) {
+        updates.is_running = switchDp ? 1 : 0
+        updatedFields.push(`is_running=${updates.is_running}`)
       }
 
+      // DP17-20: 灌溉时长（秒）
+      const durationDp = dps[String(16 + channelNumber)]
+      if (durationDp !== undefined) {
+        updates.irrigation_duration = durationDp
+        updatedFields.push(`irrigation_duration=${durationDp}`)
+      }
+
+      // DP105-108: 剩余倒计时（秒）
+      const countdownDp = dps[String(104 + channelNumber)]
+      if (countdownDp !== undefined) {
+        updates.remaining_countdown = countdownDp
+        updatedFields.push(`remaining_countdown=${countdownDp}`)
+      }
+
+      // DP119-122: 工作状态（0=idle, 1=manual, 2=timing, 3=spray）
+      const workStateDp = dps[String(118 + channelNumber)]
+      if (workStateDp !== undefined) {
+        const stateMap = { 0: 'idle', 1: 'manual', 2: 'timing', 3: 'spray' }
+        updates.work_state = stateMap[workStateDp] || 'idle'
+        updatedFields.push(`work_state=${updates.work_state}`)
+      }
+
+      // DP131-134: 累计灌溉时长（分钟）
+      const totalTimeDp = dps[String(130 + channelNumber)]
+      if (totalTimeDp !== undefined) {
+        updates.total_irrigation_time = totalTimeDp
+        updatedFields.push(`total_irrigation_time=${totalTimeDp}`)
+      }
       // 如果有数据需要更新
       if (Object.keys(updates).length > 0) {
-        updates.dp_data = dps
         updates.last_dp_update = new Date()
-
+        // 如果从关闭变为运行，记录最后运行时间
+        if (updates.is_running === 1 && channel.is_running === 0) {
+          updates.last_run_time = new Date()
+          updatedFields.push('last_run_time')
+        }
         await this.channelModel.updateOne({ _id: channel._id }, { $set: updates })
-
-        console.log(`[OutletService] 出水口${channelNumber}数据已更新`)
+        this.logger.info(LogMessages.CHANNEL.DP_UPDATED(timerId, channelNumber, updatedFields.join(', ')), LogContext.CHANNEL_SERVICE)
       }
     }
   }
 
-  // ========== 数据查询方法 ==========
-
-  /**
-   * 根据Timer ID查询出水口列表
-   */
-  async findOutletsByTimerId(timerId: Types.ObjectId) {
-    return await this.channelModel.find({ timerId }).sort({ channel_number: 1 })
+  // 根据Timer ID查询通道列表
+  async findChannelsByTimerId(timerId: string): Promise<Channel[]> {
+    return await this.channelModel.find({ timerId }).sort({ channel_number: 1 }).lean()
   }
 
-  /**
-   * 查询出水口详情
-   */
-  async findOutletById(outletId: string) {
-    return await this.channelModel.findById(outletId)
+  // 根据通道ID查询通道详情
+  async findChannelById(channelId: string): Promise<Channel> {
+    const channel = await this.channelModel.findById(channelId).lean()
+    if (!channel) {
+      this.logger.warn(LogMessages.CHANNEL.NOT_FOUND(channelId), LogContext.CHANNEL_SERVICE)
+      throw new NotFoundException('通道未找到')
+    }
+    return channel
   }
 
-  // TODO: 添加用水统计方法
-  // async getWaterUsageStats(outletId, startDate, endDate) { }
+  // 更新通道区域名称
+  async updateZoneName(channelId: string, zoneName: string): Promise<void> {
+    const result = await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_name: zoneName } })
+    if (result.matchedCount === 0) {
+      throw new NotFoundException('通道未找到')
+    }
+    this.logger.info(LogMessages.CHANNEL.ZONE_NAME_UPDATED(channelId, zoneName), LogContext.CHANNEL_SERVICE)
+  }
+
+  // 更新通道天气跳过设置
+  async updateWeatherSkip(channelId: string, enabled: number): Promise<void> {
+    const result = await this.channelModel.updateOne({ _id: channelId }, { $set: { weather_skip_enabled: enabled } })
+    if (result.matchedCount === 0) {
+      throw new NotFoundException('通道未找到')
+    }
+    this.logger.info(LogMessages.CHANNEL.WEATHER_SKIP_UPDATED(channelId, enabled), LogContext.CHANNEL_SERVICE)
+  }
 }

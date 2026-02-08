@@ -14,7 +14,7 @@ export class ProductHttpResponse {
   description: string
 
   @ApiProperty({ description: '出水口数量', example: 3 })
-  outletCount: number
+  channelCount: number
 
   @ApiProperty({ description: '默认固件版本', example: '1.0.0' })
   defaultFirmwareVersion: string

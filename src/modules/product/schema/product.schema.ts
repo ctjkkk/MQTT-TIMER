@@ -5,12 +5,6 @@ export type ProductDocument = Product & Document
 
 @Schema({ collection: 'products', timestamps: true })
 export class Product {
-  /**
-   * 产品ID（主键）- 涂鸦平台的产品标识符
-   * 例如：
-   * - "fdekfvdlkmqyslqr": 3路433水阀
-   * - "ui9sxthml2sayg6a": 4路433水阀
-   */
   @Prop({ required: true, unique: true, index: true })
   productId: string
 
@@ -21,7 +15,7 @@ export class Product {
   deviceType: number
 
   @Prop({ required: true, min: 1, max: 4 })
-  outletCount: number
+  channelCount: number
 
   @Prop({ required: true, default: '1.0.0' })
   defaultFirmwareVersion: string
@@ -61,22 +55,17 @@ export const ProductSchema = SchemaFactory.createForClass(Product)
  * - 这是汉奇水阀的标准产品型号（使用涂鸦云平台的真实 productId）
  * - 系统启动时会自动导入这些配置
  * - 如果汉奇推出新型号，直接在这里加一条即可
- *
  * 使用方式：
  * - ProductService 启动时会自动读取这个数组
  * - 如果数据库中不存在，则插入
  * - 已存在则跳过（不会覆盖已修改的配置）
- *
- * ProductID 来源：
- * - 涂鸦云平台产品定义文档（docs/HQ*.txt）
- * - 单路和双路水阀的 productId 待汉奇工程师提供
  */
 export const PREDEFINED_PRODUCTS: Partial<Product>[] = [
   {
     productId: 'rgnmfjInx6hzagwe', //真实 productId
     name: 'HQ2026-1路433水阀',
     deviceType: 1,
-    outletCount: 1, // 1个出水口
+    channelCount: 1, // 1个出水口
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
     description: '支持1个出水口的433智能水阀，适用于小型花园',
@@ -87,7 +76,7 @@ export const PREDEFINED_PRODUCTS: Partial<Product>[] = [
     productId: '9zkur06p7ggbwvbl', //真实 productId
     name: 'HQ2026-2路433水阀',
     deviceType: 1,
-    outletCount: 2, // 2个出水口
+    channelCount: 2, // 2个出水口
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
     description: '支持2个出水口的433智能水阀，适用于中型花园',
@@ -99,7 +88,7 @@ export const PREDEFINED_PRODUCTS: Partial<Product>[] = [
     productId: 'fdekfvdlkmqyslqr',
     name: 'HQ2026-3路433水阀',
     deviceType: 1,
-    outletCount: 3, // 3个出水口
+    channelCount: 3, // 3个出水口
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
     description: '支持3个出水口的433智能水阀，适用于大型花园',
@@ -111,7 +100,7 @@ export const PREDEFINED_PRODUCTS: Partial<Product>[] = [
     productId: 'ui9sxthml2sayg6a',
     name: 'HQ2026-4路433水阀',
     deviceType: 1,
-    outletCount: 4, // 4个出水口
+    channelCount: 4, // 4个出水口
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
     description: '支持4个出水口的433智能水阀，适用于超大型花园或农场',
