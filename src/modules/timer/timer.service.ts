@@ -341,7 +341,7 @@ export class TimerService {
     if (!gateway) {
       throw new NotFoundException('The gateway associated with this Timer does not exist.')
     }
-    if (gateway.userId.toString() !== userId) {
+    if (!gateway.userId || gateway.userId.toString() !== userId) {
       throw new NotFoundException('You have no right to view the information of this Timer device.')
     }
     const channels = await this.channelModel.find({ timerId }).lean()
