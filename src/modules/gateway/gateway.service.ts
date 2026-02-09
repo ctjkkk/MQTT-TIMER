@@ -200,10 +200,6 @@ export class GatewayService implements IGatewayServiceInterface {
     // 检查用户是否已经绑定了其他网关（一个用户只能绑定一个网关）
     const existingGateway = await this.gatewayModel.findOne({ userId })
     if (existingGateway && existingGateway.gatewayId !== gatewayId) {
-      this.logger.warn(
-        `绑定失败: 用户 ${userId} 已绑定网关 ${existingGateway.gatewayId}，尝试绑定 ${gatewayId}`,
-        LogContext.GATEWAY_SERVICE,
-      )
       throw new BadRequestException(
         `You have already bound the gateway ${existingGateway.name} (${existingGateway.gatewayId}). Each user can only bind one gateway. Please unbind the current gateway before binding the new one.`,
       )
@@ -212,21 +208,16 @@ export class GatewayService implements IGatewayServiceInterface {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) {
       // 网关不存在 = 从未连接过MQTT或ID错误
-      this.logger.warn(`绑定失败: 网关 ${gatewayId} 未找到，用户: ${userId}`, LogContext.GATEWAY_SERVICE)
       throw new NotFoundException('Gateway not found. Please confirm that the device is online or check if the gateway ID is correct.')
     }
     //  检查网关是否在线
     const isOnline = gateway.is_connected === 1
     const isRecentlySeen = gateway.last_seen && Date.now() - gateway.last_seen.getTime() < 60000
     if (!isOnline || !isRecentlySeen) {
-      this.logger.warn(`绑定失败: 网关 ${gatewayId} 离线，用户: ${userId}`, LogContext.GATEWAY_SERVICE)
-      throw new BadRequestException(
-        'The gateway is currently offline. Please ensure that the device is connected to the network and try again.',
-      )
+      throw new BadRequestException('The gateway is currently offline. Please ensure that the device is connected to the network and try again.')
     }
     // 检查是否已被其他用户绑定
     if (gateway.userId && gateway.userId.toString() !== userId) {
-      this.logger.warn(`绑定失败: 网关 ${gatewayId} 已被其他用户绑定，用户: ${userId}`, LogContext.GATEWAY_SERVICE)
       throw new BadRequestException('This gateway has been bound by other users.')
     }
     // 检查是否已绑定到当前用户（避免重复绑定）
@@ -258,7 +249,7 @@ export class GatewayService implements IGatewayServiceInterface {
         {
           $set: {
             userId,
-            name: gatewayName || `gateway-${gatewayId.slice(-6)}`,
+            name: gatewayName ?? null,
             updatedAt: new Date(),
           },
         },
@@ -277,7 +268,7 @@ export class GatewayService implements IGatewayServiceInterface {
     this.logger.info(LogMessages.GATEWAY.BIND_SUCCESS(gatewayId, userId), LogContext.GATEWAY_SERVICE)
     return {
       gatewayId,
-      name: gatewayName || `gateway-${gatewayId.slice(-6)}`,
+      name: gatewayName,
       isOnline: true,
       message: 'Gateway binding successful',
     }
@@ -289,7 +280,6 @@ export class GatewayService implements IGatewayServiceInterface {
   async getGatewayStatus(gatewayId: string) {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
-
     return {
       gatewayId: gateway.gatewayId,
       name: gateway.name,
@@ -356,8 +346,6 @@ export class GatewayService implements IGatewayServiceInterface {
    * 通知网关处理启动子设备配网请求
    */
   async startSubDevicePairing(gatewayId: string): Promise<void> {
-    const gateway = await this.gatewayModel.findOne({ gatewayId })
-    if (!gateway) throw new NotFoundException('The gateway does not exist.')
     // 发送MQTT命令让网关进入子设备配对模式
     this.commandSenderService.sendStartPairingCommand(gatewayId)
   }
@@ -366,26 +354,25 @@ export class GatewayService implements IGatewayServiceInterface {
    * 通知网关处理停止子设备配网请求
    */
   async stopSubDevicePairing(gatewayId: string): Promise<void> {
-    const gateway = await this.gatewayModel.findOne({ gatewayId })
-    if (!gateway) throw new NotFoundException('The gateway does not exist.')
     this.commandSenderService.sendStopPairingCommand(gatewayId, 'manual')
   }
 
   //解绑网关（权限已由 Guard 验证）
   async unbindGateway(gatewayId: string) {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
-    if (!gateway) throw new NotFoundException('The gateway does not exist.')
     const userId = gateway.userId?.toString()
     const session = await this.connection.startSession()
     await session.withTransaction(async () => {
       // 只解绑用户，保留网关和子设备,并且发送MQTT命令让网关恢复出厂设置（清除绑定信息，重启后进入未绑定状态）
-      await this.gatewayModel.updateOne({ gatewayId }, { $set: { userId: null, name: '' } })
+      await this.gatewayModel.updateOne({ gatewayId }, { $set: { userId: null, name: '' } }, { session })
       // 同时清除该网关下所有子设备状态(软删除)
-      await this.timerModel.updateMany({ gatewayId }, { $set: { status: 0, online: 0 } })
+      await this.timerModel.updateMany({ gatewayId }, { $set: { status: 0, online: 0 } }, { session })
       //同步更新所有 Channel 的 userId，保持数据一致性
-      const timers = await this.timerModel.find({ gatewayId }).lean()
+      const timers = await this.timerModel.find({ gatewayId }).session(session).lean()
       const timerIds = timers.map(t => t.timerId)
-      await this.channelModel.updateMany({ timerId: { $in: timerIds } }, { $set: { userId: null } })
+      if (timerIds.length > 0) {
+        await this.channelModel.updateMany({ timerId: { $in: timerIds } }, { $set: { userId: null } }, { session })
+      }
     })
     session.endSession()
     // 发送MQTT命令让网关解绑进入未绑定状态
@@ -400,9 +387,6 @@ export class GatewayService implements IGatewayServiceInterface {
    * 获取网关下的所有子设备
    */
   async getSubDevices(gatewayId: string): Promise<SubDeviceListResponseDto[]> {
-    const gateway = await this.gatewayModel.findOne({ gatewayId })
-    if (!gateway) throw new NotFoundException('This gateway does not exist.')
-
     const timers = await this.timerModel.find({ gatewayId, status: 1 }).lean()
     if (timers.length) {
       return timers.map(timer => ({

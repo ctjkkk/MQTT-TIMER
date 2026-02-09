@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel, InjectConnection } from '@nestjs/mongoose'
 import { Model, Connection } from 'mongoose'
 import { ChannelService } from '../channel/channel.service'
@@ -177,48 +177,77 @@ export class TimerService {
         stats.failed++
         continue
       }
-      //从产品配置获取所有属性
+      // 从产品配置获取所有属性
       const { name: productName, deviceType, defaultFirmwareVersion, defaultBatteryLevel, channelCount } = productConfig
       // 检查设备是否已存在
       const exists = await this.timerModel.findOne({ timerId: subDeviceId })
-      if (exists) {
-        // 已存在：更新
-        await this.timerModel.updateOne(
-          { timerId: subDeviceId },
-          {
-            $set: {
+      // 使用事务保证Timer和Channel的数据一致性
+      const session = await this.connection.startSession()
+      try {
+        await session.withTransaction(async () => {
+          if (exists) {
+            // 已存在：只更新Timer（不重复创建Channel）
+            await this.timerModel.updateOne(
+              { timerId: subDeviceId },
+              {
+                $set: {
+                  userId: gateway.userId,
+                  gatewayId,
+                  productId,
+                  deviceType,
+                  last_seen: new Date(),
+                },
+              },
+              { session },
+            )
+            stats.updated++
+            this.loggerService.debug(LogMessages.TIMER.SUBDEVICE_UPDATED(subDeviceId), LogContext.TIMER_SERVICE)
+          } else {
+            // 不存在：创建Timer和Channel
+            await this.timerModel.create(
+              [
+                {
+                  timerId: subDeviceId,
+                  userId: gateway.userId,
+                  gatewayId,
+                  name: productName,
+                  productId,
+                  deviceType,
+                  firmware_version: defaultFirmwareVersion,
+                  online: 1,
+                  battery_level: defaultBatteryLevel,
+                  createdAt: new Date(),
+                },
+              ],
+              { session },
+            )
+            // 在同一个事务中创建通道
+            const channels = Array.from({ length: channelCount }, (_, i) => ({
+              timerId: subDeviceId,
               userId: gateway.userId,
-              gatewayId,
-              productId,
-              deviceType, // ← 从产品配置获取
-              last_seen: new Date(),
-            },
-          },
-        )
-        stats.updated++
-        this.loggerService.debug(LogMessages.TIMER.SUBDEVICE_UPDATED(subDeviceId), LogContext.TIMER_SERVICE)
-      } else {
-        // 不存在：创建
-        await this.timerModel.create({
-          timerId: subDeviceId,
-          userId: gateway.userId,
-          gatewayId,
-          name: productName, // 从产品配置获取
-          productId,
-          deviceType, // 从产品配置获取
-          firmware_version: defaultFirmwareVersion, // 从产品配置获取
-          online: 1, // 默认在线
-          battery_level: defaultBatteryLevel, // 从产品配置获取
-          createdAt: new Date(),
+              channel_number: i + 1,
+              zone_name: '',
+              is_running: 0,
+              work_state: 'idle',
+              remaining_countdown: 0,
+              irrigation_duration: 0,
+              next_run_time: null,
+              timer_config: '',
+              weather_skip_enabled: 0,
+              total_irrigation_time: 0,
+              last_run_time: null,
+              last_dp_update: null,
+            }))
+            await this.channelModel.insertMany(channels, { session })
+            stats.added++
+            this.loggerService.debug(LogMessages.TIMER.SUBDEVICE_CREATED(subDeviceId, productName), LogContext.TIMER_SERVICE)
+          }
         })
-        stats.added++
-        // 创建通道（根据出水口数量）
-        this.eventEmitter.emit(AppEvents.SUBDEVICE_ADDED, {
-          timerId: subDeviceId,
-          userId: gateway.userId.toString(),
-          channelCount: channelCount,
-        })
-        this.loggerService.debug(LogMessages.TIMER.SUBDEVICE_CREATED(subDeviceId, productName), LogContext.TIMER_SERVICE)
+      } catch (error) {
+        this.loggerService.error(LogMessages.TIMER.ADD_FAILED(subDeviceId, error.message), LogContext.TIMER_SERVICE)
+        stats.failed++
+      } finally {
+        session.endSession()
       }
     }
     this.loggerService.info(LogMessages.TIMER.BATCH_ADD_COMPLETE(stats.added, stats.updated, stats.failed), LogContext.TIMER_SERVICE)
@@ -249,10 +278,7 @@ export class TimerService {
     }
     // 验证子设备是否属于该网关（防止越权删除）
     if (timer.gatewayId !== gatewayId) {
-      this.loggerService.error(
-        LogMessages.TIMER.DELETE_BY_GATEWAY_UNAUTHORIZED(gatewayId, subDeviceId, timer.gatewayId),
-        LogContext.TIMER_SERVICE,
-      )
+      this.loggerService.error(LogMessages.TIMER.DELETE_BY_GATEWAY_UNAUTHORIZED(gatewayId, subDeviceId, timer.gatewayId), LogContext.TIMER_SERVICE)
       return
     }
     const session = await this.connection.startSession()
@@ -288,16 +314,13 @@ export class TimerService {
   //通过ID删除指定子设备（权限已由 Guard 验证）
   async deleteSubDeviceById(timerId: string) {
     const timer = await this.timerModel.findOne({ timerId })
-    if (!timer) throw new NotFoundException('The Timer device does not exist.')
     const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
-    if (!gateway) throw new NotFoundException('The gateway associated with this Timer does not exist.')
-
     const session = await this.connection.startSession()
     await session.withTransaction(async () => {
       // 删除该Timer记录
-      await this.timerModel.deleteOne({ timerId })
+      await this.timerModel.deleteOne({ timerId }).session(session)
       // 删除该Timer的所有通道
-      await this.channelModel.deleteMany({ timerId })
+      await this.channelModel.deleteMany({ timerId }).session(session)
     })
     session.endSession()
     //下发删除命令给网关
@@ -308,8 +331,6 @@ export class TimerService {
   //通过ID修改指定子设备名称（权限已由 Guard 验证）
   async renameSubDeviceById(timerId: string, newName: string): Promise<SubDeviceListResponseDto> {
     const timer = await this.timerModel.findOne({ timerId }).lean()
-    if (!timer) throw new NotFoundException('The Timer device does not exist.')
-
     await this.timerModel.updateOne({ timerId }, { $set: { name: newName } })
     this.loggerService.info(LogMessages.TIMER.RENAMED_SUCCESS(timerId, newName), LogContext.TIMER_SERVICE)
     return {
@@ -327,9 +348,8 @@ export class TimerService {
   async getSubDeviceInfoByTimerId(timerId: string): Promise<SubDeviceInfoResponseDto> {
     const timer = await this.timerModel.findOne({ timerId, status: 1 }).lean()
     if (!timer) {
-      throw new NotFoundException('This Timer device does not exist or be disabled.')
+      throw new ForbiddenException('This device has been disabled.')
     }
-
     const channels = await this.channelModel.find({ timerId }).lean()
     return {
       name: timer.name,

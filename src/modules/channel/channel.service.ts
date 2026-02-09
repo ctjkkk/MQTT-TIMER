@@ -4,17 +4,14 @@ import { Model, Types } from 'mongoose'
 import { Channel, ChannelDocument } from './schema/channel.schema'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
-import { OnEvent } from '@nestjs/event-emitter'
-import { AppEvents } from '@/shared/constants/events.constants'
 
 /**
  * Channel模块的Service
  *
  * 职责：
- * 1. 在Timer添加时自动创建通道（根据channel_count）
- * 2. 根据DP点更新通道状态
- * 3. 提供通道查询和更新功能
- * 4. 通道不能单独删除，只能随Timer一起删除
+ * 1. 根据DP点更新通道状态
+ * 2. 提供通道查询和更新功能
+ * 3. 通道不能单独删除，只能随Timer一起删除
  */
 @Injectable()
 export class ChannelService {
@@ -22,36 +19,12 @@ export class ChannelService {
     @InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>,
     private readonly logger: LoggerService,
   ) {}
+
   /**
-   * 监听 Timer 创建事件，自动创建通道
-   * @param timerId Timer设备ID
-   * @param userId 用户ID
-   * @param outletCount 出水口数量（1-4）
+   * 删除Timer的所有通道（由TimerService在删除Timer时调用）
    */
-  @OnEvent(AppEvents.SUBDEVICE_ADDED)
-  async createChannelsForTimer(data: { timerId: string; userId: string; channelCount: number }): Promise<void> {
-    const { timerId, userId, channelCount } = data
-    const existingChannels = await this.channelModel.find({ timerId })
-    if (existingChannels.length) return
-    // 批量创建通道
-    const channels = Array.from({ length: channelCount }, (_, i) => ({
-      timerId,
-      userId,
-      channel_number: i + 1,
-      zone_name: '',
-      is_running: 0,
-      work_state: 'idle',
-      remaining_countdown: 0,
-      irrigation_duration: 0,
-      next_run_time: null,
-      timer_config: '',
-      weather_skip_enabled: 0,
-      total_irrigation_time: 0,
-      last_run_time: null,
-      last_dp_update: null,
-    }))
-    await this.channelModel.insertMany(channels)
-    this.logger.info(LogMessages.CHANNEL.BATCH_CREATED(timerId, channelCount), LogContext.CHANNEL_SERVICE)
+  async deleteChannelsByTimerId(timerId: string): Promise<void> {
+    await this.channelModel.deleteMany({ timerId })
   }
 
   /**

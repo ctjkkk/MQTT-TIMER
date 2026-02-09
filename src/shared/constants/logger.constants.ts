@@ -148,6 +148,7 @@ export const LogMessages = {
       `子设备添加失败：产品配置不存在 (productId: ${productId}, subDeviceId: ${subDeviceId})`,
     SUBDEVICE_UPDATED: (subDeviceId: string) => `子设备已更新: ${subDeviceId}`,
     SUBDEVICE_CREATED: (subDeviceId: string, productName: string) => `子设备已创建: ${subDeviceId}, 产品: ${productName}`,
+    ADD_FAILED: (subDeviceId: string, error: string) => `添加子设备失败: ${subDeviceId}, 错误: ${error}`,
     BATCH_ADD_COMPLETE: (added: number, updated: number, failed: number) =>
       `批量添加子设备完成: 新增 ${added} 个, 更新 ${updated} 个, 失败 ${failed} 个`,
     PAIRING_SUCCESS_COMMAND_SENT: (gatewayId: string) => `配对成功，已下发关闭配对命令给网关: ${gatewayId}`,
