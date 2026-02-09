@@ -99,20 +99,24 @@ export class ChannelService {
   }
 
   // 更新通道区域名称（权限已由 Guard 验证）
-  async updateZoneName(channelId: string, zoneName: string): Promise<void> {
+  async updateZoneName(channelId: string, zoneName: string): Promise<{ message: string }> {
     await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_name: zoneName } })
     this.logger.info(LogMessages.CHANNEL.ZONE_NAME_UPDATED(channelId, zoneName), LogContext.CHANNEL_SERVICE)
+    return { message: 'The channel name has been updated successfully.' }
   }
 
   // 更新通道天气跳过设置（权限已由 Guard 验证）
-  async updateWeatherSkip(channelId: string, enabled: number): Promise<void> {
+  async updateWeatherSkip(channelId: string, enabled: number): Promise<{ message: string }> {
     await this.channelModel.updateOne({ _id: channelId }, { $set: { weather_skip_enabled: enabled } })
     this.logger.info(LogMessages.CHANNEL.WEATHER_SKIP_UPDATED(channelId, enabled), LogContext.CHANNEL_SERVICE)
+    const message = enabled ? 'Weather skip activated successfully' : 'Weather skip has been successfully turned off.'
+    return { message }
   }
 
   // 更新通道区域图片（权限已由 Guard 验证）
-  async updateZoneImage(channelId: string, zoneImage: string): Promise<void> {
+  async updateZoneImage(channelId: string, zoneImage: string): Promise<{ message: string }> {
     await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_image: zoneImage } })
     this.logger.info(LogMessages.CHANNEL.ZONE_IMAGE_UPDATED(channelId), LogContext.CHANNEL_SERVICE)
+    return { message: 'The photo has been updated successfully.' }
   }
 }
