@@ -13,6 +13,7 @@ import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
 import { SubDeviceInfoResponseDto, SubDeviceListResponseDto } from './dto/timer.response.dto'
+import { AppEvents } from '@/shared/constants/events.constants'
 /**
  * Timer设备模块的Service
  * 职责：
@@ -45,7 +46,7 @@ export class TimerService {
     // 查找Timer设备
     const timer = await this.timerModel.findOne({ timerId: uuid })
     if (!timer) {
-      console.warn(`[TimerService] Timer不存在: ${uuid}`)
+      this.logger.warn(LogMessages.TIMER.NOT_FOUND(uuid), LogContext.TIMER_SERVICE)
       return
     }
     // 更新Timer基础信息
@@ -164,17 +165,14 @@ export class TimerService {
     for (const device of subDevices) {
       const { uuid: subDeviceId, productId } = device
       if (!subDeviceId || !productId) {
-        this.loggerService.warn(`子设备添加失败：缺少必填字段 (uuid: ${subDeviceId}, productId: ${productId})`, LogContext.TIMER_SERVICE)
+        this.loggerService.warn(LogMessages.TIMER.ADD_MISSING_FIELD(subDeviceId, productId), LogContext.TIMER_SERVICE)
         stats.failed++
         continue
       }
       // 查询产品配置（所有产品信息从这里获取）
       const productConfig = await this.productService.getProductConfig(productId)
       if (!productConfig) {
-        this.loggerService.warn(
-          `子设备添加失败：产品配置不存在 (productId: ${productId}, subDeviceId: ${subDeviceId})`,
-          LogContext.TIMER_SERVICE,
-        )
+        this.loggerService.warn(LogMessages.TIMER.ADD_PRODUCT_NOT_FOUND(productId, subDeviceId), LogContext.TIMER_SERVICE)
         stats.failed++
         continue
       }
@@ -197,7 +195,7 @@ export class TimerService {
           },
         )
         stats.updated++
-        this.loggerService.debug(`子设备已更新: ${subDeviceId}`, LogContext.TIMER_SERVICE)
+        this.loggerService.debug(LogMessages.TIMER.SUBDEVICE_UPDATED(subDeviceId), LogContext.TIMER_SERVICE)
       } else {
         // 不存在：创建
         await this.timerModel.create({
@@ -213,18 +211,19 @@ export class TimerService {
           createdAt: new Date(),
         })
         stats.added++
-        this.loggerService.debug(`子设备已创建: ${subDeviceId}, 产品: ${productName}`, LogContext.TIMER_SERVICE)
         // 创建通道（根据出水口数量）
-        await this.channelService.createChannelsForTimer(subDeviceId, gateway.userId.toString(), channelCount)
+        this.eventEmitter.emit(AppEvents.SUBDEVICE_ADDED, {
+          timerId: subDeviceId,
+          userId: gateway.userId.toString(),
+          channelCount: channelCount,
+        })
+        this.loggerService.debug(LogMessages.TIMER.SUBDEVICE_CREATED(subDeviceId, productName), LogContext.TIMER_SERVICE)
       }
     }
-    this.loggerService.info(
-      `批量添加子设备完成: 新增 ${stats.added} 个, 更新 ${stats.updated} 个, 失败 ${stats.failed} 个`,
-      LogContext.TIMER_SERVICE,
-    )
+    this.loggerService.info(LogMessages.TIMER.BATCH_ADD_COMPLETE(stats.added, stats.updated, stats.failed), LogContext.TIMER_SERVICE)
     if (stats.added || stats.updated) {
       this.commandSenderService.sendStopPairingCommand(gatewayId, 'success')
-      this.loggerService.info(`配对成功，已下发关闭配对命令给网关: ${gatewayId}`, LogContext.TIMER_SERVICE)
+      this.loggerService.info(LogMessages.TIMER.PAIRING_SUCCESS_COMMAND_SENT(gatewayId), LogContext.TIMER_SERVICE)
     }
   }
 
@@ -238,25 +237,19 @@ export class TimerService {
     //  验证子设备是否存在
     const timer = await this.timerModel.findOne({ timerId: subDeviceId })
     if (!timer) {
-      this.loggerService.warn(
-        `网关上报删除失败：子设备不存在 (gatewayId: ${gatewayId}, subDeviceId: ${subDeviceId})`,
-        LogContext.TIMER_SERVICE,
-      )
+      this.loggerService.warn(LogMessages.TIMER.DELETE_BY_GATEWAY_NOT_FOUND(gatewayId, subDeviceId), LogContext.TIMER_SERVICE)
       return
     }
     // 验证网关是否存在
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) {
-      this.loggerService.warn(
-        `网关上报删除失败：网关不存在 (gatewayId: ${gatewayId}, subDeviceId: ${subDeviceId})`,
-        LogContext.TIMER_SERVICE,
-      )
+      this.loggerService.warn(LogMessages.TIMER.DELETE_BY_GATEWAY_GATEWAY_NOT_FOUND(gatewayId, subDeviceId), LogContext.TIMER_SERVICE)
       return
     }
     // 验证子设备是否属于该网关（防止越权删除）
     if (timer.gatewayId !== gatewayId) {
       this.loggerService.error(
-        `网关越权删除子设备！网关 ${gatewayId} 尝试删除不属于自己的子设备 ${subDeviceId} (实际属于网关: ${timer.gatewayId})`,
+        LogMessages.TIMER.DELETE_BY_GATEWAY_UNAUTHORIZED(gatewayId, subDeviceId, timer.gatewayId),
         LogContext.TIMER_SERVICE,
       )
       return
@@ -269,7 +262,7 @@ export class TimerService {
       await this.channelModel.deleteMany({ timerId: subDeviceId }).session(session)
     })
     session.endSession()
-    this.loggerService.info(`网关上报删除子设备成功: 网关=${gatewayId}, 子设备=${subDeviceId}`, LogContext.TIMER_SERVICE)
+    this.loggerService.info(LogMessages.TIMER.DELETE_BY_GATEWAY_SUCCESS(gatewayId, subDeviceId), LogContext.TIMER_SERVICE)
   }
 
   /**
@@ -278,7 +271,7 @@ export class TimerService {
   async updateSubDevice(data: any) {
     const { uuid: subDeviceId, ...updates } = data
     await this.timerModel.updateOne({ timerId: subDeviceId }, { $set: updates })
-    this.loggerService.info(`子设备信息已更新: ${subDeviceId}`, LogContext.TIMER_SERVICE)
+    this.loggerService.info(LogMessages.TIMER.INFO_UPDATED(subDeviceId), LogContext.TIMER_SERVICE)
   }
 
   /**
@@ -291,13 +284,13 @@ export class TimerService {
     return gateway
   }
 
-  //通过ID删除指定子设备
-  async deleteSubDeviceById(userId: string, timerId: string) {
+  //通过ID删除指定子设备（权限已由 Guard 验证）
+  async deleteSubDeviceById(timerId: string) {
     const timer = await this.timerModel.findOne({ timerId })
     if (!timer) throw new NotFoundException('The Timer device does not exist.')
     const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
     if (!gateway) throw new NotFoundException('The gateway associated with this Timer does not exist.')
-    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to delete this Timer.')
+
     const session = await this.timerModel.db.startSession()
     await session.withTransaction(async () => {
       // 删除该Timer记录
@@ -311,13 +304,11 @@ export class TimerService {
     this.loggerService.info(LogMessages.TIMER.DELETED_SUCCESS(timerId), LogContext.TIMER_SERVICE)
   }
 
-  //通过ID修改指定子设备名称
-  async renameSubDeviceById(userId: string, timerId: string, newName: string): Promise<SubDeviceListResponseDto> {
+  //通过ID修改指定子设备名称（权限已由 Guard 验证）
+  async renameSubDeviceById(timerId: string, newName: string): Promise<SubDeviceListResponseDto> {
     const timer = await this.timerModel.findOne({ timerId }).lean()
     if (!timer) throw new NotFoundException('The Timer device does not exist.')
-    const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
-    if (!gateway) throw new NotFoundException('The gateway associated with this Timer does not exist.')
-    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to rename this Timer.')
+
     await this.timerModel.updateOne({ timerId }, { $set: { name: newName } })
     this.loggerService.info(LogMessages.TIMER.RENAMED_SUCCESS(timerId, newName), LogContext.TIMER_SERVICE)
     return {
@@ -331,19 +322,13 @@ export class TimerService {
     }
   }
 
-  //通过子设备id查询该子设备的所有信息，包含通道详情列表
-  async getSubDeviceInfoByTimerId(userId: string, timerId: string): Promise<SubDeviceInfoResponseDto> {
+  //通过子设备id查询该子设备的所有信息，包含通道详情列表（权限已由 Guard 验证）
+  async getSubDeviceInfoByTimerId(timerId: string): Promise<SubDeviceInfoResponseDto> {
     const timer = await this.timerModel.findOne({ timerId, status: 1 }).lean()
     if (!timer) {
       throw new NotFoundException('This Timer device does not exist or be disabled.')
     }
-    const gateway = await this.gatewayModel.findOne({ gatewayId: timer!.gatewayId })
-    if (!gateway) {
-      throw new NotFoundException('The gateway associated with this Timer does not exist.')
-    }
-    if (!gateway.userId || gateway.userId.toString() !== userId) {
-      throw new NotFoundException('You have no right to view the information of this Timer device.')
-    }
+
     const channels = await this.channelModel.find({ timerId }).lean()
     return {
       name: timer.name,

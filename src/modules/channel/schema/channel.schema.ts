@@ -27,6 +27,9 @@ export class Channel {
   @Prop({ type: String, trim: true, default: '', comment: '用户自定义区域名称（如：前院、后院）' })
   zone_name: string
 
+  @Prop({ type: String, trim: true, default: '', comment: '用户自定义区域图片 URL' })
+  zone_image: string
+
   // ========== 状态信息（来自 DP 点）==========
 
   @Prop({ type: Number, default: 0, enum: [0, 1], comment: '当前开关状态（DP1-4）：0=关闭，1=运行' })

@@ -90,6 +90,14 @@ export class CommandSenderService {
     })
   }
 
+  sendGatewayUnbindCommand(gatewayId: string, reason: string = 'unbind') {
+    this.sendCommand(gatewayId, MqttMessageType.OPERATE_DEVICE, {
+      entityType: EntityType.GATEWAY,
+      action: OperateAction.GATEWAY_UNREGISTER,
+      reason: reason,
+    })
+  }
+
   /**
    * 发送删除子设备命令
    * @param gatewayId 网关ID

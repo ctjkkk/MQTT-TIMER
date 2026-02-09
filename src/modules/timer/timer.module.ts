@@ -9,6 +9,7 @@ import { ProductModule } from '../product/product.module'
 import { Timer, TimerSchema } from './schema/timer.schema'
 import { Gateway, GatewaySchema } from '../gateway/schema/HanqiGateway.schema'
 import { Channel, ChannelSchema } from '../channel/schema/channel.schema'
+import { SecurityModule } from '@/common/security/security.module'
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { Channel, ChannelSchema } from '../channel/schema/channel.schema'
     forwardRef(() => GatewayModule),
     ChannelModule,
     ProductModule,
+    SecurityModule, // 显式导入安全模块
   ],
   controllers: [TimerController],
   providers: [TimerService, TimerEventsHandler],

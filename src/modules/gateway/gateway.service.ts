@@ -269,12 +269,10 @@ export class GatewayService implements IGatewayServiceInterface {
   /**
    * 获取网关状态（用于验证配网是否成功）
    */
-  async getGatewayStatus(gatewayId: string, userId: string) {
+  async getGatewayStatus(gatewayId: string) {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
 
-    if (!gateway.userId || gateway.userId.toString() !== userId)
-      throw new BadRequestException('You have no right to view the status of this gateway.')
     return {
       gatewayId: gateway.gatewayId,
       name: gateway.name,
@@ -340,10 +338,9 @@ export class GatewayService implements IGatewayServiceInterface {
   /**
    * 通知网关处理启动子设备配网请求
    */
-  async startSubDevicePairing(userId: string, gatewayId: string): Promise<void> {
+  async startSubDevicePairing(gatewayId: string): Promise<void> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
-    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this gateway.')
     // 发送MQTT命令让网关进入子设备配对模式
     this.commandSenderService.sendStartPairingCommand(gatewayId)
   }
@@ -351,21 +348,29 @@ export class GatewayService implements IGatewayServiceInterface {
   /**
    * 通知网关处理停止子设备配网请求
    */
-  async stopSubDevicePairing(userId: string, gatewayId: string): Promise<void> {
+  async stopSubDevicePairing(gatewayId: string): Promise<void> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
-    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this gateway.')
     this.commandSenderService.sendStopPairingCommand(gatewayId, 'manual')
   }
-  /**
-   * 解绑网关
-   */
-  async unbindGateway(userId: string, gatewayId: string) {
+
+  //解绑网关（权限已由 Guard 验证）
+  async unbindGateway(gatewayId: string) {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
-    if (gateway.userId?.toString() !== userId) throw new BadRequestException('You do not have the authority to operate this gateway.')
-    // 只解绑用户，保留网关和子设备
-    await this.gatewayModel.updateOne({ gatewayId }, { $set: { userId: null } })
+    const userId = gateway.userId?.toString()
+    const session = await this.timerModel.db.startSession()
+    await session.withTransaction(async () => {
+      // 只解绑用户，保留网关和子设备,并且发送MQTT命令让网关恢复出厂设置（清除绑定信息，重启后进入未绑定状态）
+      await this.gatewayModel.updateOne({ gatewayId }, { $set: { userId: null, name: '' } })
+      // 同时清除该网关下所有子设备状态(软删除)
+      await this.timerModel.updateMany({ gatewayId }, { $set: { status: 0, online: 0 } })
+    })
+    session.endSession()
+    // 发送MQTT命令让网关解绑进入未绑定状态
+    if (gateway.is_connected) {
+      this.commandSenderService.sendGatewayUnbindCommand(gatewayId, 'unbind')
+    }
     this.logger.info(LogMessages.GATEWAY.UNBIND(gatewayId, userId), LogContext.GATEWAY_SERVICE)
     return { message: 'Gateway unbinding successful' }
   }
@@ -373,21 +378,22 @@ export class GatewayService implements IGatewayServiceInterface {
   /**
    * 获取网关下的所有子设备
    */
-  async getSubDevices(gatewayId: string, userId: string): Promise<SubDeviceListResponseDto[]> {
+  async getSubDevices(gatewayId: string): Promise<SubDeviceListResponseDto[]> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('This gateway does not exist.')
-    if (!gateway.userId || gateway.userId.toString() !== userId)
-      throw new BadRequestException('You have no right to view the sub-devices under this gateway.')
-    const timers = await this.timerModel.find({ gatewayId }).lean()
 
-    return timers.map(timer => ({
-      userId: timer.userId?.toString(),
-      gatewayId: timer.gatewayId?.toString(),
-      timerId: timer.timerId?.toString(),
-      name: timer.name,
-      status: timer.status,
-      last_seen: timer.last_seen,
-      online: timer.online,
-    }))
+    const timers = await this.timerModel.find({ gatewayId, status: 1 }).lean()
+    if (timers.length) {
+      return timers.map(timer => ({
+        userId: timer.userId?.toString(),
+        gatewayId: timer.gatewayId?.toString(),
+        timerId: timer.timerId?.toString(),
+        name: timer.name,
+        status: timer.status,
+        last_seen: timer.last_seen,
+        online: timer.online,
+      }))
+    }
+    return []
   }
 }

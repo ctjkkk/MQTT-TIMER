@@ -4,12 +4,14 @@ import { Model, Types } from 'mongoose'
 import { Channel, ChannelDocument } from './schema/channel.schema'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
+import { OnEvent } from '@nestjs/event-emitter'
+import { AppEvents } from '@/shared/constants/events.constants'
 
 /**
  * Channel模块的Service
  *
  * 职责：
- * 1. 在Timer添加时自动创建通道（根据outlet_count）
+ * 1. 在Timer添加时自动创建通道（根据channel_count）
  * 2. 根据DP点更新通道状态
  * 3. 提供通道查询和更新功能
  * 4. 通道不能单独删除，只能随Timer一起删除
@@ -21,36 +23,33 @@ export class ChannelService {
     private readonly logger: LoggerService,
   ) {}
   /**
-   * 为Timer批量创建通道
+   * 监听 Timer 创建事件，自动创建通道
    * @param timerId Timer设备ID
    * @param userId 用户ID
    * @param outletCount 出水口数量（1-4）
    */
-  async createChannelsForTimer(timerId: string, userId: string, channelCount: number): Promise<void> {
+  @OnEvent(AppEvents.SUBDEVICE_ADDED)
+  async createChannelsForTimer(data: { timerId: string; userId: string; channelCount: number }): Promise<void> {
+    const { timerId, userId, channelCount } = data
     const existingChannels = await this.channelModel.find({ timerId })
-    if (existingChannels.length) {
-      return
-    }
+    if (existingChannels.length) return
     // 批量创建通道
-    const channels = []
-    for (let i = 1; i <= channelCount; i++) {
-      channels.push({
-        timerId,
-        userId,
-        channel_number: i,
-        zone_name: '',
-        is_running: 0,
-        work_state: 'idle',
-        remaining_countdown: 0,
-        irrigation_duration: 0,
-        next_run_time: null,
-        timer_config: '',
-        weather_skip_enabled: 0,
-        total_irrigation_time: 0,
-        last_run_time: null,
-        last_dp_update: null,
-      })
-    }
+    const channels = Array.from({ length: channelCount }, (_, i) => ({
+      timerId,
+      userId,
+      channel_number: i + 1,
+      zone_name: '',
+      is_running: 0,
+      work_state: 'idle',
+      remaining_countdown: 0,
+      irrigation_duration: 0,
+      next_run_time: null,
+      timer_config: '',
+      weather_skip_enabled: 0,
+      total_irrigation_time: 0,
+      last_run_time: null,
+      last_dp_update: null,
+    }))
     await this.channelModel.insertMany(channels)
     this.logger.info(LogMessages.CHANNEL.BATCH_CREATED(timerId, channelCount), LogContext.CHANNEL_SERVICE)
   }
@@ -116,36 +115,45 @@ export class ChannelService {
     }
   }
 
-  // 根据Timer ID查询通道列表
+  // 根据Timer ID查询通道列表（权限已由 Guard 验证）
   async findChannelsByTimerId(timerId: string): Promise<Channel[]> {
     return await this.channelModel.find({ timerId }).sort({ channel_number: 1 }).lean()
   }
 
-  // 根据通道ID查询通道详情
+  // 根据通道ID查询通道详情（权限已由 Guard 验证）
   async findChannelById(channelId: string): Promise<Channel> {
     const channel = await this.channelModel.findById(channelId).lean()
     if (!channel) {
       this.logger.warn(LogMessages.CHANNEL.NOT_FOUND(channelId), LogContext.CHANNEL_SERVICE)
-      throw new NotFoundException('通道未找到')
+      throw new NotFoundException('The Channel does not exist.')
     }
     return channel
   }
 
-  // 更新通道区域名称
+  // 更新通道区域名称（权限已由 Guard 验证）
   async updateZoneName(channelId: string, zoneName: string): Promise<void> {
     const result = await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_name: zoneName } })
     if (result.matchedCount === 0) {
-      throw new NotFoundException('通道未找到')
+      throw new NotFoundException('The Channel does not exist.')
     }
     this.logger.info(LogMessages.CHANNEL.ZONE_NAME_UPDATED(channelId, zoneName), LogContext.CHANNEL_SERVICE)
   }
 
-  // 更新通道天气跳过设置
+  // 更新通道天气跳过设置（权限已由 Guard 验证）
   async updateWeatherSkip(channelId: string, enabled: number): Promise<void> {
     const result = await this.channelModel.updateOne({ _id: channelId }, { $set: { weather_skip_enabled: enabled } })
     if (result.matchedCount === 0) {
-      throw new NotFoundException('通道未找到')
+      throw new NotFoundException('The Channel does not exist.')
     }
     this.logger.info(LogMessages.CHANNEL.WEATHER_SKIP_UPDATED(channelId, enabled), LogContext.CHANNEL_SERVICE)
+  }
+
+  // 更新通道区域图片（权限已由 Guard 验证）
+  async updateZoneImage(channelId: string, zoneImage: string): Promise<void> {
+    const result = await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_image: zoneImage } })
+    if (result.matchedCount === 0) {
+      throw new NotFoundException('The Channel does not exist.')
+    }
+    this.logger.info(LogMessages.CHANNEL.ZONE_IMAGE_UPDATED(channelId), LogContext.CHANNEL_SERVICE)
   }
 }

@@ -11,6 +11,7 @@ import {
 } from './dto/http-response.dto'
 import { CurrentUserId } from '@/common/decorators/paramExtractor.decorators'
 import { SubDeviceListResponseDto } from '../timer/dto/timer.response.dto'
+import { CheckOwnership } from '@/common/decorators/checkOwnership.decorator'
 
 /**
  * Gateway模块的HTTP Controller
@@ -81,28 +82,30 @@ export class GatewayController {
    * 获取网关状态（需要用户权限）
    */
   @Get('/:gatewayId/status')
+  @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
     summary: '获取网关信息',
     responseDescription: '返回网关详细信息',
     msg: '查询成功',
     responseType: GatewayStatusResponseDto,
   })
-  async getGatewayStatus(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.getGatewayStatus(gatewayId, userId)
+  async getGatewayStatus(@Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.getGatewayStatus(gatewayId)
   }
 
   /**
    * 解绑网关
    */
   @Post('/:gatewayId')
+  @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
     summary: '解绑网关',
     responseDescription: '解绑成功',
     msg: '解绑成功',
     responseType: UnbindGatewayResponseDto,
   })
-  async unbindGateway(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.unbindGateway(userId, gatewayId)
+  async unbindGateway(@Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.unbindGateway(gatewayId)
   }
 
   /**
@@ -110,38 +113,41 @@ export class GatewayController {
    * 让网关进入配对子设备模式
    */
   @Post('/:gatewayId/pairing_start')
+  @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
     summary: '开始子设备配对',
     responseDescription: '网关进入配对模式',
     msg: '网关已进入子设备配对模式，等待子设备连接',
   })
-  async startSubDevicePairing(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.startSubDevicePairing(userId, gatewayId)
+  async startSubDevicePairing(@Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.startSubDevicePairing(gatewayId)
   }
 
   /**
    * 用户点击停止配对(扩展功能)
    */
   @Post(':gatewayId/pairing_stop')
+  @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
     summary: '停止配对子设备',
     responseDescription: '网关关闭配对模式',
     msg: '网关已关闭子设备配对模式',
   })
-  async stopSubDevicePairing(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.stopSubDevicePairing(userId, gatewayId)
+  async stopSubDevicePairing(@Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.stopSubDevicePairing(gatewayId)
   }
   /**
    * 获取网关下的子设备列表
    */
   @Get('/:gatewayId/devices')
+  @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
     summary: '获取子设备列表',
     responseDescription: '返回子设备列表',
     msg: '查询成功',
     responseType: [SubDeviceListResponseDto],
   })
-  async getSubDevices(@CurrentUserId() userId: string, @Param('gatewayId') gatewayId: string) {
-    return await this.gatewayService.getSubDevices(gatewayId, userId)
+  async getSubDevices(@Param('gatewayId') gatewayId: string) {
+    return await this.gatewayService.getSubDevices(gatewayId)
   }
 }

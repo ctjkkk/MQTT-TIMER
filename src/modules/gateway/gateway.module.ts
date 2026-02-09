@@ -8,6 +8,7 @@ import { MqttModule } from '@/core/mqtt/mqtt.module'
 import { UserModule } from '@/modules/user/user.module'
 import { Gateway, GatewaySchema } from './schema/HanqiGateway.schema'
 import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
+import { SecurityModule } from '@/common/security/security.module'
 
 @Module({
   imports: [
@@ -17,13 +18,10 @@ import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
     ]),
     MqttModule,
     UserModule,
+    SecurityModule, // 显式导入安全模块
   ],
   controllers: [GatewayController],
-  providers: [
-    GatewayService,
-    GatewayEventsHandler,
-    GatewayMqttHandler,
-  ],
+  providers: [GatewayService, GatewayEventsHandler, GatewayMqttHandler],
   exports: [GatewayService],
 })
 export class GatewayModule {}

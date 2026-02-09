@@ -36,7 +36,7 @@ export enum OperateAction {
   /** 注册网关（首次加入） */
   GATEWAY_REGISTER = 'gateway_register',
 
-  /** 注销网关（从系统移除） */
+  /** 注销网关 */
   GATEWAY_UNREGISTER = 'gateway_unregister',
 
   /** 更新网关信息 */
@@ -133,18 +133,11 @@ export interface DpReportData {
  * - 通过msgType和subDeviceId字段区分不同的设备和数据类型
  */
 export class MqttTopic {
-  // ========== 网关Topic ==========
-
   /**
    * 网关数据上报Topic（网关 -> 云端）
    * 网关自身状态和所有子设备数据都通过这个topic上报
-   *
    * @param gatewayId 网关ID
    * @returns Topic字符串
-   *
-   * @example
-   * HanqiMqttTopic.gatewayReport('gw_12345')
-   * // 返回: 'hanqi/gateway/gw_12345/report'
    */
   static gatewayReport(gatewayId: string): string {
     return `hanqi/gateway/${gatewayId}/report`
@@ -162,84 +155,11 @@ export class MqttTopic {
   }
 
   /**
-   * 网关响应Topic（网关 -> 云端，可选）
-   * 网关对命令的响应
-   *
-   * @param gatewayId 网关ID
-   * @returns Topic字符串
-   */
-  static gatewayResponse(gatewayId: string): string {
-    return `hanqi/gateway/${gatewayId}/response`
-  }
-
-  // ========== 特殊Topic（保留用于设备注册等） ==========
-
-  /**
-   * 设备加入Topic
-   * 网关首次上线时使用
-   */
-  static deviceJoin(): string {
-    return 'hanqi/device/join'
-  }
-
-  /**
-   * 设备加入响应Topic
-   */
-  static deviceJoinResponse(mac: string): string {
-    return `hanqi/device/${mac}/join/response`
-  }
-
-  /**
-   * 设备断开Topic
-   */
-  static deviceDisconnect(): string {
-    return 'hanqi/device/disconnect'
-  }
-
-  // ========== 订阅用（通配符Topic）==========
-
-  /**
    * 订阅所有网关的数据上报（重要！云端只需要订阅这一个）
    * @returns 'hanqi/gateway/+/report'
    */
   static allGatewayReport(): string {
     return 'hanqi/gateway/+/report'
-  }
-
-  // ========== 工具方法 ==========
-
-  /**
-   * 从Topic中解析网关ID
-   * @param topic MQTT Topic
-   * @returns 网关ID，如果解析失败返回null
-   */
-  static parseGatewayId(topic: string): string | null {
-    const match = topic.match(/hanqi\/gateway\/([^/]+)/)
-    return match ? match[1] : null
-  }
-
-  /**
-   * 判断Topic是否为网关上报
-   * @param topic MQTT Topic
-   */
-  static isGatewayReport(topic: string): boolean {
-    return topic.includes('/gateway/') && topic.endsWith('/report')
-  }
-
-  /**
-   * 判断Topic是否为网关命令
-   * @param topic MQTT Topic
-   */
-  static isGatewayCommand(topic: string): boolean {
-    return topic.includes('/gateway/') && topic.endsWith('/command')
-  }
-
-  /**
-   * 判断Topic是否为网关响应
-   * @param topic MQTT Topic
-   */
-  static isGatewayResponse(topic: string): boolean {
-    return topic.includes('/gateway/') && topic.endsWith('/response')
   }
 }
 

@@ -138,9 +138,43 @@ export const LogMessages = {
       `DP命令已发送 - 网关: ${gatewayId}, 子设备: ${subDeviceId}`,
   },
   TIMER: {
-    ADDED_SUCCESS: (count: number) => `批量添加子设备完成: ${count} 个成功`,
+    // ========== 基础查询 ==========
+    NOT_FOUND: (timerId: string) => `[TimerService] Timer不存在: ${timerId}`,
+
+    // ========== 子设备添加 ==========
+    ADD_MISSING_FIELD: (subDeviceId: string, productId: string) =>
+      `子设备添加失败：缺少必填字段 (uuid: ${subDeviceId}, productId: ${productId})`,
+    ADD_PRODUCT_NOT_FOUND: (productId: string, subDeviceId: string) =>
+      `子设备添加失败：产品配置不存在 (productId: ${productId}, subDeviceId: ${subDeviceId})`,
+    SUBDEVICE_UPDATED: (subDeviceId: string) => `子设备已更新: ${subDeviceId}`,
+    SUBDEVICE_CREATED: (subDeviceId: string, productName: string) => `子设备已创建: ${subDeviceId}, 产品: ${productName}`,
+    BATCH_ADD_COMPLETE: (added: number, updated: number, failed: number) =>
+      `批量添加子设备完成: 新增 ${added} 个, 更新 ${updated} 个, 失败 ${failed} 个`,
+    PAIRING_SUCCESS_COMMAND_SENT: (gatewayId: string) => `配对成功，已下发关闭配对命令给网关: ${gatewayId}`,
+
+    // ========== 子设备删除（网关上报） ==========
+    DELETE_BY_GATEWAY_NOT_FOUND: (gatewayId: string, subDeviceId: string) =>
+      `网关上报删除失败：子设备不存在 (gatewayId: ${gatewayId}, subDeviceId: ${subDeviceId})`,
+    DELETE_BY_GATEWAY_GATEWAY_NOT_FOUND: (gatewayId: string, subDeviceId: string) =>
+      `网关上报删除失败：网关不存在 (gatewayId: ${gatewayId}, subDeviceId: ${subDeviceId})`,
+    DELETE_BY_GATEWAY_UNAUTHORIZED: (gatewayId: string, subDeviceId: string, actualGatewayId: string) =>
+      `网关越权删除子设备！网关 ${gatewayId} 尝试删除不属于自己的子设备 ${subDeviceId} (实际属于网关: ${actualGatewayId})`,
+    DELETE_BY_GATEWAY_SUCCESS: (gatewayId: string, subDeviceId: string) =>
+      `网关上报删除子设备成功: 网关=${gatewayId}, 子设备=${subDeviceId}`,
+
+    // ========== 子设备更新 ==========
+    INFO_UPDATED: (subDeviceId: string) => `子设备信息已更新: ${subDeviceId}`,
+
+    // ========== 操作类型 ==========
     UNKONWN_DEVICE_TYPE: (deviceType: string) => `未知的子设备操作: ${deviceType}`,
+
+    // ========== 子设备删除（用户操作） ==========
     DELETED_SUCCESS: (timerId: string) => `子设备删除成功: ${timerId}`,
+
+    // ========== 子设备重命名 ==========
+    RENAMED_SUCCESS: (timerId: string, newName: string) => `子设备重命名成功: ${timerId} 新名称: ${newName}`,
+
+    // ========== 子设备状态批量更新 ==========
     SUBDEVICE_FIELD_MISSING: (gatewayId: string, index: number, missingField: string) =>
       `网关 ${gatewayId} 上报的子设备状态列表中第 ${index} 个子设备状态缺少 ${missingField}，跳过该子设备状态更新`,
     SUBDEVICE_MISSING: (timerId: string) => `子设备不存在: ${timerId}，跳过更新`,
@@ -148,7 +182,6 @@ export const LogMessages = {
     SUBDEVICE_STATUS_UPDATED_SUCCESS: (updatedCount: number, skippedCount: number) =>
       `子设备状态批量更新完成: 成功 ${updatedCount} 个, 跳过 ${skippedCount} 个`,
     SUBDEVICE_STATUS_RECEIVED: (count: number) => `收到 ${count} 个子设备状态更新`,
-    RENAMED_SUCCESS: (timerId: string, newName: string) => `子设备重命名成功: ${timerId} 新名称: ${newName}`,
   },
   SYNC: {
     SUBSCRIBED: (tableCount: number) => `已订阅 ${tableCount} 个表的同步消息`,
@@ -206,6 +239,7 @@ export const LogMessages = {
     ZONE_NAME_UPDATED: (channelId: string, zoneName: string) => `通道区域名称已更新: ${channelId}, 名称="${zoneName}"`,
     WEATHER_SKIP_UPDATED: (channelId: string, enabled: number) =>
       `通道天气跳过已更新: ${channelId}, 启用=${enabled === 1 ? '是' : '否'}`,
+    ZONE_IMAGE_UPDATED: (channelId: string) => `通道区域图片已更新: ${channelId}`,
   },
   COMMON: {
     ERROR: (context: string, error: string) => `❌ ${context} 错误: ${error}`,
