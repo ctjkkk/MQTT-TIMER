@@ -122,38 +122,24 @@ export class ChannelService {
 
   // 根据通道ID查询通道详情（权限已由 Guard 验证）
   async findChannelById(channelId: string): Promise<Channel> {
-    const channel = await this.channelModel.findById(channelId).lean()
-    if (!channel) {
-      this.logger.warn(LogMessages.CHANNEL.NOT_FOUND(channelId), LogContext.CHANNEL_SERVICE)
-      throw new NotFoundException('The Channel does not exist.')
-    }
-    return channel
+    return await this.channelModel.findById(channelId).lean()
   }
 
   // 更新通道区域名称（权限已由 Guard 验证）
   async updateZoneName(channelId: string, zoneName: string): Promise<void> {
-    const result = await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_name: zoneName } })
-    if (result.matchedCount === 0) {
-      throw new NotFoundException('The Channel does not exist.')
-    }
+    await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_name: zoneName } })
     this.logger.info(LogMessages.CHANNEL.ZONE_NAME_UPDATED(channelId, zoneName), LogContext.CHANNEL_SERVICE)
   }
 
   // 更新通道天气跳过设置（权限已由 Guard 验证）
   async updateWeatherSkip(channelId: string, enabled: number): Promise<void> {
-    const result = await this.channelModel.updateOne({ _id: channelId }, { $set: { weather_skip_enabled: enabled } })
-    if (result.matchedCount === 0) {
-      throw new NotFoundException('The Channel does not exist.')
-    }
+    await this.channelModel.updateOne({ _id: channelId }, { $set: { weather_skip_enabled: enabled } })
     this.logger.info(LogMessages.CHANNEL.WEATHER_SKIP_UPDATED(channelId, enabled), LogContext.CHANNEL_SERVICE)
   }
 
   // 更新通道区域图片（权限已由 Guard 验证）
   async updateZoneImage(channelId: string, zoneImage: string): Promise<void> {
-    const result = await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_image: zoneImage } })
-    if (result.matchedCount === 0) {
-      throw new NotFoundException('The Channel does not exist.')
-    }
+    await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_image: zoneImage } })
     this.logger.info(LogMessages.CHANNEL.ZONE_IMAGE_UPDATED(channelId), LogContext.CHANNEL_SERVICE)
   }
 }

@@ -9,12 +9,14 @@ import { UserModule } from '@/modules/user/user.module'
 import { Gateway, GatewaySchema } from './schema/HanqiGateway.schema'
 import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
 import { SecurityModule } from '@/common/security/security.module'
+import { Channel, ChannelSchema } from '../channel/schema/channel.schema'
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Gateway.name, schema: GatewaySchema },
       { name: Timer.name, schema: TimerSchema },
+      { name: Channel.name, schema: ChannelSchema },
     ]),
     MqttModule,
     UserModule,

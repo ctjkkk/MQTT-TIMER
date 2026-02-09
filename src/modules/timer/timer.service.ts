@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { InjectModel } from '@nestjs/mongoose'
-import { Model } from 'mongoose'
+import { InjectModel, InjectConnection } from '@nestjs/mongoose'
+import { Model, Connection } from 'mongoose'
 import { ChannelService } from '../channel/channel.service'
 import { ProductService } from '../product/product.service'
 import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/topic.constants'
@@ -26,6 +26,7 @@ export class TimerService {
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
     @InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>,
+    @InjectConnection() private readonly connection: Connection,
     @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
     private readonly channelService: ChannelService,
     private readonly productService: ProductService,
@@ -254,7 +255,7 @@ export class TimerService {
       )
       return
     }
-    const session = await this.timerModel.db.startSession()
+    const session = await this.connection.startSession()
     await session.withTransaction(async () => {
       // 删除该Timer记录
       await this.timerModel.deleteOne({ timerId: subDeviceId }).session(session)
@@ -291,7 +292,7 @@ export class TimerService {
     const gateway = await this.gatewayModel.findOne({ gatewayId: timer.gatewayId })
     if (!gateway) throw new NotFoundException('The gateway associated with this Timer does not exist.')
 
-    const session = await this.timerModel.db.startSession()
+    const session = await this.connection.startSession()
     await session.withTransaction(async () => {
       // 删除该Timer记录
       await this.timerModel.deleteOne({ timerId })

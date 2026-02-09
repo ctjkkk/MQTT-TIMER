@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
-import { InjectModel } from '@nestjs/mongoose'
+import { InjectModel, InjectConnection } from '@nestjs/mongoose'
 import { EventEmitter2 } from '@nestjs/event-emitter'
-import { Model } from 'mongoose'
+import { Model, Connection } from 'mongoose'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
 import type { MqttUnifiedMessage } from '@/shared/constants/topic.constants'
 import { OperateAction } from '@/shared/constants/topic.constants'
@@ -13,11 +13,14 @@ import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
 import type { IGatewayServiceInterface } from './interfaces/gateway-service.interface'
 import { SubDeviceListResponseDto } from '../timer/dto/timer.response.dto'
+import { Channel, ChannelDocument } from '../channel/schema/channel.schema'
 @Injectable()
 export class GatewayService implements IGatewayServiceInterface {
   constructor(
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
+    @InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>,
+    @InjectConnection() private readonly connection: Connection,
     @Inject(CommandSenderService) private readonly commandSenderService: CommandSenderService,
     private readonly logger: LoggerService,
     private readonly eventEmitter: EventEmitter2,
@@ -246,17 +249,31 @@ export class GatewayService implements IGatewayServiceInterface {
         message: 'Gateway information has been updated.',
       }
     }
-    //  绑定到用户
-    await this.gatewayModel.updateOne(
-      { gatewayId },
-      {
-        $set: {
-          userId,
-          name: gatewayName || `gateway-${gatewayId.slice(-6)}`,
-          updatedAt: new Date(),
+    // 绑定到用户（使用事务保证数据一致性）
+    const session = await this.connection.startSession()
+    await session.withTransaction(async () => {
+      // 更新网关的 userId
+      await this.gatewayModel.updateOne(
+        { gatewayId },
+        {
+          $set: {
+            userId,
+            name: gatewayName || `gateway-${gatewayId.slice(-6)}`,
+            updatedAt: new Date(),
+          },
         },
-      },
-    )
+        { session },
+      )
+      // 同步更新该网关下所有 Timer 的 userId
+      await this.timerModel.updateMany({ gatewayId }, { $set: { userId } }, { session })
+      // 同步更新所有 Channel 的 userId（保持数据一致性）
+      const timers = await this.timerModel.find({ gatewayId }).session(session).lean()
+      const timerIds = timers.map(t => t.timerId)
+      if (timerIds.length) {
+        await this.channelModel.updateMany({ timerId: { $in: timerIds } }, { $set: { userId } }, { session })
+      }
+    })
+    session.endSession()
     this.logger.info(LogMessages.GATEWAY.BIND_SUCCESS(gatewayId, userId), LogContext.GATEWAY_SERVICE)
     return {
       gatewayId,
@@ -359,12 +376,16 @@ export class GatewayService implements IGatewayServiceInterface {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
     const userId = gateway.userId?.toString()
-    const session = await this.timerModel.db.startSession()
+    const session = await this.connection.startSession()
     await session.withTransaction(async () => {
       // 只解绑用户，保留网关和子设备,并且发送MQTT命令让网关恢复出厂设置（清除绑定信息，重启后进入未绑定状态）
       await this.gatewayModel.updateOne({ gatewayId }, { $set: { userId: null, name: '' } })
       // 同时清除该网关下所有子设备状态(软删除)
       await this.timerModel.updateMany({ gatewayId }, { $set: { status: 0, online: 0 } })
+      //同步更新所有 Channel 的 userId，保持数据一致性
+      const timers = await this.timerModel.find({ gatewayId }).lean()
+      const timerIds = timers.map(t => t.timerId)
+      await this.channelModel.updateMany({ timerId: { $in: timerIds } }, { $set: { userId: null } })
     })
     session.endSession()
     // 发送MQTT命令让网关解绑进入未绑定状态
