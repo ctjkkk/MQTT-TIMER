@@ -109,7 +109,7 @@ export class ChannelService implements IChannelService {
   async updateZoneName(channelId: string, zoneName: string): Promise<Channel> {
     const updated = await this.channelModel.findByIdAndUpdate(channelId, { $set: { zone_name: zoneName } }, { new: true, lean: true })
     this.logger.info(LogMessages.CHANNEL.ZONE_NAME_UPDATED(channelId, zoneName), LogContext.CHANNEL_SERVICE)
-    const { _id, __v, ...rest } = updated.toObject()
+    const { _id, __v, ...rest } = updated
     return { channelId: _id.toString(), ...rest }
   }
 
