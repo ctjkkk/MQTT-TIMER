@@ -15,7 +15,7 @@ export class Product {
   deviceType: number
 
   @Prop({ required: true, min: 1, max: 4 })
-  channelCount: number
+  channel_count: number
 
   @Prop({ required: true, default: '1.0.0' })
   defaultFirmwareVersion: string
@@ -62,48 +62,48 @@ export const ProductSchema = SchemaFactory.createForClass(Product)
  */
 export const PREDEFINED_PRODUCTS: Partial<Product>[] = [
   {
-    productId: 'rgnmfjInx6hzagwe', //真实 productId
-    name: 'HQ2026-1路433水阀',
+    productId: 'rgnmfjInx6hzagwe', // Real productId
+    name: 'HQ2026-1 Channel 433 Valve',
     deviceType: 1,
-    channelCount: 1, // 1个出水口
+    channel_count: 1, // 1 outlet
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
-    description: '支持1个出水口的433智能水阀，适用于小型花园',
+    description: 'Smart 433 valve with 1 outlet, suitable for small gardens',
     imageUrl: '',
     enabled: 1,
   },
   {
-    productId: '9zkur06p7ggbwvbl', //真实 productId
-    name: 'HQ2026-2路433水阀',
+    productId: '9zkur06p7ggbwvbl', // Real productId
+    name: 'HQ2026-2 Channel 433 Valve',
     deviceType: 1,
-    channelCount: 2, // 2个出水口
+    channel_count: 2, // 2 outlets
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
-    description: '支持2个出水口的433智能水阀，适用于中型花园',
+    description: 'Smart 433 valve with 2 outlets, suitable for medium gardens',
     imageUrl: '',
     enabled: 1,
   },
-  // 真实 productId（来自 docs/HQ2026-3路433水阀(fdekfvdlkmqyslqr)_01_28.txt）
+  // Real productId (from docs/HQ2026-3路433水阀(fdekfvdlkmqyslqr)_01_28.txt)
   {
     productId: 'fdekfvdlkmqyslqr',
-    name: 'HQ2026-3路433水阀',
+    name: 'HQ2026-3 Channel 433 Valve',
     deviceType: 1,
-    channelCount: 3, // 3个出水口
+    channel_count: 3, // 3 outlets
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
-    description: '支持3个出水口的433智能水阀，适用于大型花园',
+    description: 'Smart 433 valve with 3 outlets, suitable for large gardens',
     imageUrl: '',
     enabled: 1,
   },
-  // 真实 productId（来自 docs/HQ2026-4路433水阀(ui9sxthml2sayg6a)_01_28.txt）
+  // Real productId (from docs/HQ2026-4路433水阀(ui9sxthml2sayg6a)_01_28.txt)
   {
     productId: 'ui9sxthml2sayg6a',
-    name: 'HQ2026-4路433水阀',
+    name: 'HQ2026-4 Channel 433 Valve',
     deviceType: 1,
-    channelCount: 4, // 4个出水口
+    channel_count: 4, // 4 outlets
     defaultFirmwareVersion: '1.0.0',
     defaultBatteryLevel: 100,
-    description: '支持4个出水口的433智能水阀，适用于超大型花园或农场',
+    description: 'Smart 433 valve with 4 outlets, suitable for extra large gardens or farms',
     imageUrl: '',
     enabled: 1,
   },

@@ -48,9 +48,9 @@ export class GatewayController {
    */
   @Post('/bind')
   @ApiResponseStandard({
-    summary: '绑定网关到用户账号',
-    responseDescription: '绑定成功',
-    msg: '绑定成功',
+    summary: 'Bind gateway to user account',
+    responseDescription: 'Gateway bound successfully',
+    msg: 'Bound successfully',
     responseType: BindGatewayResponseDto,
   })
   async bindGateway(@CurrentUserId() userId: string, @Body() dto: BindGatewayDto) {
@@ -58,20 +58,20 @@ export class GatewayController {
   }
 
   /**
-   * 验证网关在线状态和绑定状态（配网流程专用）
-   * 用途：
-   * - 配网完成后轮询检查网关是否上线
-   * - 前端智能判断：检查网关是否已绑定，避免重复配网
-   * 返回：
-   * - isOnline: 网关是否在线
-   * - isBound: 网关是否已绑定用户
-   * - userId: 绑定的用户ID（如果已绑定）
+   * Verify gateway online status and binding status (for pairing process)
+   * Purpose:
+   * - Poll to check if gateway is online after pairing
+   * - Smart check: determine if gateway is already bound to avoid duplicate pairing
+   * Returns:
+   * - isOnline: Whether gateway is online
+   * - isBound: Whether gateway is bound to a user
+   * - userId: Bound user ID (if bound)
    */
   @Post('/:gatewayId/verify')
   @ApiResponseStandard({
-    summary: '验证配网状态',
-    responseDescription: '返回网关在线状态和绑定状态',
-    msg: '验证成功',
+    summary: 'Verify pairing status',
+    responseDescription: 'Returns gateway online and binding status',
+    msg: 'Verified successfully',
     responseType: VerifyPairingResponseDto,
   })
   async verifyGateway(@Param('gatewayId') gatewayId: string) {
@@ -79,14 +79,14 @@ export class GatewayController {
   }
 
   /**
-   * 获取网关状态（需要用户权限）
+   * Get gateway status (requires user permission)
    */
   @Get('/:gatewayId/status')
   @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
-    summary: '获取网关信息',
-    responseDescription: '返回网关详细信息',
-    msg: '查询成功',
+    summary: 'Get gateway information',
+    responseDescription: 'Returns gateway detailed information',
+    msg: 'Success',
     responseType: GatewayStatusResponseDto,
   })
   async getGatewayStatus(@Param('gatewayId') gatewayId: string) {
@@ -94,14 +94,14 @@ export class GatewayController {
   }
 
   /**
-   * 解绑网关
+   * Unbind gateway
    */
   @Post('/:gatewayId')
   @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
-    summary: '解绑网关',
-    responseDescription: '解绑成功',
-    msg: '解绑成功',
+    summary: 'Unbind gateway',
+    responseDescription: 'Gateway unbound successfully',
+    msg: 'Unbound successfully',
     responseType: UnbindGatewayResponseDto,
   })
   async unbindGateway(@Param('gatewayId') gatewayId: string) {
@@ -109,42 +109,43 @@ export class GatewayController {
   }
 
   /**
-   * 用户点击添加子设备后
-   * 让网关进入配对子设备模式
+   * Start sub-device pairing mode
+   * User clicks to add sub-device, gateway enters pairing mode
    */
   @Post('/:gatewayId/pairing_start')
   @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
-    summary: '开始子设备配对',
-    responseDescription: '网关进入配对模式',
-    msg: '网关已进入子设备配对模式，等待子设备连接',
+    summary: 'Start sub-device pairing',
+    responseDescription: 'Gateway enters pairing mode',
+    msg: 'Gateway has entered sub-device pairing mode, waiting for sub-device connection',
   })
   async startSubDevicePairing(@Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.startSubDevicePairing(gatewayId)
   }
 
   /**
-   * 用户点击停止配对(扩展功能)
+   * Stop pairing (extended feature)
+   * User clicks to stop pairing
    */
   @Post(':gatewayId/pairing_stop')
   @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
-    summary: '停止配对子设备',
-    responseDescription: '网关关闭配对模式',
-    msg: '网关已关闭子设备配对模式',
+    summary: 'Stop sub-device pairing',
+    responseDescription: 'Gateway exits pairing mode',
+    msg: 'Gateway has exited sub-device pairing mode',
   })
   async stopSubDevicePairing(@Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.stopSubDevicePairing(gatewayId)
   }
   /**
-   * 获取网关下的子设备列表
+   * Get sub-device list under gateway
    */
   @Get('/:gatewayId/devices')
   @CheckOwnership('gateway', 'gatewayId')
   @ApiResponseStandard({
-    summary: '获取子设备列表',
-    responseDescription: '返回子设备列表',
-    msg: '查询成功',
+    summary: 'Get sub-device list',
+    responseDescription: 'Returns sub-device list',
+    msg: 'Success',
     responseType: [SubDeviceListResponseDto],
   })
   async getSubDevices(@Param('gatewayId') gatewayId: string) {

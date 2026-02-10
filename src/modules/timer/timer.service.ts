@@ -176,7 +176,7 @@ export class TimerService implements ITimerService {
         continue
       }
       // 从产品配置获取所有属性
-      const { name: productName, deviceType, defaultFirmwareVersion, defaultBatteryLevel, channelCount } = productConfig
+      const { name: productName, deviceType, defaultFirmwareVersion, defaultBatteryLevel, channel_count } = productConfig
       // 检查设备是否已存在
       const exists = await this.timerModel.findOne({ timerId: subDeviceId })
       // 使用事务保证Timer和Channel的数据一致性
@@ -193,6 +193,7 @@ export class TimerService implements ITimerService {
                   gatewayId,
                   productId,
                   deviceType,
+                  channel_count,
                   last_seen: new Date(),
                 },
               },
@@ -209,6 +210,7 @@ export class TimerService implements ITimerService {
                   userId: gateway.userId,
                   gatewayId,
                   name: productName,
+                  channel_count,
                   productId,
                   deviceType,
                   firmware_version: defaultFirmwareVersion,
@@ -220,7 +222,7 @@ export class TimerService implements ITimerService {
               { session },
             )
             // 在同一个事务中创建通道
-            const channels = Array.from({ length: channelCount }, (_, i) => ({
+            const channels = Array.from({ length: channel_count }, (_, i) => ({
               timerId: subDeviceId,
               userId: gateway.userId,
               channel_number: i + 1,
@@ -276,7 +278,10 @@ export class TimerService implements ITimerService {
     }
     // 验证子设备是否属于该网关（防止越权删除）
     if (timer.gatewayId !== gatewayId) {
-      this.loggerService.error(LogMessages.TIMER.DELETE_BY_GATEWAY_UNAUTHORIZED(gatewayId, subDeviceId, timer.gatewayId), LogContext.TIMER_SERVICE)
+      this.loggerService.error(
+        LogMessages.TIMER.DELETE_BY_GATEWAY_UNAUTHORIZED(gatewayId, subDeviceId, timer.gatewayId),
+        LogContext.TIMER_SERVICE,
+      )
       return
     }
     const session = await this.connection.startSession()

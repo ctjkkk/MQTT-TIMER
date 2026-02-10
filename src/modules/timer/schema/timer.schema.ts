@@ -35,16 +35,16 @@ export class Timer {
   @Prop({ type: Date, default: null })
   last_seen: Date
 
-  @Prop({ type: String, default: '1.0.0', trim: true, comment: '固件版本' })
+  @Prop({ type: String, default: '1.0.0', trim: true, comment: 'Firmware version' })
   firmware_version: string
 
   @Prop({ type: Number, min: 0, max: 100, default: 100 })
   battery_level: number
 
-  @Prop({ type: Number, min: 0, max: 100, default: 100, comment: '信号强度' })
+  @Prop({ type: Number, min: 0, max: 100, default: 100, comment: 'Signal strength' })
   signal_strength: number
 
-  @Prop({ type: Date, default: null, comment: '最后一次DP点更新时间' })
+  @Prop({ type: Date, default: null, comment: 'Last DP update time' })
   last_dp_update: Date
 }
 

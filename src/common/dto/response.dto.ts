@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger'
 
 /**
- * 通用响应包装 DTO（基类，仅用于类型定义）
- * 所有接口响应都会被 Transform 拦截器包装成这个结构
+ * Generic Response Wrapper DTO (Base class for type definitions)
+ * All API responses are wrapped in this structure by the Transform interceptor
  */
 export class ApiResponse<T> {
-  @ApiProperty({ description: '状态码', example: 200 })
+  @ApiProperty({ description: 'Status code', example: 200 })
   code: number
 
-  @ApiProperty({ description: '消息', example: '操作成功' })
+  @ApiProperty({ description: 'Message', example: 'Success' })
   msg: string
 
   data: T

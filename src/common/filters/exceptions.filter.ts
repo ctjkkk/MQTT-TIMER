@@ -39,10 +39,26 @@ export class HttpExceptionsFilter implements ExceptionFilter {
         error = b.error || ''
       }
     }
-    // 2. 处理 Mongoose CastError（无效的 ObjectId）
+    // 2. 处理 Mongoose CastError（类型转换错误）
+    // 通常发生在：使用 findById() 传入无效的 ObjectId 格式
     else if (exception instanceof MongooseError.CastError) {
       status = HttpStatus.BAD_REQUEST
-      message = `Invalid ${exception.kind}: '${exception.value}' is not a valid ObjectId`
+      const fieldName = exception.path || 'parameter'
+
+      if (exception.kind === 'ObjectId') {
+        // 只有当错误发生在 _id 字段时才返回错误
+        // 如果是自定义字段（timerId, gatewayId 等），说明代码错误使用了 findById()
+        if (fieldName === '_id') {
+          message = `Invalid ID format: '${exception.value}' is not a valid identifier`
+        } else {
+          // 自定义字段抛出 CastError 通常是代码问题（误用了 findById）
+          message = `Resource not found: invalid ${fieldName} value`
+          status = HttpStatus.NOT_FOUND
+        }
+      } else {
+        // 其他类型转换错误（如数字、日期等）
+        message = `Invalid ${fieldName}: expected ${exception.kind}, received '${exception.value}'`
+      }
       error = 'Bad Request'
     }
     // 3. 处理其他未知异常

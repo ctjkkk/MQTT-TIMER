@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger'
 import { IsNotEmpty, IsString, Length } from 'class-validator'
 export class GeneratePskDto {
   @ApiProperty({
-    description: '设备 MAC 地址/唯一标识',
+    description: 'Device MAC address/unique identifier',
     example: 'A1B2C3D4E5F6',
     minLength: 6,
     maxLength: 32,
@@ -15,7 +15,7 @@ export class GeneratePskDto {
 
 export class ConfirmPskDto {
   @ApiProperty({
-    description: '烧录成功后的mac地址',
+    description: 'MAC address after successful burning',
     example: 'A1B2C3D4E5F6',
     minLength: 6,
     maxLength: 32,

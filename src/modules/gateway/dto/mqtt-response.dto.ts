@@ -1,41 +1,41 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 /**
- * MQTT消息基础结构
+ * MQTT Message Base Structure
  */
 export class MqttMessageBaseDto {
-  @ApiProperty({ description: '消息类型', example: 'heartbeat' })
+  @ApiProperty({ description: 'Message type', example: 'heartbeat' })
   msgType: string
 
-  @ApiProperty({ description: '消息ID', example: '1705734000_abc123' })
+  @ApiProperty({ description: 'Message ID', example: '1705734000_abc123' })
   msgId: string
 
-  @ApiProperty({ description: '网关ID', example: 'HQ001' })
+  @ApiProperty({ description: 'Gateway ID', example: 'HQ001' })
   deviceId: string
 
-  @ApiProperty({ description: 'Unix时间戳（秒）', example: 1705734000 })
+  @ApiProperty({ description: 'Unix timestamp (seconds)', example: 1705734000 })
   timestamp: number
 }
 
 /**
- * 网关注册消息 - data部分
+ * Gateway Register Message - data part
  */
 export class GatewayRegisterDataDto {
-  @ApiProperty({ description: '实体类型', example: 'gateway', enum: ['gateway'] })
+  @ApiProperty({ description: 'Entity type', example: 'gateway', enum: ['gateway'] })
   entityType: string
 
-  @ApiProperty({ description: '操作类型', example: 'gateway_register' })
+  @ApiProperty({ description: 'Action type', example: 'gateway_register' })
   action: string
 
-  @ApiProperty({ description: '固件版本', example: '1.0.0' })
+  @ApiProperty({ description: 'Firmware version', example: '1.0.0' })
   firmwareVersion: string
 
-  @ApiProperty({ description: 'MAC地址', example: 'AA:BB:CC:DD:EE:FF' })
+  @ApiProperty({ description: 'MAC address', example: 'AA:BB:CC:DD:EE:FF' })
   mac: string
 }
 
 /**
- * 网关注册完整消息
+ * Gateway Register Complete Message
  */
 export class GatewayRegisterMessageDto extends MqttMessageBaseDto {
   @ApiProperty({ type: GatewayRegisterDataDto })
@@ -43,15 +43,15 @@ export class GatewayRegisterMessageDto extends MqttMessageBaseDto {
 }
 
 /**
- * 心跳消息 - data部分
+ * Heartbeat Message - data part
  */
 export class HeartbeatDataDto {
-  @ApiProperty({ description: '实体类型', example: 'gateway', enum: ['gateway'] })
+  @ApiProperty({ description: 'Entity type', example: 'gateway', enum: ['gateway'] })
   entityType: string
 }
 
 /**
- * 心跳完整消息
+ * Heartbeat Complete Message
  */
 export class HeartbeatMessageDto extends MqttMessageBaseDto {
   @ApiProperty({ type: HeartbeatDataDto })
@@ -59,30 +59,30 @@ export class HeartbeatMessageDto extends MqttMessageBaseDto {
 }
 
 /**
- * 网关状态上报 - data部分
+ * Gateway Status Report - data part
  */
 export class GatewayStatusDataDto {
-  @ApiProperty({ description: '实体类型', example: 'gateway', enum: ['gateway'] })
+  @ApiProperty({ description: 'Entity type', example: 'gateway', enum: ['gateway'] })
   entityType: string
 
-  @ApiProperty({ description: '是否在线', example: true })
+  @ApiProperty({ description: 'Online status', example: true })
   online: boolean
 
-  @ApiProperty({ description: 'WiFi信号强度（dBm）', example: -45 })
+  @ApiProperty({ description: 'WiFi signal strength (dBm)', example: -45 })
   wifi_rssi: number
 
-  @ApiProperty({ description: '固件版本', example: '1.0.0' })
+  @ApiProperty({ description: 'Firmware version', example: '1.0.0' })
   firmware: string
 
-  @ApiPropertyOptional({ description: '内存使用率（%）', example: 45 })
+  @ApiPropertyOptional({ description: 'Memory usage (%)', example: 45 })
   memory_usage?: number
 
-  @ApiPropertyOptional({ description: 'CPU使用率（%）', example: 30 })
+  @ApiPropertyOptional({ description: 'CPU usage (%)', example: 30 })
   cpu_usage?: number
 }
 
 /**
- * 网关状态完整消息
+ * Gateway Status Complete Message
  */
 export class GatewayStatusMessageDto extends MqttMessageBaseDto {
   @ApiProperty({ type: GatewayStatusDataDto })
@@ -90,16 +90,16 @@ export class GatewayStatusMessageDto extends MqttMessageBaseDto {
 }
 
 /**
- * 网关重启消息 - data部分
+ * Gateway Reboot Message - data part
  */
 export class GatewayRebootDataDto {
-  @ApiProperty({ description: '实体类型', example: 'gateway', enum: ['gateway'] })
+  @ApiProperty({ description: 'Entity type', example: 'gateway', enum: ['gateway'] })
   entityType: string
 
-  @ApiProperty({ description: '操作类型', example: 'gateway_reboot' })
+  @ApiProperty({ description: 'Action type', example: 'gateway_reboot' })
   action: string
 
-  @ApiPropertyOptional({ description: '重启原因', example: 'watchdog_reset' })
+  @ApiPropertyOptional({ description: 'Reboot reason', example: 'watchdog_reset' })
   reason?: string
 }
 

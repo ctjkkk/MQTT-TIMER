@@ -54,7 +54,7 @@ export class GatewayService implements IGatewayServiceInterface {
       },
     )
     // 下发心跳响应给网关
-    this.commandSenderService.sendHeartbeatResponse(uuid, isBound, gateway.userId.toString())
+    this.commandSenderService.sendHeartbeatResponse(uuid, isBound, gateway.userId?.toString())
     // 如果从离线变为在线，发布网关上线事件
     if (wasOffline) {
       this.logger.info(LogMessages.GATEWAY.ONLINE(uuid), LogContext.GATEWAY_SERVICE)
@@ -213,7 +213,9 @@ export class GatewayService implements IGatewayServiceInterface {
     const isOnline = gateway.is_connected === 1
     const isRecentlySeen = gateway.last_seen && Date.now() - gateway.last_seen.getTime() < 60000
     if (!isOnline || !isRecentlySeen) {
-      throw new BadRequestException('The gateway is currently offline. Please ensure that the device is connected to the network and try again.')
+      throw new BadRequestException(
+        'The gateway is currently offline. Please ensure that the device is connected to the network and try again.',
+      )
     }
     // 检查是否已被其他用户绑定
     if (gateway.userId && gateway.userId.toString() !== userId) {

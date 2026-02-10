@@ -8,24 +8,24 @@ import { CurrentUserId } from '@/common/decorators/paramExtractor.decorators'
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // 获取该用户从今天开始未来七天的天气数据
+  // Get user's weather data for the next 7 days starting from today
   @Get('/week_weather_list')
   @ApiResponseStandard({
-    summary: '获取用户一周天气信息',
-    responseDescription: '返回用户一周天气信息',
-    msg: '查询成功',
+    summary: 'Get user weekly weather information',
+    responseDescription: 'Returns user weekly weather information',
+    msg: 'Success',
     responseType: WeekWeatherResponseDto,
   })
   getWeekWeather(@CurrentUserId() userId: string) {
     return this.userService.getWeekWeather(userId)
   }
 
-  //根据用户id返回该用户的所有子设备列表
+  // Get all sub-devices for the user by user ID
   @Get('/subDevice_list')
   @ApiResponseStandard({
-    summary: '获取用户所有子设备列表',
-    responseDescription: '返回用户子设备列表',
-    msg: '查询成功',
+    summary: 'Get all user sub-devices',
+    responseDescription: 'Returns user sub-device list',
+    msg: 'Success',
   })
   getSubDeviceListByUserId(@CurrentUserId() userId: string) {
     return this.userService.getSubDeviceListByUserId(userId)

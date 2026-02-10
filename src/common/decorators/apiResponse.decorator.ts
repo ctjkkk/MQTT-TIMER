@@ -6,34 +6,34 @@ import { SignatureGuard } from '@/auth/psk/guards/signature'
 import { JwtAuthGuard } from '../guards/jwtAuth.guard'
 
 interface ApiResponseStandardOptions {
-  /** 接口摘要说明 */
+  /** API summary */
   summary: string
-  /** 响应描述 */
+  /** Response description */
   responseDescription: string
-  /** 成功消息 */
+  /** Success message */
   msg?: string
-  /** HTTP状态码 */
+  /** HTTP status code */
   code?: number
-  /** 响应数据类型（DTO类） */
+  /** Response data type (DTO class) */
   responseType?: Type<any> | [Type<any>]
 }
 
 interface PskApiResponseStandardOptions {
-  /** 接口摘要说明 */
+  /** API summary */
   summary: string
-  /** 响应描述 */
+  /** Response description */
   responseDescription: string
-  /** 成功消息 */
+  /** Success message */
   msg?: string
-  /** HTTP状态码 */
+  /** HTTP status code */
   code?: number
-  /** 响应数据类型（DTO类） */
+  /** Response data type (DTO class) */
   responseType?: Type<any> | [Type<any>]
 }
 
-// gateway等模块 需要请求头中apikey的公共装饰器工厂函数
+// Common decorator factory for gateway and other modules requiring API key in request header
 export const ApiResponseStandard = (options: ApiResponseStandardOptions) => {
-  const { summary, responseDescription, msg = '操作成功', code = 200, responseType } = options
+  const { summary, responseDescription, msg = 'Success', code = 200, responseType } = options
 
   const decorators = [
     ApiOperation({ summary }),
@@ -44,7 +44,7 @@ export const ApiResponseStandard = (options: ApiResponseStandardOptions) => {
     }),
     ApiHeader({
       name: 'authorization',
-      description: '用户身份验证令牌，格式为 Bearer <token>',
+      description: 'User authentication token, format: Bearer <token>',
       required: true,
     }),
     UseGuards(JwtAuthGuard),
@@ -55,9 +55,9 @@ export const ApiResponseStandard = (options: ApiResponseStandardOptions) => {
   return applyDecorators(...decorators)
 }
 
-// psk 模块 需要signture和timestamp请求头参数的公共装饰器工厂函数
+// Common decorator factory for PSK module requiring signature and timestamp in request header
 export const PskApiResponseStandard = (options: PskApiResponseStandardOptions) => {
-  const { summary, responseDescription, msg = '操作成功', code = 200, responseType } = options
+  const { summary, responseDescription, msg = 'Success', code = 200, responseType } = options
 
   return applyDecorators(
     ApiOperation({ summary }),
@@ -69,7 +69,7 @@ export const PskApiResponseStandard = (options: PskApiResponseStandardOptions) =
 
     ApiHeader({
       name: 'x-api-key',
-      description: 'PSK 模块请求签名密钥',
+      description: 'PSK module request signature key',
       required: true,
     }),
     UseGuards(SignatureGuard),

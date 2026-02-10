@@ -12,9 +12,9 @@ export class ProductController {
 
   @Get('/get_products')
   @ApiResponseStandard({
-    summary: '获取产品配置列表',
-    responseDescription: '返回可用的产品类型',
-    msg: '查询成功',
+    summary: 'Get product configuration list',
+    responseDescription: 'Returns available product types',
+    msg: 'Success',
     responseType: [ProductHttpResponse],
   })
   getAllOfProductList() {
@@ -23,9 +23,9 @@ export class ProductController {
 
   @Get('/:productId')
   @ApiResponseStandard({
-    summary: '根据PID查询单个产品配置',
-    responseDescription: '根据PID查询单个产品配置',
-    msg: '查询成功',
+    summary: 'Get product configuration by PID',
+    responseDescription: 'Returns product configuration by PID',
+    msg: 'Success',
     responseType: SingleProductHttpResponse,
   })
   getProduct(@Param('productId') productId: string) {
@@ -34,9 +34,9 @@ export class ProductController {
 
   @Post('/create_product')
   @ApiResponseStandard({
-    summary: '创建产品配置',
-    responseDescription: '创建产品配置',
-    msg: '创建成功',
+    summary: 'Create product configuration',
+    responseDescription: 'Creates product configuration',
+    msg: 'Created successfully',
     responseType: SingleProductHttpResponse,
   })
   createSingleProduct(@Body() dto: CreateProductDto) {
@@ -45,9 +45,9 @@ export class ProductController {
 
   @Post('/forbidden_product/:productId')
   @ApiResponseStandard({
-    summary: '禁用产品配置',
-    responseDescription: '禁用产品配置',
-    msg: '禁用成功',
+    summary: 'Disable product configuration',
+    responseDescription: 'Disables product configuration',
+    msg: 'Disabled successfully',
   })
   async forbiddenProduct(@Param('productId') productId: string) {
     return await this.productService.forbiddenProductById(productId)

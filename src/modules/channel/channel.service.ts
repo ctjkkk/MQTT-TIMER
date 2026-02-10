@@ -91,33 +91,45 @@ export class ChannelService implements IChannelService {
 
   // 根据Timer ID查询通道列表（权限已由 Guard 验证）
   async findChannelsByTimerId(timerId: string): Promise<Channel[]> {
-    return await this.channelModel.find({ timerId }).sort({ channel_number: 1 }).lean()
+    const channels = await this.channelModel.find({ timerId: timerId }).sort({ channel_number: 1 }).lean()
+    return channels.map(channel => {
+      const { _id, __v, ...rest } = channel
+      return { channelId: _id.toString(), ...rest }
+    })
   }
 
   // 根据通道ID查询通道详情（权限已由 Guard 验证）
   async findChannelById(channelId: string): Promise<Channel> {
-    return await this.channelModel.findById(channelId).lean()
+    const channel = await this.channelModel.findById(channelId).lean()
+    const { _id, ...rest } = channel
+    return { channelId: _id.toString(), ...rest }
   }
 
   // 更新通道区域名称（权限已由 Guard 验证）
-  async updateZoneName(channelId: string, zoneName: string): Promise<{ message: string }> {
-    await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_name: zoneName } })
+  async updateZoneName(channelId: string, zoneName: string): Promise<Channel> {
+    const updated = await this.channelModel.findByIdAndUpdate(channelId, { $set: { zone_name: zoneName } }, { new: true, lean: true })
     this.logger.info(LogMessages.CHANNEL.ZONE_NAME_UPDATED(channelId, zoneName), LogContext.CHANNEL_SERVICE)
-    return { message: 'The channel name has been updated successfully.' }
+    const { _id, __v, ...rest } = updated.toObject()
+    return { channelId: _id.toString(), ...rest }
   }
 
   // 更新通道天气跳过设置（权限已由 Guard 验证）
-  async updateWeatherSkip(channelId: string, enabled: number): Promise<{ message: string }> {
-    await this.channelModel.updateOne({ _id: channelId }, { $set: { weather_skip_enabled: enabled } })
+  async updateWeatherSkip(channelId: string, enabled: number): Promise<Channel> {
+    const updated = await this.channelModel.findByIdAndUpdate(
+      channelId,
+      { $set: { weather_skip_enabled: enabled } },
+      { new: true, lean: true },
+    )
     this.logger.info(LogMessages.CHANNEL.WEATHER_SKIP_UPDATED(channelId, enabled), LogContext.CHANNEL_SERVICE)
-    const message = enabled ? 'Weather skip activated successfully' : 'Weather skip has been successfully turned off.'
-    return { message }
+    const { _id, __v, ...rest } = updated
+    return { channelId: _id.toString(), ...rest }
   }
 
   // 更新通道区域图片（权限已由 Guard 验证）
-  async updateZoneImage(channelId: string, zoneImage: string): Promise<{ message: string }> {
-    await this.channelModel.updateOne({ _id: channelId }, { $set: { zone_image: zoneImage } })
+  async updateZoneImage(channelId: string, zoneImage: string): Promise<Channel> {
+    const updated = await this.channelModel.findByIdAndUpdate(channelId, { $set: { zone_image: zoneImage } }, { new: true, lean: true })
     this.logger.info(LogMessages.CHANNEL.ZONE_IMAGE_UPDATED(channelId), LogContext.CHANNEL_SERVICE)
-    return { message: 'The photo has been updated successfully.' }
+    const { _id, __v, ...rest } = updated
+    return { channelId: _id.toString(), ...rest }
   }
 }

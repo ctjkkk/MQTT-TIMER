@@ -621,41 +621,42 @@
             }
 
             if (isBound && userId) {
-              // 网关已绑定 → 无需任何操作
+              // 网关已绑定 → 直接跳到步骤6
+              log('', 'info')
+              log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success')
               log('✅ 检测到网关已绑定用户！', 'success')
               log(`📝 网关名称: ${name || '未命名'}`, 'info')
-              log(`👤 绑定用户ID: ${userId}`, 'info')
-              log(`🌐 在线状态: ${isOnline ? '在线' : '离线'}`, 'info')
-              log('💡 网关已完成配网和绑定，无需重复操作', 'success')
-              log('💡 网关会自动通过已存储的WiFi信息上线', 'info')
+              log(`👤 用户ID: ${userId}`, 'info')
+              log(`🌐 在线状态: ${isOnline ? '✅ 在线' : '❌ 离线'}`, isOnline ? 'success' : 'warning')
+              log('💡 网关已完成配网和绑定，自动跳过配网步骤', 'success')
+              log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success')
+              log('', 'info')
 
-              // 标记所有步骤为已完成
-              showStatus('step3', '✅ 网关已绑定，无需配网', 'success')
-              document.getElementById('step3').classList.add('completed')
+              // 隐藏步骤3、4、5（已完成，不再显示）
+              document.getElementById('step3').style.display = 'none'
+              document.getElementById('step4').style.display = 'none'
+              document.getElementById('step5').style.display = 'none'
 
-              showStatus('step4', '✅ 网关已绑定，自动上线', 'success')
-              document.getElementById('step4').classList.add('completed')
+              // 标记步骤1、2为已完成
+              document.getElementById('step1').classList.add('completed')
+              document.getElementById('step2').classList.add('completed')
 
-              showStatus('step5', '✅ 网关已绑定到用户', 'success')
-              document.getElementById('step5').classList.add('completed')
-              completeStep(5)
+              // 直接激活步骤6
+              document.getElementById('step6').classList.add('active')
+              showStatus('step6', isOnline ? '✅ 网关在线，可以添加子设备' : '⚠️ 网关离线，请确保网关已连接', isOnline ? 'success' : 'warning')
 
-              // 禁用所有后续操作
-              document.getElementById('wifiSsid').disabled = true
-              document.getElementById('wifiPassword').disabled = true
-              document.getElementById('btnConfigWiFi').disabled = true
-              document.getElementById('jwtToken').disabled = true
-              document.getElementById('btnWaitOnline').disabled = true
-              document.getElementById('gatewayName').disabled = true
-              document.getElementById('btnBind').disabled = true
-
-              // 🆕 启用步骤6（添加子设备）- 网关已绑定且在线可以立即添加子设备
+              // 启用步骤6的按钮（仅当网关在线时）
               if (isOnline) {
                 document.getElementById('btnStartPairing').disabled = false
-                document.getElementById('step6').classList.add('active')
-                log('✅ 网关在线，可以添加子设备（步骤6）', 'success')
+                log('🎯 现在可以直接添加子设备了！', 'success')
+
+                // 滚动到步骤6
+                setTimeout(() => {
+                  document.getElementById('step6').scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }, 500)
               } else {
-                log('⚠️  网关离线，请等待网关上线后再添加子设备', 'warning')
+                log('⏳ 网关离线，请等待网关上线后再添加子设备', 'warning')
+                log('💡 提示：网关会自动通过已保存的WiFi信息连接', 'info')
               }
             } else {
               // 网关未绑定 → 需要配网
@@ -853,10 +854,46 @@
           return
         }
 
-        log(`🔗 正在绑定网关: ${currentGatewayId}`)
-        showStatus('step5', '正在绑定...', 'info')
+        log(`🔍 正在检查网关绑定状态...`)
+        showStatus('step5', '正在检查网关状态...', 'info')
 
         try {
+          // 先检查网关是否已经绑定
+          const verifyResponse = await fetch(`${API_BASE}/gateway/${currentGatewayId}/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              authorization: `Bearer ${token}`,
+            },
+          })
+
+          const verifyData = await verifyResponse.json()
+
+          if (verifyResponse.ok && verifyData.data) {
+            const { exists, isOnline, isBound, userId, name: gatewayName } = verifyData.data
+
+            // 如果网关已绑定，直接跳过绑定步骤
+            if (isBound && userId) {
+              log('✅ 检测到网关已绑定到当前用户！', 'success')
+              log(`📝 网关名称: ${gatewayName || '未命名'}`, 'info')
+              log(`🌐 在线状态: ${isOnline ? '在线' : '离线'}`, 'info')
+              log('💡 无需重复绑定，直接进入添加子设备流程', 'success')
+
+              showStatus('step5', '✅ 网关已绑定，跳过绑定步骤', 'success')
+              completeStep(5)
+
+              // 启用步骤6（添加子设备）
+              document.getElementById('btnStartPairing').disabled = false
+              document.getElementById('step6').classList.add('active')
+              log('💡 现在可以添加子设备了（步骤6）', 'success')
+              return
+            }
+          }
+
+          // 网关未绑定，执行绑定操作
+          log(`🔗 正在绑定网关: ${currentGatewayId}`)
+          showStatus('step5', '正在绑定...', 'info')
+
           const response = await fetch(`${API_BASE}/gateway/bind`, {
             method: 'POST',
             headers: {
@@ -895,6 +932,7 @@
 
             // 🆕 启用步骤6（添加子设备）
             document.getElementById('btnStartPairing').disabled = false
+            document.getElementById('step6').classList.add('active')
             log('💡 现在可以添加子设备了（步骤6）', 'success')
           } else {
             log(`❌ 绑定失败: ${data.message || '未知错误'}`, 'error')

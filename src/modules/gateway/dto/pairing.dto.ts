@@ -2,20 +2,20 @@ import { IsString, IsNotEmpty, IsOptional } from 'class-validator'
 import { ApiProperty } from '@nestjs/swagger'
 
 /**
- * 绑定网关 DTO（配网后绑定到用户账号）
+ * Bind Gateway DTO (bind to user account after pairing)
  */
 export class BindGatewayDto {
   @ApiProperty({
-    description: '网关ID (设备唯一标识)',
+    description: 'Gateway ID (unique device identifier)',
     example: 'ABCDEF123456',
   })
   @IsString()
-  @IsNotEmpty({ message: '网关ID不能为空' })
+  @IsNotEmpty({ message: 'Gateway ID cannot be empty' })
   gatewayId: string
 
   @ApiProperty({
-    description: '网关名称 (用户自定义，可选)',
-    example: '客厅网关',
+    description: 'Gateway name (user-defined, optional)',
+    example: 'Living Room Gateway',
     required: false,
   })
   @IsString()
@@ -24,48 +24,48 @@ export class BindGatewayDto {
 }
 
 /**
- * 验证配网状态 DTO
+ * Verify Pairing Status DTO
  */
 export class VerifyPairingDto {
   @ApiProperty({
-    description: '网关ID',
+    description: 'Gateway ID',
     example: 'ABCDEF123456',
   })
   @IsString()
-  @IsNotEmpty({ message: '网关ID不能为空' })
+  @IsNotEmpty({ message: 'Gateway ID cannot be empty' })
   gatewayId: string
 }
 
 /**
- * 网关状态响应 DTO
+ * Gateway Status Response DTO
  */
 export class GatewayStatusDto {
   @ApiProperty({
-    description: '网关ID',
+    description: 'Gateway ID',
   })
   gatewayId: string
 
   @ApiProperty({
-    description: '是否在线 (1:在线, 0:离线)',
+    description: 'Online status (1: online, 0: offline)',
     example: 1,
   })
   isOnline: number
 
   @ApiProperty({
-    description: '最后在线时间',
+    description: 'Last seen time',
     example: '2026-01-19T10:30:00.000Z',
   })
   lastSeen: Date
 
   @ApiProperty({
-    description: 'WiFi信号强度',
+    description: 'WiFi signal strength',
     example: -45,
     required: false,
   })
   wifiRssi?: number
 
   @ApiProperty({
-    description: '固件版本',
+    description: 'Firmware version',
     example: '1.0.5',
     required: false,
   })

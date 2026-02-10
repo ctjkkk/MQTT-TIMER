@@ -43,15 +43,15 @@ const CONFIG = {
   MQTT_HOST: process.env.MQTT_HOST || '127.0.0.1',
 
   // 连接模式：'tcp' 或 'psk'
-  MODE: process.env.MODE || 'tcp',
+  MODE: 'tcp', // 强制使用 TCP 模式
 
   // TCP模式配置
-  TCP_PORT: 11885,
+  TCP_PORT: 1885,
   TCP_USERNAME: 'hanqi',
   TCP_PASSWORD: '12358221044',
 
   // PSK模式配置（如果使用）
-  PSK_PORT: 8445,
+  PSK_PORT: 8883,
   PSK_IDENTITY: process.env.PSK_IDENTITY || process.env.GATEWAY_ID || 'TEST_GATEWAY_001',
   PSK_KEY: process.env.PSK_KEY || '', // 从后端生成的PSK密钥
 
@@ -319,6 +319,7 @@ class GatewaySimulator {
       password: this.config.TCP_PASSWORD,
       clientId: `gateway_${this.config.GATEWAY_ID}`,
       clean: true,
+      keepalive: 60, // MQTT协议层keepalive（秒），必须小于服务端的heartbeatInterval
       reconnectPeriod: 5000,
     }
   }
@@ -340,6 +341,7 @@ class GatewaySimulator {
       protocol: 'mqtts',
       clientId: `gateway_${this.config.GATEWAY_ID}`,
       clean: true,
+      keepalive: 60, // MQTT协议层keepalive（秒），必须小于服务端的heartbeatInterval
       reconnectPeriod: 5000,
       rejectUnauthorized: false, // 开发环境
       pskCallback: () => {
@@ -372,13 +374,13 @@ class GatewaySimulator {
   sendRegisterMessage() {
     const message = {
       msgType: 'operate_devices',
-      deviceId: this.config.GATEWAY_ID,
+      uuid: this.config.GATEWAY_ID,
+      timestamp: Math.floor(Date.now() / 1000),
       data: {
         entityType: 'gateway',
         action: 'gateway_register',
         firmware: this.config.FIRMWARE_VERSION,
         model: 'HQ-GW-SIM',
-        timestamp: Date.now(),
       },
     }
 
@@ -413,8 +415,8 @@ class GatewaySimulator {
   sendHeartbeat() {
     const message = {
       msgType: 'heartbeat',
-      deviceId: this.config.GATEWAY_ID,
-      timestamp: Date.now(),
+      uuid: this.config.GATEWAY_ID,
+      timestamp: Math.floor(Date.now() / 1000),
       data: {
         entityType: 'gateway',
       },
@@ -600,23 +602,27 @@ class GatewaySimulator {
     setTimeout(() => {
       // 生成随机子设备
       const subDeviceId = `SUB_${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-      const capabilities = Math.floor(Math.random() * 4) // 0-3 (1-4路)
-      const outletCount = capabilities + 1
+      const channelTypes = [1, 2, 3, 4] // 1-4路
+      const channelCount = channelTypes[Math.floor(Math.random() * channelTypes.length)]
+
+      // 真实的涂鸦产品ID（根据通道数选择）
+      const productIdMap = {
+        1: 'rgnmfjInx6hzagwe', // 单路水阀
+        2: '9zkur06p7ggbwvbl', // 双路水阀
+        3: 'fdekfvdlkmqyslqr', // 三路水阀
+        4: 'ui9sxthml2sayg6a', // 四路水阀
+      }
 
       const subDevice = {
         uuid: subDeviceId,
-        deviceType: 1,
-        capabilities: capabilities,
-        productId: 1001,
-        firmwareVersion: '1.0.5',
-        online: true,
+        productId: productIdMap[channelCount],
       }
 
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
       console.log('✅ 手动添加：发现子设备！')
       console.log(`   ID: ${subDeviceId}`)
-      console.log(`   类型: ${outletCount}路水阀`)
-      console.log(`   固件版本: ${subDevice.firmwareVersion}`)
+      console.log(`   类型: ${channelCount}路水阀`)
+      console.log(`   产品ID: ${subDevice.productId}`)
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
       console.log('')
 
@@ -634,7 +640,7 @@ class GatewaySimulator {
   reportSubDevices(subDevices) {
     const message = {
       msgType: 'operate_devices',
-      deviceId: this.config.GATEWAY_ID,
+      uuid: this.config.GATEWAY_ID,
       timestamp: Math.floor(Date.now() / 1000),
       data: {
         entityType: 'subDevice',
@@ -700,23 +706,27 @@ class GatewaySimulator {
 
     // 生成随机子设备
     const subDeviceId = `SUB_${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-    const capabilities = Math.floor(Math.random() * 4) // 0-3 (1-4路)
-    const outletCount = capabilities + 1
+    const channelTypes = [1, 2, 3, 4] // 1-4路
+    const channelCount = channelTypes[Math.floor(Math.random() * channelTypes.length)]
+
+    // 真实的涂鸦产品ID（根据通道数选择）
+    const productIdMap = {
+      1: 'rgnmfjInx6hzagwe', // 单路水阀
+      2: '9zkur06p7ggbwvbl', // 双路水阀
+      3: 'fdekfvdlkmqyslqr', // 三路水阀
+      4: 'ui9sxthml2sayg6a', // 四路水阀
+    }
 
     const subDevice = {
       uuid: subDeviceId,
-      deviceType: 1,
-      capabilities: capabilities,
-      productId: 1001,
-      firmwareVersion: '1.0.5',
-      online: true,
+      productId: productIdMap[channelCount],
     }
 
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log('✅ 扫描发现新的子设备！')
     console.log(`   ID: ${subDeviceId}`)
-    console.log(`   类型: ${outletCount}路水阀`)
-    console.log(`   固件版本: ${subDevice.firmwareVersion}`)
+    console.log(`   类型: ${channelCount}路水阀`)
+    console.log(`   产品ID: ${subDevice.productId}`)
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log('')
 
@@ -746,8 +756,15 @@ class GatewaySimulator {
     // 显示扫描结果
     console.log('📋 扫描到的子设备列表：')
     this.scanningDevices.forEach((device, index) => {
-      const outletCount = (device.capabilities & 0x03) + 1
-      console.log(`   ${index + 1}. ${device.uuid} - ${outletCount}路水阀`)
+      // 根据 productId 判断设备类型
+      const productTypeMap = {
+        rgnmfjlnx6hzagwe: '单路',
+        '9zkur06p7ggbwvbl': '双路',
+        l3wrhbp2ixc9y5a9: '三路',
+        k6z3zpvwnxywnmla: '四路',
+      }
+      const deviceType = productTypeMap[device.productId] || '未知'
+      console.log(`   ${index + 1}. ${device.uuid} - ${deviceType}水阀 (${device.productId})`)
     })
     console.log('')
 
@@ -894,11 +911,17 @@ class GatewaySimulator {
       console.log('  暂无子设备')
     } else {
       this.subDevices.forEach((device, index) => {
-        const outletCount = (device.capabilities & 0x03) + 1
+        // 根据 productId 判断设备类型
+        const productTypeMap = {
+          rgnmfjlnx6hzagwe: '单路',
+          '9zkur06p7ggbwvbl': '双路',
+          l3wrhbp2ixc9y5a9: '三路',
+          k6z3zpvwnxywnmla: '四路',
+        }
+        const deviceType = productTypeMap[device.productId] || '未知'
         console.log(`  ${index + 1}. ID: ${device.uuid}`)
-        console.log(`     类型: ${outletCount}路水阀`)
-        console.log(`     固件: ${device.firmwareVersion}`)
-        console.log(`     状态: ${device.online ? '在线' : '离线'}`)
+        console.log(`     类型: ${deviceType}水阀`)
+        console.log(`     产品ID: ${device.productId}`)
         console.log('')
       })
     }
@@ -932,7 +955,6 @@ class GatewaySimulator {
       console.log('✅ WiFi配置已清除')
       console.log('💡 请重新启动程序以进入配网模式')
       console.log('')
-
     } catch (error) {
       console.error('❌ 清除配置失败:', error.message)
     }

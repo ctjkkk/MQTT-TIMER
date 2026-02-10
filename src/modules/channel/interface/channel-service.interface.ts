@@ -34,23 +34,23 @@ export interface IChannelService {
    * 更新通道区域名称
    * @param channelId 通道ID
    * @param zoneName 区域名称
-   * @returns 更新结果
+   * @returns 更新后的通道数据
    */
-  updateZoneName(channelId: string, zoneName: string): Promise<{ message: string }>
+  updateZoneName(channelId: string, zoneName: string): Promise<Channel>
 
   /**
    * 更新通道天气跳过设置
    * @param channelId 通道ID
    * @param enabled 是否启用（0=禁用，1=启用）
-   * @returns 更新结果
+   * @returns 更新后的通道数据
    */
-  updateWeatherSkip(channelId: string, enabled: number): Promise<{ message: string }>
+  updateWeatherSkip(channelId: string, enabled: number): Promise<Channel>
 
   /**
    * 更新通道区域图片
    * @param channelId 通道ID
    * @param zoneImage 区域图片URL
-   * @returns 更新结果
+   * @returns 更新后的通道数据
    */
-  updateZoneImage(channelId: string, zoneImage: string): Promise<{ message: string }>
+  updateZoneImage(channelId: string, zoneImage: string): Promise<Channel>
 }

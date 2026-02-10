@@ -1,22 +1,22 @@
 /**
- * 涂鸦 DP Schema 配置
- * 参考文档：docs/HQ2026-*路433水阀(xxx).txt
+ * Tuya DP Schema Configuration
+ * Reference: docs/HQ2026-*路433水阀(xxx).txt
  *
- * 说明：
- * - 每个产品型号有独立的 DP 配置
- * - DP ID 由涂鸦平台定义，不连续（1-4, 17-20, 38-39, 42-45, 47, 53, 105-134）
- * - 路数越多，DP 点越多（1路17个，2路24个，3路31个，4路38个）
+ * Description:
+ * - Each product model has independent DP configuration
+ * - DP IDs are defined by Tuya platform, non-continuous (1-4, 17-20, 38-39, 42-45, 47, 53, 105-134)
+ * - More channels means more DP points (1ch: 17DPs, 2ch: 24DPs, 3ch: 31DPs, 4ch: 38DPs)
  */
 
 import { DpAccessMode, DpDataType, ProductDpSchema, ProductDpSchemaMap } from '../types/dp.types'
 
-// 通用 DP 点（所有产品都有）
+// Common DP points (all products)
 const COMMON_DPS = [
-  // 天气相关（所有产品共享）
+  // Weather related (shared by all products)
   {
     id: 42,
     code: 'remaining_weather_delay',
-    name: '剩余天气延时时间',
+    name: 'Remaining Weather Delay Time',
     accessMode: DpAccessMode.READ_ONLY,
     dataType: DpDataType.VALUE,
     valueRange: { min: 0, max: 240, step: 1, scale: 0, unit: 'h' },
@@ -24,14 +24,14 @@ const COMMON_DPS = [
   {
     id: 43,
     code: 'weather_switch',
-    name: '天气开关',
+    name: 'Weather Switch',
     accessMode: DpAccessMode.READ_WRITE,
     dataType: DpDataType.BOOLEAN,
   },
   {
     id: 44,
     code: 'smart_weather',
-    name: '智能天气',
+    name: 'Smart Weather',
     accessMode: DpAccessMode.READ_WRITE,
     dataType: DpDataType.ENUM,
     enumValues: ['sunny', 'rainy'],
@@ -39,27 +39,27 @@ const COMMON_DPS = [
   {
     id: 45,
     code: 'weather_delay',
-    name: '雨天延时',
+    name: 'Rainy Day Delay',
     accessMode: DpAccessMode.READ_WRITE,
     dataType: DpDataType.ENUM,
     enumValues: ['1', '2', '3', '4', '5', '6', '7', 'cancel'],
-    description: '1-7表示延时天数，cancel表示取消延时',
+    description: '1-7 represents delay days, cancel means cancel delay',
   },
 
-  // 系统状态（所有产品共享）
+  // System status (shared by all products)
   {
     id: 47,
     code: 'battery_state',
-    name: '电池电量状态',
+    name: 'Battery Status',
     accessMode: DpAccessMode.READ_ONLY,
     dataType: DpDataType.ENUM,
     enumValues: ['6', '5', '4', '3', '2', '1', '0'],
-    description: '6=3.05V, 5=2.95V, 4=2.85V, 3=2.75V, 2=2.65V, 1=2.60V, 0=低于2.60V',
+    description: '6=3.05V, 5=2.95V, 4=2.85V, 3=2.75V, 2=2.65V, 1=2.60V, 0=below 2.60V',
   },
   {
     id: 53,
     code: 'fault',
-    name: '故障告警',
+    name: 'Fault Alarm',
     accessMode: DpAccessMode.READ_ONLY,
     dataType: DpDataType.FAULT,
     faultValues: ['low_battery', 'fault_1', 'fault_2', 'fault_3'],
@@ -67,14 +67,14 @@ const COMMON_DPS = [
   {
     id: 117,
     code: 'signal_boost_switch',
-    name: '信号放大',
+    name: 'Signal Boost',
     accessMode: DpAccessMode.READ_WRITE,
     dataType: DpDataType.BOOLEAN,
   },
   {
     id: 118,
     code: 'signal_strength',
-    name: '信号强度',
+    name: 'Signal Strength',
     accessMode: DpAccessMode.READ_ONLY,
     dataType: DpDataType.VALUE,
     valueRange: { min: -255, max: 255, step: 1, scale: 0, unit: '' },
@@ -82,37 +82,37 @@ const COMMON_DPS = [
   {
     id: 123,
     code: 'upgrade_status',
-    name: '升级状态',
+    name: 'Upgrade Status',
     accessMode: DpAccessMode.READ_ONLY,
     dataType: DpDataType.ENUM,
     enumValues: ['upgrade_complete', 'upgrade_begin'],
   },
 
-  // 喷雾定时（所有产品共享）
+  // Spray timing (shared by all products)
   {
     id: 39,
     code: 'cycle_timing',
-    name: '喷雾定时',
+    name: 'Spray Timing',
     accessMode: DpAccessMode.READ_WRITE,
     dataType: DpDataType.RAW,
-    description: '自定义协议',
+    description: 'Custom protocol',
   },
 ]
 
-// 生成单个通道的 DP 点（工厂函数）
+// Generate DP points for a single channel (factory function)
 function createChannelDps(channelNum: number) {
   return [
     {
       id: channelNum, // DP1-4
       code: `switch_${channelNum}`,
-      name: `区域 ${String.fromCharCode(64 + channelNum)}`, // A, B, C, D
+      name: `Zone ${String.fromCharCode(64 + channelNum)}`, // A, B, C, D
       accessMode: DpAccessMode.READ_WRITE,
       dataType: DpDataType.BOOLEAN,
     },
     {
       id: 16 + channelNum, // DP17-20
       code: `countdown_${channelNum}`,
-      name: `设置通道${channelNum}灌溉时长`,
+      name: `Set Channel ${channelNum} Irrigation Duration`,
       accessMode: DpAccessMode.READ_WRITE,
       dataType: DpDataType.VALUE,
       valueRange: {
@@ -120,13 +120,13 @@ function createChannelDps(channelNum: number) {
         max: 43200,
         step: 1,
         scale: 0,
-        unit: channelNum === 4 ? 'min' : 's', // 注意：DP20 单位是 min！
+        unit: channelNum === 4 ? 'min' : 's', // Note: DP20 unit is min!
       },
     },
     {
       id: 104 + channelNum, // DP105-108
       code: `running_countdown_${channelNum}`,
-      name: `通道${channelNum}运行剩余倒计时`,
+      name: `Channel ${channelNum} Remaining Countdown`,
       accessMode: DpAccessMode.READ_ONLY,
       dataType: DpDataType.VALUE,
       valueRange: { min: 0, max: 43200, step: 1, scale: 0, unit: '' },
@@ -134,23 +134,23 @@ function createChannelDps(channelNum: number) {
     {
       id: 108 + channelNum, // DP109-112
       code: `irr_timestamp_next${channelNum}`,
-      name: `通道${channelNum}下次定时`,
+      name: `Channel ${channelNum} Next Schedule`,
       accessMode: DpAccessMode.READ_ONLY,
       dataType: DpDataType.RAW,
     },
     {
       id: 118 + channelNum, // DP119-122
       code: `work_state_${channelNum}`,
-      name: `通道${channelNum}工作状态`,
+      name: `Channel ${channelNum} Work State`,
       accessMode: DpAccessMode.READ_ONLY,
       dataType: DpDataType.ENUM,
       enumValues: ['manual', 'timing', 'spray', 'idle'],
-      description: 'manual=手动, timing=定时, spray=喷雾, idle=空闲',
+      description: 'manual=manual, timing=scheduled, spray=spray, idle=idle',
     },
     {
       id: 130 + channelNum, // DP131-134
       code: `irrigation_time_${channelNum}`,
-      name: `通道${channelNum}灌溉时长日志`,
+      name: `Channel ${channelNum} Irrigation Time Log`,
       accessMode: DpAccessMode.READ_ONLY,
       dataType: DpDataType.VALUE,
       valueRange: { min: 0, max: 43200, step: 1, scale: 0, unit: 's' },
@@ -158,49 +158,49 @@ function createChannelDps(channelNum: number) {
   ]
 }
 
-// 生成普通定时 DP（通道2-4独有）
+// Generate regular timer DP (channels 2-4 only)
 function createTimerDp(channelNum: number) {
   return {
     id: 111 + channelNum, // DP113-115
     code: channelNum === 1 ? 'timer' : `timer${channelNum}`,
-    name: `通道${channelNum}普通定时`,
+    name: `Channel ${channelNum} Regular Timer`,
     accessMode: DpAccessMode.READ_WRITE,
     dataType: DpDataType.RAW,
-    description: channelNum === 1 ? '自定义协议' : undefined,
+    description: channelNum === 1 ? 'Custom protocol' : undefined,
   }
 }
 
-// 1路水阀 DP Schema
+// 1-Channel Valve DP Schema
 const PRODUCT_1_CHANNEL: ProductDpSchema = {
   productId: 'rgnmfjlnx6hzagwe',
-  productName: 'HQ2026-1路433水阀',
+  productName: 'HQ2026-1 Channel 433 Valve',
   channelCount: 1,
   dps: [
     ...createChannelDps(1),
     {
       id: 38,
       code: 'timer',
-      name: '通道1普通定时',
+      name: 'Channel 1 Regular Timer',
       accessMode: DpAccessMode.READ_WRITE,
       dataType: DpDataType.RAW,
-      description: '自定义协议',
+      description: 'Custom protocol',
     },
     ...COMMON_DPS,
   ],
 }
 
-// 2路水阀 DP Schema
+// 2-Channel Valve DP Schema
 const PRODUCT_2_CHANNEL: ProductDpSchema = {
   productId: '9zkur06p7ggbwvbl',
-  productName: 'HQ2026-2路433水阀',
+  productName: 'HQ2026-2 Channel 433 Valve',
   channelCount: 2,
   dps: [...createChannelDps(1), ...createChannelDps(2), createTimerDp(1), createTimerDp(2), ...COMMON_DPS],
 }
 
-// 3路水阀 DP Schema
+// 3-Channel Valve DP Schema
 const PRODUCT_3_CHANNEL: ProductDpSchema = {
   productId: 'fdekfvdlkmqyslqr',
-  productName: 'HQ2026-3路433水阀',
+  productName: 'HQ2026-3 Channel 433 Valve',
   channelCount: 3,
   dps: [
     ...createChannelDps(1),
@@ -213,10 +213,10 @@ const PRODUCT_3_CHANNEL: ProductDpSchema = {
   ],
 }
 
-// 4路水阀 DP Schema
+// 4-Channel Valve DP Schema
 const PRODUCT_4_CHANNEL: ProductDpSchema = {
   productId: 'ui9sxthml2sayg6a',
-  productName: 'HQ2026-4路433水阀',
+  productName: 'HQ2026-4 Channel 433 Valve',
   channelCount: 4,
   dps: [
     ...createChannelDps(1),

@@ -30,9 +30,9 @@ export class PskController {
   @Post('generate')
   @ApiBody({ type: GeneratePskDto })
   @PskApiResponseStandard({
-    summary: '生成设备 PSK',
-    responseDescription: '返回 PSK 与密钥',
-    msg: 'key生成成功!云端已保存该条记录!',
+    summary: 'Generate device PSK',
+    responseDescription: 'Returns PSK and key',
+    msg: 'Key generated successfully! Record saved in cloud!',
     responseType: GeneratePskResponseDto,
   })
   async generatePsk(@Body() body: { mac: string }) {
@@ -42,9 +42,9 @@ export class PskController {
   @Post('confirm')
   @ApiBody({ type: ConfirmPskDto })
   @PskApiResponseStandard({
-    summary: '确认mac地址烧录成功!',
-    responseDescription: '返回确认结果',
-    msg: 'Psk烧录成功!云端已将该网关激活',
+    summary: 'Confirm MAC address burned successfully',
+    responseDescription: 'Returns confirmation result',
+    msg: 'PSK burned successfully! Gateway activated in cloud',
     responseType: ConfirmPskResponseDto,
   })
   async confirmPsk(@Body() body: { mac: string }) {

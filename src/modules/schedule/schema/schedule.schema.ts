@@ -8,7 +8,7 @@ export class Schedule {
   @Prop({ type: String, required: true, unique: true, trim: true })
   scheduleId: string
 
-  @Prop({ type: String, required: true, trim: true, default: '定时任务' })
+  @Prop({ type: String, required: true, trim: true, default: 'Scheduled Task' })
   name: string
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Outlet', required: true })
@@ -20,7 +20,7 @@ export class Schedule {
   @Prop({ type: String, enum: ['once', 'daily', 'weekly', 'custom'], default: 'daily' })
   schedule_type: string
 
-  @Prop({ type: Boolean, default: true, comment: '是否启用' })
+  @Prop({ type: Boolean, default: true, comment: 'Enabled status' })
   is_enabled: boolean
 
   @Prop({ type: String, required: true })
@@ -71,7 +71,7 @@ export class Schedule {
 
 export const ScheduleSchema = SchemaFactory.createForClass(Schedule)
 
-// 添加索引
+// Add indexes
 ScheduleSchema.index({ outletId: 1 })
 ScheduleSchema.index({ userId: 1 })
 ScheduleSchema.index({ scheduleId: 1 }, { unique: true })

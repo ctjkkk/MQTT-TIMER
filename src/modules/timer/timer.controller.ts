@@ -9,38 +9,38 @@ import { CheckOwnership } from '@/common/decorators/checkOwnership.decorator'
 export class TimerController {
   constructor(private readonly timerService: TimerService) {}
 
-  //用户在App删除指定子设备
+  // Delete specified sub-device
   @Delete('/:timerId')
   @CheckOwnership('timer', 'timerId')
   @ApiResponseStandard({
-    summary: '删除单个子设备',
-    responseDescription: '该子设备删除成功',
-    msg: '删除成功',
+    summary: 'Delete sub-device',
+    responseDescription: 'Sub-device deleted successfully',
+    msg: 'Deleted successfully',
   })
   deleteSubDevice(@Param('timerId') timerId: string) {
     return this.timerService.deleteSubDeviceById(timerId)
   }
 
-  //获取指定子设备信息(包含该子设备下所有通道详情信息)
+  // Get specified sub-device information (including all channel details)
   @Get('/:timerId')
   @CheckOwnership('timer', 'timerId')
   @ApiResponseStandard({
-    summary: '获取单个子设备详情',
-    responseDescription: '返回子设备详情信息',
-    msg: '查询成功',
+    summary: 'Get sub-device details',
+    responseDescription: 'Returns sub-device details',
+    msg: 'Success',
     responseType: SubDeviceInfoResponseDto,
   })
   getSubDeviceInfo(@Param('timerId') timerId: string) {
     return this.timerService.getSubDeviceInfoByTimerId(timerId)
   }
 
-  // 修改指定子设备名称
+  // Rename specified sub-device
   @Post('/:timerId/rename')
   @CheckOwnership('timer', 'timerId')
   @ApiResponseStandard({
-    summary: '子设备重命名',
-    responseDescription: '子设备重命名成功',
-    msg: '重命名成功',
+    summary: 'Rename sub-device',
+    responseDescription: 'Sub-device renamed successfully',
+    msg: 'Renamed successfully',
     responseType: SubDeviceListResponseDto,
   })
   renameSubDevice(@Param('timerId') timerId: string, @Body() dto: RenameSubDeviceDto) {
