@@ -3,7 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose'
 import { OwnershipGuard } from '@/common/guards/ownership.guard'
 import { Channel, ChannelSchema } from '@/modules/channel/schema/channel.schema'
 import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
-import { Gateway, GatewaySchema } from '@/modules/gateway/schema/HanqiGateway.schema'
+import { Gateway, GatewaySchema } from '@/modules/gateway/schema/gateway.schema'
 
 /**
  * 安全模块（非全局）

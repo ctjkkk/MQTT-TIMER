@@ -10,8 +10,8 @@ export class BindGatewayResponseDto {
   @ApiProperty({ description: '网关名称', example: '客厅网关' })
   name: string
 
-  @ApiProperty({ description: '是否在线', example: true })
-  isOnline: boolean
+  @ApiProperty({ description: '是否在线', example: 1 })
+  isOnline: number
 
   @ApiProperty({ description: '提示消息', example: '网关绑定成功' })
   message: string
@@ -47,8 +47,11 @@ export class GatewayStatusResponseDto {
   @ApiProperty({ description: '网关名称', example: '客厅网关', required: false })
   name?: string
 
-  @ApiProperty({ description: '是否在线', example: true })
-  isOnline: boolean
+  @ApiProperty({ description: '是否在线', example: 1 })
+  isOnline: number
+
+  @ApiProperty({ description: '是否绑定用户', example: 1 })
+  isBind: number
 
   @ApiProperty({ description: '最后在线时间', example: '2026-01-19T10:30:00.000Z', required: false })
   lastSeen?: Date

@@ -4,7 +4,7 @@ import { UserService } from './user.service'
 import { UserController } from './user.controller'
 import { UserCache, UserCacheSchema } from '@/core/sync/schema/user-cache.schema'
 import { WeatherCache, WeatherCacheSchema } from '@/core/sync/schema/weather-cache.schema'
-import { Gateway, GatewaySchema } from '@/modules/gateway/schema/HanqiGateway.schema'
+import { Gateway, GatewaySchema } from '@/modules/gateway/schema/gateway.schema'
 import { Timer, TimerSchema } from '@/modules/timer/schema/timer.schema'
 
 @Module({

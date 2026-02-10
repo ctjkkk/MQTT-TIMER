@@ -7,7 +7,7 @@ import { GatewayModule } from '../gateway/gateway.module'
 import { ChannelModule } from '../channel/channel.module'
 import { ProductModule } from '../product/product.module'
 import { Timer, TimerSchema } from './schema/timer.schema'
-import { Gateway, GatewaySchema } from '../gateway/schema/HanqiGateway.schema'
+import { Gateway, GatewaySchema } from '../gateway/schema/gateway.schema'
 import { Channel, ChannelSchema } from '../channel/schema/channel.schema'
 import { SecurityModule } from '@/common/security/security.module'
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { GatewayService } from '../gateway/gateway.service'
+import { IScheduleService } from './interface/schedule-service.interface'
 
 /**
  * Schedule模块的Service
@@ -10,7 +11,7 @@ import { GatewayService } from '../gateway/gateway.service'
  * 3. 管理任务的启用/禁用
  */
 @Injectable()
-export class ScheduleService {
+export class ScheduleService implements IScheduleService {
   constructor(private readonly gatewayService: GatewayService) {}
 
   /**

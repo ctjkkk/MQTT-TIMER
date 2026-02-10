@@ -1,19 +1,20 @@
+import type { MqttUnifiedMessage } from '@/shared/constants/topic.constants'
+import type { IGatewayServiceInterface } from './interfaces/gateway-service.interface'
+import type { GatewayStatusData } from './types/gateway.type'
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
 import { InjectModel, InjectConnection } from '@nestjs/mongoose'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Model, Connection } from 'mongoose'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
-import type { MqttUnifiedMessage } from '@/shared/constants/topic.constants'
 import { OperateAction } from '@/shared/constants/topic.constants'
 import { AppEvents } from '@/shared/constants/events.constants'
-import { Gateway, GatewayDocument } from './schema/HanqiGateway.schema'
+import { Gateway, GatewayDocument } from './schema/gateway.schema'
 import { Timer, TimerDocument } from '@/modules/timer/schema/timer.schema'
-import type { GatewayStatusData } from './types/gateway.type'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
-import type { IGatewayServiceInterface } from './interfaces/gateway-service.interface'
 import { SubDeviceListResponseDto } from '../timer/dto/timer.response.dto'
 import { Channel, ChannelDocument } from '../channel/schema/channel.schema'
+import { BindGatewayResponseDto, GatewayStatusResponseDto } from './dto/http-response.dto'
 @Injectable()
 export class GatewayService implements IGatewayServiceInterface {
   constructor(
@@ -102,7 +103,6 @@ export class GatewayService implements IGatewayServiceInterface {
       [OperateAction.GATEWAY_REGISTER, () => this.handleGatewayRegister(gatewayId, data)],
       [OperateAction.GATEWAY_REBOOT, () => this.handleGatewayReboot(gatewayId, data)],
     ])
-
     const handler = actionHandlers.get(action)
     if (!handler) {
       this.logger.warn(LogMessages.GATEWAY.UNHANDLED_OPERATION(action), LogContext.GATEWAY_SERVICE)
@@ -177,7 +177,6 @@ export class GatewayService implements IGatewayServiceInterface {
         },
       },
     )
-
     if (result.modifiedCount > 0) {
       this.logger.info(`网关 ${gatewayId} 状态已更新为离线`, LogContext.GATEWAY_SERVICE)
     } else {
@@ -196,7 +195,7 @@ export class GatewayService implements IGatewayServiceInterface {
    * 2. 防止用户绑定虚假或不存在的网关ID
    * 3. 确保网关在线才能绑定
    */
-  async bindGatewayToUser(userId: string, gatewayId: string, gatewayName?: string) {
+  async bindGatewayToUser(userId: string, gatewayId: string, gatewayName?: string): Promise<BindGatewayResponseDto> {
     // 检查用户是否已经绑定了其他网关（一个用户只能绑定一个网关）
     const existingGateway = await this.gatewayModel.findOne({ userId })
     if (existingGateway && existingGateway.gatewayId !== gatewayId) {
@@ -236,7 +235,7 @@ export class GatewayService implements IGatewayServiceInterface {
       return {
         gatewayId,
         name: gatewayName ?? gateway.name,
-        isOnline: true,
+        isOnline: 1,
         message: 'Gateway information has been updated.',
       }
     }
@@ -269,7 +268,7 @@ export class GatewayService implements IGatewayServiceInterface {
     return {
       gatewayId,
       name: gatewayName,
-      isOnline: true,
+      isOnline: 1,
       message: 'Gateway binding successful',
     }
   }
@@ -277,14 +276,14 @@ export class GatewayService implements IGatewayServiceInterface {
   /**
    * 获取网关状态（用于验证配网是否成功）
    */
-  async getGatewayStatus(gatewayId: string) {
+  async getGatewayStatus(gatewayId: string): Promise<GatewayStatusResponseDto> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
     if (!gateway) throw new NotFoundException('The gateway does not exist.')
     return {
       gatewayId: gateway.gatewayId,
       name: gateway.name,
-      isOnline: gateway.is_connected === 1,
-      isBind: gateway.userId !== null && gateway.userId !== undefined,
+      isOnline: gateway.is_connected === 1 ? 1 : 0,
+      isBind: gateway.userId !== null && gateway.userId !== undefined ? 1 : 0,
       lastSeen: gateway.last_seen,
       wifiRssi: gateway.wifi_rssi,
       firmwareVersion: gateway.firmware_version,
@@ -296,13 +295,13 @@ export class GatewayService implements IGatewayServiceInterface {
    * 返回 true 表示配网成功，网关已连接
    * 真正在线: 连接标志为在线 && 最近1分钟内有心跳
    */
-  async verifyGatewayOnline(gatewayId: string): Promise<boolean> {
+  async verifyGatewayOnline(gatewayId: string): Promise<number> {
     const gateway = await this.gatewayModel.findOne({ gatewayId })
-    if (!gateway) return false
+    if (!gateway) return 0
     // 检查是否在线且最后在线时间在 1 分钟内
     const isOnline = gateway.is_connected === 1
     const isRecent = gateway.last_seen && Date.now() - gateway.last_seen.getTime() < 60000
-    return isOnline && isRecent
+    return isOnline && isRecent ? 1 : 0
   }
 
   /**
@@ -321,9 +320,9 @@ export class GatewayService implements IGatewayServiceInterface {
     if (!gateway) {
       // 网关不存在
       return {
-        exists: false,
-        isOnline: false,
-        isBound: false,
+        exists: 0,
+        isOnline: 0,
+        isBound: 0,
         userId: null,
         name: null,
       }
@@ -332,10 +331,10 @@ export class GatewayService implements IGatewayServiceInterface {
     const isOnline = gateway.is_connected === 1
     const isRecent = gateway.last_seen && Date.now() - gateway.last_seen.getTime() < 60000
     // 检查是否已绑定用户
-    const isBound = gateway.userId !== null && gateway.userId !== undefined
+    const isBound = gateway.userId !== null && gateway.userId !== undefined ? 1 : 0
     return {
       exists: true,
-      isOnline: isOnline && isRecent,
+      isOnline: isOnline && isRecent ? 1 : 0,
       isBound: isBound,
       userId: isBound ? gateway.userId.toString() : null,
       name: gateway.name,
@@ -370,7 +369,7 @@ export class GatewayService implements IGatewayServiceInterface {
       //同步更新所有 Channel 的 userId，保持数据一致性
       const timers = await this.timerModel.find({ gatewayId }).session(session).lean()
       const timerIds = timers.map(t => t.timerId)
-      if (timerIds.length > 0) {
+      if (timerIds.length) {
         await this.channelModel.updateMany({ timerId: { $in: timerIds } }, { $set: { userId: null } }, { session })
       }
     })

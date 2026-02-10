@@ -44,33 +44,32 @@ export interface IGatewayServiceInterface {
   bindGatewayToUser(userId: string, gatewayId: string, gatewayName?: string): Promise<BindGatewayResponseDto>
 
   /**
-   * 获取网关状态
+   * 获取网关状态（权限已由 Guard 验证）
    * @param gatewayId 网关ID
    * @returns 网关状态信息
    */
-  getGatewayStatus(gatewayId: string, userId: string): Promise<GatewayStatusResponseDto>
+  getGatewayStatus(gatewayId: string): Promise<GatewayStatusResponseDto>
 
   /**
    * 验证网关是否在线
    * @param gatewayId 网关ID
    * @returns 在线状态
    */
-  verifyGatewayOnline(gatewayId: string): Promise<boolean>
+  verifyGatewayOnline(gatewayId: string): Promise<number>
 
   /**
-   * 解绑网关
-   * @param userId 用户ID
+   * 解绑网关（权限已由 Guard 验证）
    * @param gatewayId 网关ID
    * @returns 解绑结果
    */
-  unbindGateway(userId: string, gatewayId: string): Promise<{ message: string }>
+  unbindGateway(gatewayId: string): Promise<{ message: string }>
 
   // ============ 子设备管理 ============
 
   /**
-   * 获取网关下的所有子设备
+   * 获取网关下的所有子设备（权限已由 Guard 验证）
    * @param gatewayId 网关ID
    * @returns 子设备列表
    */
-  getSubDevices(gatewayId: string, userId: string): Promise<SubDeviceListResponseDto[]>
+  getSubDevices(gatewayId: string): Promise<SubDeviceListResponseDto[]>
 }

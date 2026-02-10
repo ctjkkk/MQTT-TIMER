@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PRODUCT_DP_SCHEMAS } from '@/modules/dp/constants/product.schemas'
 import { DpDefinition, ProductDpSchema } from '@/modules/dp/types/dp.types'
+import { IDpService } from './interface/dp-service.interface'
 
 /**
  * DP 配置服务
@@ -9,7 +10,7 @@ import { DpDefinition, ProductDpSchema } from '@/modules/dp/types/dp.types'
  * 2. 构建 MQTT 下发命令（自动验证）
  */
 @Injectable()
-export class DpService {
+export class DpService implements IDpService {
   /**
    * 获取产品的完整 DP Schema
    * @param productId - 产品ID（如：'rgnmfjlnx6hzagwe'）

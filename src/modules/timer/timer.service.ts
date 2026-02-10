@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { InjectModel, InjectConnection } from '@nestjs/mongoose'
 import { Model, Connection } from 'mongoose'
 import { ChannelService } from '../channel/channel.service'
@@ -6,14 +6,13 @@ import { ProductService } from '../product/product.service'
 import type { MqttUnifiedMessage, DpReportData } from '@/shared/constants/topic.constants'
 import { OperateAction } from '@/shared/constants/topic.constants'
 import { Timer, TimerDocument } from './schema/timer.schema'
-import { Gateway, GatewayDocument } from '@/modules/gateway/schema/HanqiGateway.schema'
+import { Gateway, GatewayDocument } from '@/modules/gateway/schema/gateway.schema'
 import { Channel, ChannelDocument } from '@/modules/channel/schema/channel.schema'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
-import { EventEmitter2 } from '@nestjs/event-emitter'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
 import { SubDeviceInfoResponseDto, SubDeviceListResponseDto } from './dto/timer.response.dto'
-import { AppEvents } from '@/shared/constants/events.constants'
+import { ITimerService } from './interface/timer-service.interface'
 /**
  * Timer设备模块的Service
  * 职责：
@@ -21,7 +20,7 @@ import { AppEvents } from '@/shared/constants/events.constants'
  * 2. 解析DP点数据并更新数据库
  */
 @Injectable()
-export class TimerService {
+export class TimerService implements ITimerService {
   constructor(
     @InjectModel(Timer.name) private readonly timerModel: Model<TimerDocument>,
     @InjectModel(Gateway.name) private readonly gatewayModel: Model<GatewayDocument>,
@@ -31,7 +30,6 @@ export class TimerService {
     private readonly channelService: ChannelService,
     private readonly productService: ProductService,
     private readonly loggerService: LoggerService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly logger: LoggerService,
   ) {}
 

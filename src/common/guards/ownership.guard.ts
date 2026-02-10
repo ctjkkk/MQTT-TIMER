@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { Channel } from '@/modules/channel/schema/channel.schema'
 import { Timer } from '@/modules/timer/schema/timer.schema'
-import { Gateway } from '@/modules/gateway/schema/HanqiGateway.schema'
+import { Gateway } from '@/modules/gateway/schema/gateway.schema'
 import { AuthenticatedRequest } from '@/common/types/request.types'
 
 /**

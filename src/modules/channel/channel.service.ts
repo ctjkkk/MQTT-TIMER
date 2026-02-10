@@ -4,6 +4,7 @@ import { Model } from 'mongoose'
 import { Channel, ChannelDocument } from './schema/channel.schema'
 import { LoggerService } from '@/core/logger/logger.service'
 import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
+import { IChannelService } from './interface/channel-service.interface'
 
 /**
  * Channel模块的Service
@@ -14,7 +15,7 @@ import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
  * 3. 通道不能单独删除，只能随Timer一起删除
  */
 @Injectable()
-export class ChannelService {
+export class ChannelService implements IChannelService {
   constructor(
     @InjectModel(Channel.name) private readonly channelModel: Model<ChannelDocument>,
     private readonly logger: LoggerService,

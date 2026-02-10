@@ -6,7 +6,7 @@ import { LoggerService } from '@/core/logger/logger.service'
 import { LogContext, LogMessages } from '@/shared/constants/logger.constants'
 import { ProductHttpResponse, SingleProductHttpResponse } from './dto/product.response'
 import { CreateProductDto } from './dto/create-product.dto'
-import { IProductService } from './interfaces/product.service.interface'
+import { IProductService } from './interfaces/product-service.interface'
 
 /**
  * 产品配置服务

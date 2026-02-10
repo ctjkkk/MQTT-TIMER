@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common'
 import { UserCache, UserCacheDocument } from '@/core/sync/schema/user-cache.schema'
 import { WeatherCache, WeatherCacheDocument } from '@/core/sync/schema/weather-cache.schema'
-import { Gateway, GatewayDocument } from '@/modules/gateway/schema/HanqiGateway.schema'
+import { Gateway, GatewayDocument } from '@/modules/gateway/schema/gateway.schema'
 import { Timer, TimerDocument } from '@/modules/timer/schema/timer.schema'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { WeekWeatherResponseDto, WeatherDataResponseDto } from './dto'
+import { IUserService } from './interface/user-service.interface'
 import dayjs from 'dayjs'
 
 @Injectable()
-export class UserService {
+export class UserService implements IUserService {
   constructor(
     @InjectModel(UserCache.name) private userModel: Model<UserCacheDocument>,
     @InjectModel(WeatherCache.name) private weatherModel: Model<WeatherCacheDocument>,
