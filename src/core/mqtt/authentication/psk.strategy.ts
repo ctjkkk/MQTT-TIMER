@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
+import { OnEvent } from '@nestjs/event-emitter'
 import { IAuthStrategy } from '../types/mqtt.type'
 import { PskService } from '@/auth/psk/psk.service'
 import { LoggerService } from '@/core/logger/logger.service'
@@ -22,19 +23,20 @@ import type { PskMeta } from '@/auth/psk/types/psk'
 export class PskAuthStrategy implements IAuthStrategy, OnModuleInit {
   // 内存缓存（用于 TLS pskCallback 同步查询）
   private localCache = new Map<string, PskMeta>()
+  private readonly sysLogger = new Logger(PskAuthStrategy.name)
 
   constructor(
     private psk: PskService,
     private redis: RedisService,
-    private logger: LoggerService, // 业务日志（认证失败等）
+    private logger: LoggerService,
   ) {}
 
   async onModuleInit() {
-    await this.loadFromRedis() // 标记为初始加载
+    await this.loadFromRedis() // 启动时全量加载
   }
 
   /**
-   * 从 Redis 加载到内存缓存
+   * 从 Redis 全量加载到内存缓存（启动时调用）
    */
   private async loadFromRedis() {
     try {
@@ -47,9 +49,31 @@ export class PskAuthStrategy implements IAuthStrategy, OnModuleInit {
           this.localCache.set(identity, meta)
         }
       }
+      this.sysLogger.log(`PSK loaded to memory cache: ${this.localCache.size} record(s)`, LogContext.MQTT_AUTH)
     } catch (error) {
-      // 错误日志仍使用业务日志（需要持久化追踪）
-      this.logger.error(LogMessages.PSK.LOAD_FROM_REDIS_FAILED(error.message), error.stack, LogContext.MQTT_AUTH)
+      this.sysLogger.log(LogMessages.PSK.LOAD_FROM_REDIS_FAILED(error.message), error.stack, LogContext.MQTT_AUTH)
+    }
+  }
+
+  /**
+   * 监听 PSK 更新事件，从 Redis 重新加载到内存（保证数据一致性）
+   */
+  @OnEvent('psk.updated')
+  async handlePskUpdated(payload: { identity: string }) {
+    const { identity } = payload
+    try {
+      // 从 Redis 重新加载（保证一致性）
+      const meta = await this.redis.get<PskMeta>(`${this.psk.REDIS_PREFIX}${identity}`)
+      if (meta) {
+        this.localCache.set(identity, meta)
+        this.sysLogger.log(`PSK cache updated from Redis: ${identity}, status: ${meta.status}`)
+      } else {
+        // Redis 中不存在，从内存删除
+        this.localCache.delete(identity)
+        this.sysLogger.log(`PSK cache removed: ${identity}`)
+      }
+    } catch (error) {
+      this.sysLogger.log(`Failed to update PSK cache: ${identity}, ${error.message}`)
     }
   }
 

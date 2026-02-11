@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import { randomBytes } from 'crypto'
@@ -36,6 +37,7 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
     @InjectModel(Psk.name) private readonly hanqiPskModel: Model<PskDocument>,
     private readonly redis: RedisService,
     private readonly loggerService: LoggerService, // 业务日志（生成、确认等）
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async onModuleInit() {
@@ -102,6 +104,8 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
     const meta: PskMeta = { key, status: 0 }
     // 同步到 Redis
     await this.redis.set(`${this.REDIS_PREFIX}${identity}`, meta, 0)
+    // 发出事件通知内存缓存更新
+    this.eventEmitter.emit('psk.updated', { identity })
     this.loggerService.info(LogMessages.PSK.GENERATED(identity, key), LogContext.PSK)
     return { identity, key }
   }
@@ -124,7 +128,8 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
     const meta: PskMeta = { key: psk.key, status: 1 }
     // 同步到 Redis
     await this.redis.set(`${this.REDIS_PREFIX}${psk.identity}`, meta, 0)
-
+    // 发出事件通知内存缓存更新
+    this.eventEmitter.emit('psk.updated', { identity: psk.identity })
     this.loggerService.info(LogMessages.PSK.CONFIRMED(psk.identity), LogContext.PSK)
     return { tip: 'PSK烧录确认成功' }
   }
