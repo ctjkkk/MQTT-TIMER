@@ -14,7 +14,7 @@ export class ProductController {
   @ApiResponseStandard({
     summary: 'Get product configuration list',
     responseDescription: 'Returns available product types',
-    msg: 'Success',
+    message: 'Success',
     responseType: [ProductHttpResponse],
   })
   getAllOfProductList() {
@@ -25,7 +25,7 @@ export class ProductController {
   @ApiResponseStandard({
     summary: 'Get product configuration by PID',
     responseDescription: 'Returns product configuration by PID',
-    msg: 'Success',
+    message: 'Success',
     responseType: SingleProductHttpResponse,
   })
   getProduct(@Param('productId') productId: string) {
@@ -36,7 +36,7 @@ export class ProductController {
   @ApiResponseStandard({
     summary: 'Create product configuration',
     responseDescription: 'Creates product configuration',
-    msg: 'Created successfully',
+    message: 'Created successfully',
     responseType: SingleProductHttpResponse,
   })
   createSingleProduct(@Body() dto: CreateProductDto) {
@@ -47,7 +47,7 @@ export class ProductController {
   @ApiResponseStandard({
     summary: 'Disable product configuration',
     responseDescription: 'Disables product configuration',
-    msg: 'Disabled successfully',
+    message: 'Disabled successfully',
   })
   async forbiddenProduct(@Param('productId') productId: string) {
     return await this.productService.forbiddenProductById(productId)

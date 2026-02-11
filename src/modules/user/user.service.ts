@@ -40,7 +40,7 @@ export class UserService implements IUserService {
       .exec()
 
     // 转换为响应DTO
-    const data: WeatherDataResponseDto[] = weatherData.map((weather: any) => ({
+    const list: WeatherDataResponseDto[] = weatherData.map((weather: any) => ({
       _id: weather._id.toString(),
       userId: weather.userId.toString(),
       date: weather.date,
@@ -66,8 +66,8 @@ export class UserService implements IUserService {
 
     return {
       userId,
-      data,
-      total: data.length,
+      list,
+      total: list.length,
     }
   }
 

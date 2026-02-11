@@ -13,7 +13,7 @@ export class UserController {
   @ApiResponseStandard({
     summary: 'Get user weekly weather information',
     responseDescription: 'Returns user weekly weather information',
-    msg: 'Success',
+    message: 'Success',
     responseType: WeekWeatherResponseDto,
   })
   getWeekWeather(@CurrentUserId() userId: string) {
@@ -25,7 +25,7 @@ export class UserController {
   @ApiResponseStandard({
     summary: 'Get all user sub-devices',
     responseDescription: 'Returns user sub-device list',
-    msg: 'Success',
+    message: 'Success',
   })
   getSubDeviceListByUserId(@CurrentUserId() userId: string) {
     return this.userService.getSubDeviceListByUserId(userId)

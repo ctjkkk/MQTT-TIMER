@@ -15,7 +15,7 @@ export class ChannelController {
   @ApiResponseStandard({
     summary: 'Get channel list by timer ID',
     responseDescription: 'Returns list of channels for the timer',
-    msg: 'Success',
+    message: 'Success',
   })
   async getChannelsByTimerId(@Param('timerId') timerId: string) {
     return await this.channelService.findChannelsByTimerId(timerId)
@@ -26,7 +26,7 @@ export class ChannelController {
   @ApiResponseStandard({
     summary: 'Get channel details',
     responseDescription: 'Returns channel details',
-    msg: 'Success',
+    message: 'Success',
   })
   async getChannelById(@Param('channelId') channelId: string) {
     return await this.channelService.findChannelById(channelId)
@@ -37,7 +37,7 @@ export class ChannelController {
   @ApiResponseStandard({
     summary: 'Update zone name',
     responseDescription: 'Returns updated channel information',
-    msg: 'Updated successfully',
+    message: 'Updated successfully',
   })
   async updateZoneName(@Param('channelId') channelId: string, @Body() dto: UpdateZoneNameDto) {
     return await this.channelService.updateZoneName(channelId, dto.zoneName)
@@ -48,7 +48,7 @@ export class ChannelController {
   @ApiResponseStandard({
     summary: 'Update weather skip setting',
     responseDescription: 'Returns updated channel information',
-    msg: 'Updated successfully',
+    message: 'Updated successfully',
   })
   async updateWeatherSkip(@Param('channelId') channelId: string, @Body() dto: UpdateWeatherSkipDto) {
     return this.channelService.updateWeatherSkip(channelId, dto.enabled)
@@ -59,7 +59,7 @@ export class ChannelController {
   @ApiResponseStandard({
     summary: 'Update zone image',
     responseDescription: 'Returns updated channel information',
-    msg: 'Updated successfully',
+    message: 'Updated successfully',
   })
   async updateZoneImage(@Param('channelId') channelId: string, @Body() dto: UpdateZoneImageDto) {
     return this.channelService.updateZoneImage(channelId, dto.zoneImage)

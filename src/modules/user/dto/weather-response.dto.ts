@@ -616,7 +616,7 @@ export class WeekWeatherResponseDto {
       },
     ],
   })
-  data: WeatherDataResponseDto[]
+  list: WeatherDataResponseDto[]
 
   @ApiProperty({ description: '数据总数', example: 7 })
   total: number

@@ -32,7 +32,7 @@ export class PskController {
   @PskApiResponseStandard({
     summary: 'Generate device PSK',
     responseDescription: 'Returns PSK and key',
-    msg: 'Key generated successfully! Record saved in cloud!',
+    message: 'Key generated successfully! Record saved in cloud!',
     responseType: GeneratePskResponseDto,
   })
   async generatePsk(@Body() body: { mac: string }) {
@@ -44,7 +44,7 @@ export class PskController {
   @PskApiResponseStandard({
     summary: 'Confirm MAC address burned successfully',
     responseDescription: 'Returns confirmation result',
-    msg: 'PSK burned successfully! Gateway activated in cloud',
+    message: 'PSK burned successfully! Gateway activated in cloud',
     responseType: ConfirmPskResponseDto,
   })
   async confirmPsk(@Body() body: { mac: string }) {

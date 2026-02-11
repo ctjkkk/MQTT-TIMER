@@ -50,7 +50,7 @@ export class GatewayController {
   @ApiResponseStandard({
     summary: 'Bind gateway to user account',
     responseDescription: 'Gateway bound successfully',
-    msg: 'Bound successfully',
+    message: 'Bound successfully',
     responseType: BindGatewayResponseDto,
   })
   async bindGateway(@CurrentUserId() userId: string, @Body() dto: BindGatewayDto) {
@@ -71,7 +71,7 @@ export class GatewayController {
   @ApiResponseStandard({
     summary: 'Verify pairing status',
     responseDescription: 'Returns gateway online and binding status',
-    msg: 'Verified successfully',
+    message: 'Verified successfully',
     responseType: VerifyPairingResponseDto,
   })
   async verifyGateway(@Param('gatewayId') gatewayId: string) {
@@ -86,7 +86,7 @@ export class GatewayController {
   @ApiResponseStandard({
     summary: 'Get gateway information',
     responseDescription: 'Returns gateway detailed information',
-    msg: 'Success',
+    message: 'Success',
     responseType: GatewayStatusResponseDto,
   })
   async getGatewayStatus(@Param('gatewayId') gatewayId: string) {
@@ -101,7 +101,7 @@ export class GatewayController {
   @ApiResponseStandard({
     summary: 'Unbind gateway',
     responseDescription: 'Gateway unbound successfully',
-    msg: 'Unbound successfully',
+    message: 'Unbound successfully',
     responseType: UnbindGatewayResponseDto,
   })
   async unbindGateway(@Param('gatewayId') gatewayId: string) {
@@ -117,7 +117,7 @@ export class GatewayController {
   @ApiResponseStandard({
     summary: 'Start sub-device pairing',
     responseDescription: 'Gateway enters pairing mode',
-    msg: 'Gateway has entered sub-device pairing mode, waiting for sub-device connection',
+    message: 'Gateway has entered sub-device pairing mode, waiting for sub-device connection',
   })
   async startSubDevicePairing(@Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.startSubDevicePairing(gatewayId)
@@ -132,7 +132,7 @@ export class GatewayController {
   @ApiResponseStandard({
     summary: 'Stop sub-device pairing',
     responseDescription: 'Gateway exits pairing mode',
-    msg: 'Gateway has exited sub-device pairing mode',
+    message: 'Gateway has exited sub-device pairing mode',
   })
   async stopSubDevicePairing(@Param('gatewayId') gatewayId: string) {
     return await this.gatewayService.stopSubDevicePairing(gatewayId)
@@ -145,7 +145,7 @@ export class GatewayController {
   @ApiResponseStandard({
     summary: 'Get sub-device list',
     responseDescription: 'Returns sub-device list',
-    msg: 'Success',
+    message: 'Success',
     responseType: [SubDeviceListResponseDto],
   })
   async getSubDevices(@Param('gatewayId') gatewayId: string) {

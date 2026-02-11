@@ -11,9 +11,9 @@ interface ApiResponseStandardOptions {
   /** Response description */
   responseDescription: string
   /** Success message */
-  msg?: string
-  /** HTTP status code */
-  code?: number
+  message?: string
+  /** HTTP status code (for Swagger documentation only) */
+  statusCode?: number
   /** Response data type (DTO class) */
   responseType?: Type<any> | [Type<any>]
 }
@@ -24,21 +24,21 @@ interface PskApiResponseStandardOptions {
   /** Response description */
   responseDescription: string
   /** Success message */
-  msg?: string
-  /** HTTP status code */
-  code?: number
+  message?: string
+  /** HTTP status code (for Swagger documentation only) */
+  statusCode?: number
   /** Response data type (DTO class) */
   responseType?: Type<any> | [Type<any>]
 }
 
 // Common decorator factory for gateway and other modules requiring API key in request header
 export const ApiResponseStandard = (options: ApiResponseStandardOptions) => {
-  const { summary, responseDescription, msg = 'Success', code = 200, responseType } = options
+  const { summary, responseDescription, message = 'Success', statusCode = 200, responseType } = options
 
   const decorators = [
     ApiOperation({ summary }),
     ApiResponse({
-      status: code,
+      status: statusCode,
       description: responseDescription,
       ...(responseType && { type: responseType }),
     }),
@@ -49,7 +49,7 @@ export const ApiResponseStandard = (options: ApiResponseStandardOptions) => {
     }),
     UseGuards(JwtAuthGuard),
     UseFilters(HttpExceptionsFilter),
-    UseInterceptors(Transform(code, msg)),
+    UseInterceptors(Transform(message)),
   ]
 
   return applyDecorators(...decorators)
@@ -57,12 +57,12 @@ export const ApiResponseStandard = (options: ApiResponseStandardOptions) => {
 
 // Common decorator factory for PSK module requiring signature and timestamp in request header
 export const PskApiResponseStandard = (options: PskApiResponseStandardOptions) => {
-  const { summary, responseDescription, msg = 'Success', code = 200, responseType } = options
+  const { summary, responseDescription, message = 'Success', statusCode = 200, responseType } = options
 
   return applyDecorators(
     ApiOperation({ summary }),
     ApiResponse({
-      status: code,
+      status: statusCode,
       description: responseDescription,
       ...(responseType && { type: responseType }),
     }),
@@ -74,6 +74,6 @@ export const PskApiResponseStandard = (options: PskApiResponseStandardOptions) =
     }),
     UseGuards(SignatureGuard),
     UseFilters(HttpExceptionsFilter),
-    UseInterceptors(Transform(code, msg)),
+    UseInterceptors(Transform(message)),
   )
 }

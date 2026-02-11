@@ -15,7 +15,7 @@ export class TimerController {
   @ApiResponseStandard({
     summary: 'Delete sub-device',
     responseDescription: 'Sub-device deleted successfully',
-    msg: 'Deleted successfully',
+    message: 'Deleted successfully',
   })
   deleteSubDevice(@Param('timerId') timerId: string) {
     return this.timerService.deleteSubDeviceById(timerId)
@@ -27,7 +27,7 @@ export class TimerController {
   @ApiResponseStandard({
     summary: 'Get sub-device details',
     responseDescription: 'Returns sub-device details',
-    msg: 'Success',
+    message: 'Success',
     responseType: SubDeviceInfoResponseDto,
   })
   getSubDeviceInfo(@Param('timerId') timerId: string) {
@@ -40,7 +40,7 @@ export class TimerController {
   @ApiResponseStandard({
     summary: 'Rename sub-device',
     responseDescription: 'Sub-device renamed successfully',
-    msg: 'Renamed successfully',
+    message: 'Renamed successfully',
     responseType: SubDeviceListResponseDto,
   })
   renameSubDevice(@Param('timerId') timerId: string, @Body() dto: RenameSubDeviceDto) {
