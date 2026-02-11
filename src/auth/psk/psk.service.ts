@@ -43,6 +43,8 @@ export class PskService implements OnModuleInit, IPskServiceInterface {
   async onModuleInit() {
     // Redis 已由 DatabaseModule 确保连接就绪
     await this.syncFromDatabase()
+    // 同步完成后通知 PskAuthStrategy 重新加载
+    this.eventEmitter.emit('psk.sync.completed')
   }
 
   /**

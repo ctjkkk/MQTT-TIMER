@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { IAuthStrategy } from '../types/mqtt.type'
 import { PskService } from '@/auth/psk/psk.service'
@@ -20,7 +20,7 @@ import type { PskMeta } from '@/auth/psk/types/psk'
  * - 定期同步：每 5 分钟从 Redis 同步（与 PskService 同步频率一致）
  */
 @Injectable()
-export class PskAuthStrategy implements IAuthStrategy, OnModuleInit {
+export class PskAuthStrategy implements IAuthStrategy {
   // 内存缓存（用于 TLS pskCallback 同步查询）
   private localCache = new Map<string, PskMeta>()
   private readonly sysLogger = new Logger(PskAuthStrategy.name)
@@ -31,14 +31,12 @@ export class PskAuthStrategy implements IAuthStrategy, OnModuleInit {
     private logger: LoggerService,
   ) {}
 
-  async onModuleInit() {
-    await this.loadFromRedis() // 启动时全量加载
-  }
-
   /**
    * 从 Redis 全量加载到内存缓存（启动时调用）
+   * 监听 PSK 同步完成事件，重新全量加载（解决初始化顺序问题）
    */
-  private async loadFromRedis() {
+  @OnEvent('psk.sync.completed')
+  async loadFromRedis() {
     try {
       const keys = await this.redis.getClient().keys(`${this.psk.REDIS_PREFIX}*`)
       this.localCache.clear()
