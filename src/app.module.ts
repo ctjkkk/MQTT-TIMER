@@ -1,5 +1,5 @@
 import { OtaModule } from './modules/OTA/ota.module'
-import { OTAController } from './modules/OTA/ota.controller'
+import { OtaController } from './modules/OTA/ota.controller'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { EventEmitterModule } from '@nestjs/event-emitter'
@@ -67,7 +67,7 @@ import { DpModule } from './modules/dp/dp.module'
     ProductModule,
     OtaModule,
   ],
-  controllers: [OTAController, AppController],
+  controllers: [OtaController, AppController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {

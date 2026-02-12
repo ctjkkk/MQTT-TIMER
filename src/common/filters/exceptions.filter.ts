@@ -3,10 +3,9 @@ import { Request, Response } from 'express'
 import { Error as MongooseError } from 'mongoose'
 
 export interface UnifiedResponse<T = any> {
-  code: number // 业务码，非 HTTP 状态
-  message: string
-  data: T
-  error: string
+  status: boolean // 请求是否成功
+  message: string // 消息
+  data: T // 数据
 }
 
 /**
@@ -16,6 +15,8 @@ export interface UnifiedResponse<T = any> {
  * - HttpException（NestJS 异常）
  * - Mongoose CastError（MongoDB ObjectId 格式错误）
  * - 其他未知异常
+ *
+ * 返回统一格式：{ status: false, message: "错误信息", data: null }
  */
 @Catch()
 export class HttpExceptionsFilter implements ExceptionFilter {
@@ -24,8 +25,7 @@ export class HttpExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>()
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR
-    let message = '服务器出错'
-    let error = ''
+    let message = 'Server error'
 
     // 处理 HttpException（NestJS 标准异常）
     if (exception instanceof HttpException) {
@@ -35,8 +35,7 @@ export class HttpExceptionsFilter implements ExceptionFilter {
         message = body
       } else if (typeof body === 'object' && body !== null) {
         const b = body as any
-        message = Array.isArray(b.message) ? b.message.join(', ') : b.message || '请求失败'
-        error = b.error || ''
+        message = Array.isArray(b.message) ? b.message.join(', ') : b.message || 'Request failed'
       }
     }
     // 2. 处理 Mongoose CastError（类型转换错误）
@@ -59,19 +58,16 @@ export class HttpExceptionsFilter implements ExceptionFilter {
         // 其他类型转换错误（如数字、日期等）
         message = `Invalid ${fieldName}: expected ${exception.kind}, received '${exception.value}'`
       }
-      error = 'Bad Request'
     }
     // 3. 处理其他未知异常
     else if (exception instanceof Error) {
-      message = exception.message || '服务器内部错误'
-      error = 'Internal Server Error'
+      message = exception.message || 'Internal server error'
     }
 
     const unified: UnifiedResponse = {
-      code: status,
+      status: false, // 所有异常都返回 false
       message,
       data: null,
-      error,
     }
     response.status(status).json(unified)
   }

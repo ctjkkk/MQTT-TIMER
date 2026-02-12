@@ -10,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
   const logger = new Logger('Bootstrap')
   app.setGlobalPrefix('/api', {
-    exclude: ['logs', 'logs/*path', 'doc.html', 'api-json'],
+    exclude: ['logs', 'logs/*path', 'doc.html', 'api-json', 'ota/firmware/download/:filename'],
   })
   app.enableCors() // 启用跨域
   buildSwagger(app)

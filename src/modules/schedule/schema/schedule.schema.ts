@@ -11,8 +11,8 @@ export class Schedule {
   @Prop({ type: String, required: true, trim: true, default: 'Scheduled Task' })
   name: string
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Outlet', required: true })
-  outletId: MongooseSchema.Types.ObjectId
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Channel', required: true })
+  channelId: MongooseSchema.Types.ObjectId
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   userId: MongooseSchema.Types.ObjectId
@@ -72,11 +72,11 @@ export class Schedule {
 export const ScheduleSchema = SchemaFactory.createForClass(Schedule)
 
 // Add indexes
-ScheduleSchema.index({ outletId: 1 })
+ScheduleSchema.index({ channelId: 1 })
 ScheduleSchema.index({ userId: 1 })
 ScheduleSchema.index({ scheduleId: 1 }, { unique: true })
 ScheduleSchema.index({ is_enabled: 1 })
 ScheduleSchema.index({ status: 1 })
 ScheduleSchema.index({ next_run_time: 1 })
 ScheduleSchema.index({ start_time: 1 })
-ScheduleSchema.index({ outletId: 1, start_time: 1 })
+ScheduleSchema.index({ channelId: 1, start_time: 1 })

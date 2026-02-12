@@ -7,7 +7,7 @@ export type ChannelDocument = HydratedDocument<Channel>
  * Channel（出水口/阀门）数据模型
  *
  * 设计说明：
- * - 每个 Timer 设备有 1-4 个 Channel（根据 outlet_count）
+ * - 每个 Timer 设备有 1-4 个 Channel（根据 channel_number)
  * - Channel 是虚拟概念，数据来源于 Timer 的 DP 点
  * - 例如：DP1=开关1, DP17=时长1, DP105=倒计时1, DP119=状态1
  */
@@ -17,8 +17,8 @@ export class Channel {
   @Prop({ type: String, required: true, trim: true })
   channelId: string // 虚拟ID，实际存储在 _id 字段，返回给前端时重命名为 channelId
 
-  @Prop({ type: String, required: true, trim: true })
-  timerId: string
+  @Prop({ type: String, ref: 'Timer', required: true, trim: true })
+  timerId: string // 关联 Timer.timerId（业务ID），可以使用 populate 查询
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
   userId: MongooseSchema.Types.ObjectId

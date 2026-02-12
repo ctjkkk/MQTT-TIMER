@@ -137,4 +137,28 @@ export class CommandSenderService {
     })
     this.logger.info(LogMessages.GATEWAY.DP_COMMAND_SENT(gatewayId, subDeviceId), LogContext.GATEWAY_SERVICE)
   }
+
+  /**
+   * 发送固件升级命令给网关
+   * @param gatewayId 网关ID
+   * @param upgradeInfo 升级信息
+   */
+  sendUpgradeCommand(
+    gatewayId: string,
+    upgradeInfo: {
+      version: string
+      downloadUrl: string
+      sha256: string
+      fileSize: number
+    },
+  ) {
+    this.sendCommand(gatewayId, MqttMessageType.OPERATE_DEVICE, {
+      entityType: EntityType.GATEWAY,
+      action: OperateAction.GATEWAY_UPGRADE,
+      version: upgradeInfo.version,
+      downloadUrl: upgradeInfo.downloadUrl,
+      sha256: upgradeInfo.sha256,
+      fileSize: upgradeInfo.fileSize,
+    })
+  }
 }

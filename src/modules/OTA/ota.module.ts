@@ -3,6 +3,9 @@ import { MongooseModule } from '@nestjs/mongoose'
 import { OtaService } from './ota.service'
 import { Firmware, FirmwareSchema } from './schemas/firmware.schema'
 import { UpgradeTask, UpgradeTaskSchema } from './schemas/upgrade-task.schema'
+import { Gateway, GatewaySchema } from '@/modules/gateway/schema/gateway.schema'
+import { OtaController } from './ota.controller'
+import { MqttModule } from '@/core/mqtt/mqtt.module'
 
 @Module({
   imports: [
@@ -10,10 +13,13 @@ import { UpgradeTask, UpgradeTaskSchema } from './schemas/upgrade-task.schema'
     MongooseModule.forFeature([
       { name: Firmware.name, schema: FirmwareSchema },
       { name: UpgradeTask.name, schema: UpgradeTaskSchema },
+      { name: Gateway.name, schema: GatewaySchema },
     ]),
+    // 导入 MQTT 模块（用于发送升级命令）
+    MqttModule,
   ],
-  controllers: [],
+  controllers: [OtaController],
   providers: [OtaService],
-  exports: [OtaService], // 导出Service，让其他模块可以使用
+  exports: [OtaService],
 })
 export class OtaModule {}

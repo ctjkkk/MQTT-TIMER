@@ -1,35 +1,47 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common'
-import { Reflector } from '@nestjs/core'
 import { Request } from 'express'
+import { LogMessages, LogContext } from '@/shared/constants/logger.constants'
+import { LoggerService } from '@/core/logger/logger.service'
 
 /**
- * API Key 守卫
- * 用于保护查询类接口
+ * API Key认证守卫
+ * 用于工厂烧录PSK、OTA上传固件等场景，只需要提供简单的API Key即可
+ *
  * 客户端需要在请求头中提供：
- * - X-API-Key: your-api-key
+ * - X-API-Key: API密钥
+ *
+ * 使用方法：
+ * 1. 在环境变量中设置 FACTORY_API_KEY
+ * 2. 请求时在请求头添加：X-API-Key: {你的密钥}
  */
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  private readonly apiKey: string
+
+  constructor(private readonly logger: LoggerService) {
+    // 从环境变量获取API Key
+    this.apiKey = process.env.FACTORY_API_KEY
+  }
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // 检查是否标记为公开
-    const isPublic = this.reflector.get<boolean>('isPublic', context.getHandler())
-    if (isPublic) {
-      return true
-    }
-
     const request = context.switchToHttp().getRequest<Request>()
-    const apiKey = request.headers['x-api-key'] as string
-    if (!apiKey) {
-      throw new UnauthorizedException('缺少 API Key')
+
+    // 从请求头获取API Key
+    const apiKeyFromHeader = request.headers['x-api-key'] as string
+
+    // 检查是否提供了API Key
+    if (!apiKeyFromHeader) {
+      this.logger.warn(LogMessages.API_KEY.MISSING(), LogContext.API_KEY)
+      throw new UnauthorizedException('API Key is missing. Please add X-API-Key in the request header.')
     }
 
-    const validApiKeys = (process.env.VALID_API_KEYS || '').split(',')
-
-    if (!validApiKeys.includes(apiKey)) {
-      throw new UnauthorizedException('无效的 API Key')
+    // 验证API Key是否正确
+    if (apiKeyFromHeader !== this.apiKey) {
+      this.logger.warn(LogMessages.API_KEY.VERIFY_FAILED(apiKeyFromHeader), LogContext.API_KEY)
+      throw new UnauthorizedException('API Key error')
     }
 
+    this.logger.debug(LogMessages.API_KEY.VERIFY_SUCCESS(request.path), LogContext.API_KEY)
     return true
   }
 }
