@@ -161,6 +161,14 @@ export class MqttTopic {
   static allGatewayReport(): string {
     return 'hanqi/gateway/+/report'
   }
+
+  static allGatewayOtaReport(): string {
+    return 'hanqi/gateway/+/ota/report'
+  }
+
+  static gatewayOtaCommand(gatewayId: string) {
+    return `hanqi/gateway/${gatewayId}/ota/upgrade`
+  }
 }
 
 /**

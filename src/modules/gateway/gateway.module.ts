@@ -3,7 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose'
 import { GatewayController } from './gateway.controller'
 import { GatewayService } from './gateway.service'
 import { GatewayEventsHandler } from './gateway.events'
-import { GatewayMqttHandler } from './gateway.mqtt'
+import { GatewayMqttMonitor } from './gateway.mqtt'
 import { MqttModule } from '@/core/mqtt/mqtt.module'
 import { UserModule } from '@/modules/user/user.module'
 import { Gateway, GatewaySchema } from './schema/gateway.schema'
@@ -23,7 +23,7 @@ import { Channel, ChannelSchema } from '../channel/schema/channel.schema'
     SecurityModule, // 显式导入安全模块
   ],
   controllers: [GatewayController],
-  providers: [GatewayService, GatewayEventsHandler, GatewayMqttHandler],
+  providers: [GatewayService, GatewayEventsHandler, GatewayMqttMonitor],
   exports: [GatewayService],
 })
 export class GatewayModule {}

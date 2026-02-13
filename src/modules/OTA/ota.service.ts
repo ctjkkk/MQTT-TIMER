@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException, StreamableFile } from '@nestjs/common'
+import { Injectable, BadRequestException, InternalServerErrorException, NotFoundException, StreamableFile, Logger } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model, Types } from 'mongoose'
 import { IOtaServiceInterface } from './interfaces/ota-service.interface'
@@ -12,10 +12,12 @@ import { calculateSHA256 } from '@/common/utils/calculate'
 import * as fs from 'fs'
 import * as path from 'path'
 import { UpgradeStatusResponseDto } from './dto/upgrade-response.dto'
+import { LogMessages } from '@/shared/constants/logger.constants'
 
 @Injectable()
 export class OtaService implements IOtaServiceInterface {
   private readonly uploadDir = path.join(process.cwd(), 'uploads', 'firmwares')
+  private readonly logger = new Logger('OTA')
   constructor(
     @InjectModel(Firmware.name) private firmwareModel: Model<FirmwareDocument>,
     @InjectModel(UpgradeTask.name) private upgradeTaskModel: Model<UpgradeTaskDocument>,
@@ -53,13 +55,14 @@ export class OtaService implements IOtaServiceInterface {
     const msgId = `upgrade_${gatewayId}_${Date.now()}`
     await this.upgradeTaskModel.create({
       gatewayId,
+      msgId,
+      progress: 0,
+      status: 'pending',
       fromVersion: currentVersion,
       toVersion: latestFirmware.version,
       firmwareUrl: latestFirmware.fileUrl,
       sha256: latestFirmware.sha256,
       fileSize: latestFirmware.fileSize,
-      msgId,
-      status: 'pending',
     })
 
     // 通过 MQTT 下发升级通知给指定的网关
@@ -139,10 +142,7 @@ export class OtaService implements IOtaServiceInterface {
 
     // 如果没有升级任务，返回未升级状态
     if (!latestTask) {
-      return {
-        hasTask: false,
-        message: '暂无升级任务',
-      }
+      return { hasTask: false, message: 'There are no upgrade tasks at present.' }
     }
 
     // 计算耗时（如果已完成）
@@ -188,5 +188,70 @@ export class OtaService implements IOtaServiceInterface {
       disposition: `attachment; filename="${firmware.fileName}"`,
       length: firmware.fileSize,
     })
+  }
+
+  /**
+   * 更新升级进度
+   * 由网关通过MQTT上报调用
+   * @param msgId 升级任务的消息ID
+   * @param progressData 进度数据
+   */
+  async updateUpgradeProgress(msgId: string, progressData: { status: string; progress: number }): Promise<void> {
+    const { status, progress } = progressData
+    const updateData: any = {
+      status,
+      progress,
+      updatedAt: new Date(),
+    }
+    // 如果是第一次更新（从pending变为downloading），记录开始时间
+    const task = await this.upgradeTaskModel.findOne({ msgId })
+    if (task && task.status === 'pending' && status === 'downloading') {
+      updateData['startTime'] = new Date()
+    }
+    await this.upgradeTaskModel.updateOne({ msgId }, { $set: updateData })
+  }
+
+  /**
+   * 处理升级结果（成功或失败）
+   * @param msgId 升级任务的消息ID
+   * @param resultData 结果数据
+   * @param gatewayId 网关ID（用于日志）
+   */
+  async handleUpgradeResult(
+    msgId: string,
+    resultData: { status: string; version?: string; errorCode?: string; errorMessage?: string },
+    gatewayId: string,
+  ): Promise<void> {
+    const task = await this.upgradeTaskModel.findOne({ msgId })
+    if (!task) throw new NotFoundException(LogMessages.OTA.TASK_NOT_FOUND(msgId))
+
+    const completeTime = new Date()
+    const duration = task.startTime ? Math.floor((completeTime.getTime() - task.startTime.getTime()) / 1000) : 0
+
+    const updateData: any = {
+      status: resultData.status,
+      completeTime,
+      duration,
+      updatedAt: new Date(),
+    }
+
+    // 成功：更新进度为100，更新网关固件版本
+    if (resultData.status === 'completed') {
+      updateData.progress = 100
+      await this.upgradeTaskModel.updateOne({ msgId }, { $set: updateData })
+
+      // 更新网关的固件版本
+      if (resultData.version) {
+        await this.gatewayModel.updateOne({ gatewayId: task.gatewayId }, { $set: { firmware_version: resultData.version } })
+      }
+    } else {
+      // 失败：记录错误信息和日志
+      updateData.errorCode = resultData.errorCode
+      updateData.errorMessage = resultData.errorMessage
+      await this.upgradeTaskModel.updateOne({ msgId }, { $set: updateData })
+
+      // 只记录失败日志
+      this.logger.error(LogMessages.OTA.UPGRADE_FAILED(gatewayId, resultData.errorMessage))
+    }
   }
 }

@@ -62,6 +62,10 @@ export const LogContext = {
   PRODUCT: 'Product',
   /** 产品配置服务 */
   PRODUCT_SERVICE: 'ProductService',
+  /** OTA升级模块 */
+  OTA: 'OTA',
+  /** OTA升级服务 */
+  OTA_SERVICE: 'OTAService',
 
   // ==================== 通用 ====================
   /** 应用程序通用日志 */
@@ -79,26 +83,26 @@ export const LogMessages = {
   MQTT: {
     USER_CONNECTION_SUCCESSFUL: (ClientId: string, username: string) => `${ClientId} Authentication successful for user: ${username}`,
     BROKER_START: (way: string, port: string | number) => `${way} mode successfully connected to MQTT broker on port ${port}`,
-    BROKER_STOP: '🛑 MQTT Broker 已停止',
-    CLIENT_CONNECTED: (clientId: string) => `🔗 客户端连接: ${clientId}`,
+    BROKER_STOP: 'MQTT Broker 已停止',
+    CLIENT_CONNECTED: (clientId: string) => `客户端连接: ${clientId}`,
     CLIENT_DISCONNECTED: (clientId: string) => `🔌 客户端断开: ${clientId}`,
     MESSAGE_PUBLISHED: (clientId: string, topic: string) => `📨 Message published from ${clientId} to topic ${topic}`,
-    SUBSCRIPTION_ADDED: (topic: string) => `📝 订阅主题: ${topic}`,
-    AUTHENTICATION_FAILED: (username: string) => `❌ 认证失败: ${username}`,
-    AUTHENTICATION_SUCCESS: (username: string) => `✅ 认证成功: ${username}`,
+    SUBSCRIPTION_ADDED: (topic: string) => `订阅主题: ${topic}`,
+    AUTHENTICATION_FAILED: (username: string) => `认证失败: ${username}`,
+    AUTHENTICATION_SUCCESS: (username: string) => `认证成功: ${username}`,
     WHITELIST_EMPTY: '⚠️ MQTT_WHITELIST 为空或未设置，禁止所有用户连接',
     INTERNAL_ERROR: '🚨 内部认证错误',
-    PUBLISH_ERROR: (error: string) => `📤 发布错误: ${error}`,
+    PUBLISH_ERROR: (error: string) => `发布错误: ${error}`,
     SCANNING_PROCESSOR: () => 'Starting to scan MQTT handlers...',
     REGISTER_PROCESSOR: (topic: string, controllerName: string, methodName: string) =>
-      `Registered handler: ${topic} -> ${controllerName}.${methodName}`,
+      `Registered monitor: ${topic} -> ${controllerName}.${methodName}`,
     SCANNING_PROCESSOR_SCCUSS: (handlerCount: number) => `MQTT handler scanning complete, found ${handlerCount} handler(s)`,
     PARSE_ERROR: (error?: string) => `MQTT 消息解析错误: ${error}`,
   },
   DATABASE: {
     CONNECT_SCCUSS: (dbName: string) => `MongoDB 连接成功 - 数据库: ${dbName}`,
-    CONNECT_ERROR: (errMsg: string) => `❌ MongoDB 连接错误: ${errMsg}`,
-    CONNECT_FAIL: (errMsg: string) => `❌ MongoDB 连接失败: ${errMsg}`,
+    CONNECT_ERROR: (errMsg: string) => ` MongoDB 连接错误: ${errMsg}`,
+    CONNECT_FAIL: (errMsg: string) => `MongoDB 连接失败: ${errMsg}`,
     DISCONNECTED: () => `⚠️ MongoDB 已断开连接`,
     CONNECTION_CLOSE: (dbName: string, host: string) => `🛑 MongoDB 连接已关闭 - 数据库: ${dbName} 主机: ${host}`,
   },
@@ -117,27 +121,26 @@ export const LogMessages = {
     DEVICE_DISCONNECTED: (mac: string) => `🔌 设备断开: ${mac}`,
     UNKNOWN_ACTION: (action: string) => `未知的操作类型: ${action}`,
     // 配网相关
-    ONLINE: (gatewayId: string) => `✅ 网关上线: ${gatewayId}`,
-    OFFLINE: (gatewayId: string) => `❌ 网关离线: ${gatewayId}`,
-    REGISTERED: (gatewayId: string) => `📝 网关注册: ${gatewayId}`,
-    REBOOT: (gatewayId: string) => `🔄 网关重启: ${gatewayId}`,
+    ONLINE: (gatewayId: string) => `网关上线: ${gatewayId}`,
+    OFFLINE: (gatewayId: string) => `网关离线: ${gatewayId}`,
+    REGISTERED: (gatewayId: string) => `网关注册: ${gatewayId}`,
+    REBOOT: (gatewayId: string) => `网关重启: ${gatewayId}`,
     BIND_SUCCESS: (gatewayId: string, userId: string) => `网关绑定成功: ${gatewayId}, 用户: ${userId}`,
     BIND_UPDATE: (gatewayId: string, userId: string) => ` 网关绑定更新: ${gatewayId}, 用户: ${userId}`,
     UNBIND: (gatewayId: string, userId: string) => `网关解绑: ${gatewayId}, 用户: ${userId}`,
-    HEARTBEAT_UNKNOWN: (deviceId: string) => `⚠️ 收到未知网关的心跳: ${deviceId}`,
+    HEARTBEAT_UNKNOWN: (deviceId: string) => `收到未知网关的心跳: ${deviceId}`,
     HEARTBEAT_ACK_SENT: (deviceId: string, isBound: boolean) =>
       `心跳响应已发送: ${deviceId}, 用户绑定状态: ${isBound ? '已绑定' : '未绑定'}`,
     ONLINE_UNBOUND: (deviceId: string) => `网关 ${deviceId} 上线但未绑定用户`,
     STATUS_UPDATED: (deviceId: string, online: boolean) => `📊 网关状态已更新: ${deviceId}, 在线: ${online}`,
-    UNHANDLED_OPERATION: (action: string) => `⚠️ 未处理的网关操作: ${action}`,
+    UNHANDLED_OPERATION: (action: string) => `未处理的网关操作: ${action}`,
     COMMAND_SENT: (gatewayId: string, msgType: string, message: any) =>
       `发送网关命令: ${gatewayId}, 类型: ${msgType}, 消息: ${JSON.stringify(message)}`,
     SUBDEVICE_COMMAND_SENT: (gatewayId: string, subDeviceId: string, msgType: string) =>
       `📤 发送子设备命令: 网关=${gatewayId}, 设备=${subDeviceId}, 类型=${msgType}`,
     DP_COMMAND_VALIDATION_FAILED: (gatewayId: string, subDeviceId: string, productId: string, error: string) =>
       `DP验证失败 - 网关: ${gatewayId}, 子设备: ${subDeviceId}, 产品: ${productId}, 错误: ${error}`,
-    DP_COMMAND_SENT: (gatewayId: string, subDeviceId: string) =>
-      `DP命令已发送 - 网关: ${gatewayId}, 子设备: ${subDeviceId}`,
+    DP_COMMAND_SENT: (gatewayId: string, subDeviceId: string) => `DP命令已发送 - 网关: ${gatewayId}, 子设备: ${subDeviceId}`,
   },
   TIMER: {
     // ========== 基础查询 ==========
@@ -188,7 +191,7 @@ export const LogMessages = {
   },
   SYNC: {
     SUBSCRIBED: (tableCount: number) => `已订阅 ${tableCount} 个表的同步消息`,
-    SYNC_FAILED: (collection: string, error: string) => `❌ 同步失败 [${collection}]: ${error}`,
+    SYNC_FAILED: (collection: string, error: string) => `同步失败 [${collection}]: ${error}`,
     UNSUPPORTED_OPERATION: (operation: string) => `不支持的操作: ${operation}`,
     INSERT_SUCCESS: (collection: string, key: any) => `插入数据 [${collection}] key: ${key}`,
     UPDATE_SUCCESS: (collection: string, key: any) => `更新数据 [${collection}] key: ${key}`,
@@ -240,13 +243,29 @@ export const LogMessages = {
       `通道DP更新: Timer=${timerId}, 编号=${channelNumber}, 字段=[${updatedFields}]`,
     NOT_FOUND: (channelId: string) => `通道未找到: ${channelId}`,
     ZONE_NAME_UPDATED: (channelId: string, zoneName: string) => `通道区域名称已更新: ${channelId}, 名称="${zoneName}"`,
-    WEATHER_SKIP_UPDATED: (channelId: string, enabled: number) =>
-      `通道天气跳过已更新: ${channelId}, 启用=${enabled === 1 ? '是' : '否'}`,
+    WEATHER_SKIP_UPDATED: (channelId: string, enabled: number) => `通道天气跳过已更新: ${channelId}, 启用=${enabled === 1 ? '是' : '否'}`,
     ZONE_IMAGE_UPDATED: (channelId: string) => `通道区域图片已更新: ${channelId}`,
   },
+  OTA: {
+    // ========== MQTT 消息接收 ==========
+    MESSAGE_RECEIVED: (uuid: string, msgType: string) => `收到OTA消息: ${uuid}, 类型: ${msgType}`,
+    MESSAGE_PARSE_ERROR: () => `OTA payload parsed error`,
+    UNKNOWN_MESSAGE_TYPE: (msgType: string) => `未知的OTA消息类型: ${msgType}`,
+    HANDLE_ERROR: (error: string) => `处理OTA消息失败: ${error}`,
+
+    // ========== 升级进度 ==========
+    PROGRESS_UPDATED: (uuid: string, status: string, progress: number) => `网关 ${uuid} OTA进度: ${status} ${progress}%`,
+
+    // ========== 升级结果 ==========
+    UPGRADE_SUCCESS: (uuid: string, version?: string) => `网关 ${uuid} OTA升级成功${version ? `: ${version}` : ''}`,
+    UPGRADE_FAILED: (uuid: string, errorMessage?: string) => `网关 ${uuid} OTA升级失败${errorMessage ? `: ${errorMessage}` : ''}`,
+
+    // ========== 任务管理 ==========
+    TASK_NOT_FOUND: (msgId: string) => `升级任务未找到: ${msgId}`,
+  },
   COMMON: {
-    ERROR: (context: string, error: string) => `❌ ${context} 错误: ${error}`,
-    WARN: (context: string, message: string) => `⚠️ ${context} 警告: ${message}`,
-    INFO: (context: string, message: string) => `ℹ️ ${context} 信息: ${message}`,
+    ERROR: (context: string, error: string) => ` ${context} 错误: ${error}`,
+    WARN: (context: string, message: string) => ` ${context} 警告: ${message}`,
+    INFO: (context: string, message: string) => ` ${context} 信息: ${message}`,
   },
 } as const

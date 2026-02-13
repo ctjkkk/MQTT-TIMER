@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
 import { OtaService } from './ota.service'
+import { OtaMqttMonitor } from './ota.mqtt'
 import { Firmware, FirmwareSchema } from './schemas/firmware.schema'
 import { UpgradeTask, UpgradeTaskSchema } from './schemas/upgrade-task.schema'
 import { Gateway, GatewaySchema } from '@/modules/gateway/schema/gateway.schema'
@@ -19,7 +20,7 @@ import { MqttModule } from '@/core/mqtt/mqtt.module'
     MqttModule,
   ],
   controllers: [OtaController],
-  providers: [OtaService],
+  providers: [OtaService, OtaMqttMonitor],
   exports: [OtaService],
 })
 export class OtaModule {}

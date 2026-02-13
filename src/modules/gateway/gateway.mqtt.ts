@@ -22,7 +22,7 @@ import { parseMqttMessage, isGatewayMessage, isSubDeviceMessage } from './utils/
  * - 解耦MQTT协议和业务逻辑
  */
 @Injectable()
-export class GatewayMqttHandler {
+export class GatewayMqttMonitor {
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly logger: LoggerService,

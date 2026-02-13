@@ -21,21 +21,21 @@ export class MqttScannerService implements OnApplicationBootstrap {
     this.logger.log(LogMessages.MQTT.SCANNING_PROCESSOR())
 
     let handlerCount = 0
-    // 1. 遍历所有模块
+    // 遍历所有模块
     for (const moduleRef of this.modulesContainer.values()) {
-      // 2. 合并 controllers + providers 统一扫描
+      // 合并 controllers + providers 统一扫描
       const entries = [...moduleRef.controllers.entries(), ...moduleRef.providers.entries()]
 
       for (const [token, _] of entries) {
         try {
-          // 3. 拿到实例（可能抛出，catch 跳过）
+          // 拿到实例
           const instance = await this.moduleRef.get(token, { strict: false })
           if (!instance) continue
 
           const proto = Object.getPrototypeOf(instance)
           const methods = Object.getOwnPropertyNames(proto).filter(n => n !== 'constructor' && typeof proto[n] === 'function')
 
-          // 4. 遍历方法，找 @Topic
+          // 遍历方法，找 @Topic
           for (const methodName of methods) {
             const topics = Reflect.getMetadata(MQTT_TOPIC_METADATA, proto, methodName)
             if (!topics) continue
