@@ -14,6 +14,7 @@ import { PskAuthStrategy } from '../authentication/psk.strategy'
 import { TcpAuthStrategy } from '../authentication/tcp.strategy'
 import { MqttClientManagerService } from './mqttClientManager.service'
 import { MqttPublishService } from './mqttPublish.service'
+import { MqttMessageType } from '@/shared/constants/topic.constants'
 @Injectable()
 export class MqttBrokerService implements OnModuleInit {
   private readonly logger = new Logger(MqttBrokerService.name)
@@ -48,6 +49,13 @@ export class MqttBrokerService implements OnModuleInit {
         this.dispatchService.dispatch(packet.topic, packet.payload, client?.id || '')
 
         if (packet.topic.startsWith('sync/')) return
+
+        //心跳数据只记录系统级别日志
+        const payload = JSON.parse(packet.payload.toString())
+        if (payload.msgType === MqttMessageType.HEARTBEAT) {
+          this.logger.log(`收到${client.id}的心跳`)
+          return
+        }
         this.loggerService.info(
           LogMessages.MQTT.MESSAGE_PUBLISHED(client.id, packet.topic),
           LogContext.MQTT_PUBLISH,
