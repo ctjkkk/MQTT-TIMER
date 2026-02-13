@@ -215,7 +215,7 @@
         try {
           const res = await fetch('/logs/api/stats')
           const json = await res.json()
-          if (json.code === 200) {
+          if (json.status) {
             const s = json.data
             // 更新文件数
             ;['totalFiles', 'httpFiles', 'mqttFiles', 'syncFiles', 'errorFiles'].forEach(
@@ -238,7 +238,7 @@
         try {
           const res = await fetch('/logs/api/files')
           const json = await res.json()
-          if (json.code === 200) {
+          if (json.status) {
             const sel = document.getElementById('fileSelector')
             const defaultOption = document.createElement('option')
             defaultOption.value = ''
@@ -265,7 +265,7 @@
         try {
           const res = await fetch(url)
           const json = await res.json()
-          if (json.code === 200) displayLogs(json.data)
+          if (json.status) displayLogs(json.data)
         } catch (e) {
           document.getElementById('logsContent').innerHTML = `<div class="empty">${getI18nText('loadFailed')}</div>`
         }
@@ -274,7 +274,7 @@
         try {
           const res = await fetch(`/logs/api/file?filename=${encodeURIComponent(filename)}&limit=500`)
           const json = await res.json()
-          if (json.code === 200) displayLogs(json.data)
+          if (json.status) displayLogs(json.data)
         } catch (e) {
           document.getElementById('logsContent').innerHTML = `<div class="empty">${getI18nText('loadFileFailed')}</div>`
         }
@@ -289,7 +289,7 @@
             : `/logs/api/search?keyword=${encodeURIComponent(kw)}`
           const res = await fetch(url)
           const json = await res.json()
-          if (json.code === 200) displayLogs(json.data)
+          if (json.status) displayLogs(json.data)
         } catch (e) {
           document.getElementById('logsContent').innerHTML = `<div class="empty">${getI18nText('searchFailed')}</div>`
         }

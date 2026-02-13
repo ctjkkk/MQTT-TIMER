@@ -9,9 +9,9 @@ import { UpgradeTask, UpgradeTaskDocument } from './schemas/upgrade-task.schema'
 import { Gateway, GatewayDocument } from '@/modules/gateway/schema/gateway.schema'
 import { CommandSenderService } from '@/core/mqtt/services/commandSender.service'
 import { calculateSHA256 } from '@/common/utils/calculate'
-import type { Response } from 'express'
 import * as fs from 'fs'
 import * as path from 'path'
+import { UpgradeStatusResponseDto } from './dto/upgrade-response.dto'
 
 @Injectable()
 export class OtaService implements IOtaServiceInterface {
@@ -31,9 +31,7 @@ export class OtaService implements IOtaServiceInterface {
   async upgradeByGatewayId(gatewayId: string): Promise<void> {
     // 查询网关信息
     const gateway = await this.gatewayModel.findOne({ gatewayId }).lean()
-    if (!gateway) {
-      throw new NotFoundException(`Gateway ${gatewayId} not found`)
-    }
+    if (!gateway) throw new NotFoundException(`Gateway ${gatewayId} not found`)
 
     // 查询最新的已发布固件
     const latestFirmware = await this.firmwareModel
@@ -43,12 +41,10 @@ export class OtaService implements IOtaServiceInterface {
       })
       .sort({ createdAt: -1 }) // 按创建时间倒序
 
-    if (!latestFirmware) {
-      throw new NotFoundException('No available firmware for upgrade')
-    }
+    if (!latestFirmware) throw new NotFoundException('No available firmware for upgrade')
 
-    // 检查是否需要升级
-    const currentVersion = gateway.firmware_version || '0.0.0'
+    // 检查是否需要升级(拿当前版本和已发布的最新版本作比较)
+    const currentVersion = gateway.firmware_version
     if (currentVersion === latestFirmware.version) {
       throw new BadRequestException(`Gateway is already on version ${currentVersion}`)
     }
@@ -66,7 +62,7 @@ export class OtaService implements IOtaServiceInterface {
       status: 'pending',
     })
 
-    // 通过 MQTT 下发升级通知
+    // 通过 MQTT 下发升级通知给指定的网关
     this.commandSender.sendUpgradeCommand(gatewayId, {
       version: latestFirmware.version,
       downloadUrl: latestFirmware.fileUrl,
@@ -128,7 +124,53 @@ export class OtaService implements IOtaServiceInterface {
     }
   }
 
-  async getUpgradeStatusByGatewayId(gatewayId: string): Promise<any> {}
+  /**
+   * 查询网关当前的升级状态
+   * 用途：前端轮询升级进度条
+   * @param gatewayId 网关ID
+   * @returns 返回最新的升级任务状态
+   */
+  async getUpgradeStatusByGatewayId(gatewayId: string): Promise<UpgradeStatusResponseDto> {
+    // 查询该网关最新的升级任务（按创建时间倒序）
+    const latestTask = await this.upgradeTaskModel
+      .findOne({ gatewayId })
+      .sort({ createdAt: -1 }) // 最新的任务
+      .lean()
+
+    // 如果没有升级任务，返回未升级状态
+    if (!latestTask) {
+      return {
+        hasTask: false,
+        message: '暂无升级任务',
+      }
+    }
+
+    // 计算耗时（如果已完成）
+    let duration = latestTask.duration
+    if (!duration && latestTask.startTime) {
+      const endTime = latestTask.completeTime || new Date()
+      duration = Math.floor((endTime.getTime() - latestTask.startTime.getTime()) / 1000)
+    }
+
+    // 返回升级状态详情
+    return {
+      hasTask: true,
+      taskId: latestTask._id,
+      gatewayId: latestTask.gatewayId,
+      fromVersion: latestTask.fromVersion,
+      toVersion: latestTask.toVersion,
+      status: latestTask.status,
+      progress: latestTask.progress,
+      startTime: latestTask.startTime,
+      completeTime: latestTask.completeTime,
+      duration,
+      errorCode: latestTask.errorCode,
+      errorMessage: latestTask.errorMessage,
+      retryCount: latestTask.retryCount,
+      createdAt: latestTask.createdAt,
+      updatedAt: latestTask.updatedAt,
+    }
+  }
 
   async downloadFirmwareById(id: string): Promise<StreamableFile> {
     // 查询固件信息
@@ -146,24 +188,5 @@ export class OtaService implements IOtaServiceInterface {
       disposition: `attachment; filename="${firmware.fileName}"`,
       length: firmware.fileSize,
     })
-  }
-
-  /**
-   * 【废弃】通过文件名下载（保留用于兼容）
-   */
-  async downloadFirmware(filename: string, res: Response): Promise<void> {
-    const filePath = path.join(this.uploadDir, filename)
-    if (!fs.existsSync(filePath)) {
-      res.status(404).json({
-        status: false,
-        message: 'Firmware file not found',
-        data: null,
-      })
-      return
-    }
-    res.setHeader('Content-Type', 'application/octet-stream')
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-    const fileStream = fs.createReadStream(filePath)
-    fileStream.pipe(res)
   }
 }

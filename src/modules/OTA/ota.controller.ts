@@ -4,21 +4,12 @@ import { ApiTags } from '@nestjs/swagger'
 import { OtaService } from './ota.service'
 import { UploadFirmwareDto } from './dto/upload-firmware.dto'
 import { FirmwareResponseDto } from './dto/firmware-response.dto'
+import { UpgradeStatusResponseDto } from './dto/upgrade-response.dto'
 
 @ApiTags('OTA')
 @Controller('ota')
 export class OtaController {
   constructor(private readonly otaService: OtaService) {}
-  //前端请求升级接口，后端负责下发升级命令给网关
-  @Post('/:gatewayId/upgrade')
-  @ApiResponseStandard({
-    summary: 'upgrade gateway firmware',
-    responseDescription: 'Upgrade command sent successfully',
-    message: 'Upgrade command sent',
-  })
-  async upgrade(@Param('gatewayId') gatewayId: string) {
-    return await this.otaService.upgradeByGatewayId(gatewayId)
-  }
 
   //固件端上传固件（管理员操作，在升级流程开始前）
   @Post('firmware/upload')
@@ -36,6 +27,17 @@ export class OtaController {
     return await this.otaService.uploadFirmware(file, body)
   }
 
+  //前端请求升级接口，后端负责下发升级命令给网关
+  @Post('/:gatewayId/upgrade')
+  @ApiResponseStandard({
+    summary: 'upgrade gateway firmware',
+    responseDescription: 'Upgrade command sent successfully',
+    message: 'Upgrade command sent',
+  })
+  async upgrade(@Param('gatewayId') gatewayId: string) {
+    return await this.otaService.upgradeByGatewayId(gatewayId)
+  }
+
   //网关下载固件（网关自动调用，需要 API Key）
   @Get('firmware/download/:firmwareId')
   @ApiKeyFileDownloadStandard({
@@ -49,12 +51,13 @@ export class OtaController {
     return await this.otaService.downloadFirmwareById(firmwareId)
   }
 
-  // 查询升级进度条（前端查询）
+  // 前端查询升级进度条
   @Get('/:gatewayId/upgrade/status')
   @ApiResponseStandard({
     summary: 'Get current upgrade status',
     responseDescription: 'Returns upgrade progress',
     message: 'Success',
+    responseType: UpgradeStatusResponseDto,
   })
   async getUpgradeStatus(@Param('gatewayId') gatewayId: string) {
     return await this.otaService.getUpgradeStatusByGatewayId(gatewayId)
